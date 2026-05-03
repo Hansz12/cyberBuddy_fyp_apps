@@ -1,4 +1,4 @@
-package com.example.cyberbuddy_app
+package com.example.cyberbuddy
 
 import io.flutter.embedding.android.FlutterActivity
 
