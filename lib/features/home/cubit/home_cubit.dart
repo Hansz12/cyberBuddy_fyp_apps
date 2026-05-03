@@ -55,6 +55,7 @@ class HomeCubit extends Cubit<HomeState> {
         updateStreak();
         checkBadges();
         _generateRecommendation();
+
         await _saveLocalProgress();
         await _saveLeaderboard();
         return;
@@ -107,6 +108,7 @@ class HomeCubit extends Cubit<HomeState> {
     updateStreak();
     checkBadges();
     _generateRecommendation();
+
     await _saveAllProgress();
   }
 
@@ -209,10 +211,25 @@ class HomeCubit extends Cubit<HomeState> {
       1 - state.topicScores["social"]!,
     ];
 
+    String weakestTopic = "phishing";
+    double weakestScore = state.topicScores["phishing"] ?? 0.5;
+
+    state.topicScores.forEach((topic, score) {
+      if (score < weakestScore) {
+        weakestScore = score;
+        weakestTopic = topic;
+      }
+    });
+
     final scores = <String, double>{};
+    final reasons = <String, String>{};
 
     moduleVectors.forEach((module, vector) {
-      scores[module] = _cosineSimilarity(userVector, vector);
+      final similarityScore = _cosineSimilarity(userVector, vector);
+      scores[module] = similarityScore;
+
+      reasons[module] =
+          "Recommended because your $weakestTopic performance is lower, so this module can help strengthen that topic.";
     });
 
     final sortedModules = scores.entries.toList()
@@ -223,7 +240,13 @@ class HomeCubit extends Cubit<HomeState> {
         .take(3)
         .toList();
 
-    emit(state.copyWith(recommendedModules: recommendations));
+    emit(
+      state.copyWith(
+        recommendedModules: recommendations,
+        moduleScores: scores,
+        moduleReasons: reasons,
+      ),
+    );
   }
 
   double _cosineSimilarity(List<double> a, List<double> b) {
@@ -257,7 +280,7 @@ class HomeCubit extends Cubit<HomeState> {
         lastActiveDate: state.lastActiveDate,
       );
     } catch (_) {
-      // Kalau Firestore progress fail, local storage masih backup.
+      // Firestore progress fail, local storage masih backup.
     }
 
     await _saveLeaderboard();
@@ -276,7 +299,7 @@ class HomeCubit extends Cubit<HomeState> {
         level: state.level,
       );
     } catch (_) {
-      // Kalau leaderboard fail, app masih boleh jalan.
+      // Leaderboard fail, app masih boleh jalan.
     }
   }
 

@@ -21,6 +21,13 @@ class HomeScreen extends StatelessWidget {
     return Icons.star;
   }
 
+  String _formatTopic(String topic) {
+    if (topic == "phishing") return "Phishing";
+    if (topic == "password") return "Password Security";
+    if (topic == "social") return "Social Engineering";
+    return topic;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -88,7 +95,7 @@ class HomeScreen extends StatelessWidget {
                       const SizedBox(height: 20),
 
                       const Text(
-                        "Recommended Modules",
+                        "Recommended for you",
                         style: TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
@@ -97,27 +104,69 @@ class HomeScreen extends StatelessWidget {
 
                       const SizedBox(height: 8),
 
-                      ...state.recommendedModules.map(
-                        (module) => Card(
+                      ...state.recommendedModules.map((module) {
+                        final score = state.moduleScores[module] ?? 0;
+                        final reason =
+                            state.moduleReasons[module] ??
+                            "Recommended based on your learning progress.";
+
+                        return Card(
                           elevation: 0,
                           color: Colors.white,
-                          child: ListTile(
-                            leading: const Icon(
-                              Icons.security,
-                              color: Color(0xFF2563EB),
-                            ),
-                            title: Text(
-                              module,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            subtitle: const Text(
-                              "Recommended based on your learning progress",
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.all(12),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const CircleAvatar(
+                                  backgroundColor: Color(0xFFE0F2FE),
+                                  child: Icon(
+                                    Icons.auto_awesome,
+                                    color: Color(0xFF2563EB),
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        module,
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 15,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 6),
+                                      Text(
+                                        "Similarity score: ${score.toStringAsFixed(2)}",
+                                        style: const TextStyle(
+                                          color: Color(0xFF2563EB),
+                                          fontWeight: FontWeight.w700,
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        reason,
+                                        style: const TextStyle(
+                                          color: Colors.grey,
+                                          fontSize: 12,
+                                          height: 1.35,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
-                        ),
-                      ),
+                        );
+                      }),
 
                       const SizedBox(height: 20),
 
@@ -161,15 +210,15 @@ class HomeScreen extends StatelessWidget {
                       const SizedBox(height: 8),
 
                       _TopicProgress(
-                        "Phishing",
+                        _formatTopic("phishing"),
                         state.topicScores["phishing"] ?? 0,
                       ),
                       _TopicProgress(
-                        "Password",
+                        _formatTopic("password"),
                         state.topicScores["password"] ?? 0,
                       ),
                       _TopicProgress(
-                        "Social",
+                        _formatTopic("social"),
                         state.topicScores["social"] ?? 0,
                       ),
 

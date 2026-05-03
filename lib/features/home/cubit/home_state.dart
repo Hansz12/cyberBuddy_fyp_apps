@@ -9,6 +9,10 @@ class HomeState extends Equatable {
   final List<String> badges;
   final DateTime? lastActiveDate;
 
+  // Explainable recommendation
+  final Map<String, double> moduleScores;
+  final Map<String, String> moduleReasons;
+
   const HomeState({
     this.xp = 0,
     this.level = 1,
@@ -17,6 +21,8 @@ class HomeState extends Equatable {
     this.streak = 0,
     this.badges = const [],
     this.lastActiveDate,
+    this.moduleScores = const {},
+    this.moduleReasons = const {},
   });
 
   HomeState copyWith({
@@ -27,6 +33,8 @@ class HomeState extends Equatable {
     int? streak,
     List<String>? badges,
     DateTime? lastActiveDate,
+    Map<String, double>? moduleScores,
+    Map<String, String>? moduleReasons,
   }) {
     return HomeState(
       xp: xp ?? this.xp,
@@ -36,6 +44,8 @@ class HomeState extends Equatable {
       streak: streak ?? this.streak,
       badges: badges ?? this.badges,
       lastActiveDate: lastActiveDate ?? this.lastActiveDate,
+      moduleScores: moduleScores ?? this.moduleScores,
+      moduleReasons: moduleReasons ?? this.moduleReasons,
     );
   }
 
@@ -48,5 +58,7 @@ class HomeState extends Equatable {
     streak,
     badges,
     lastActiveDate,
+    moduleScores,
+    moduleReasons,
   ];
 }
