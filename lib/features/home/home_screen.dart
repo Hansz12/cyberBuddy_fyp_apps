@@ -4,7 +4,6 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../data/services/news_service.dart';
 import '../learning/learning_screen.dart';
-import '../leaderboard/leaderboard_screen.dart';
 import '../news/news_screen.dart';
 import '../quiz/cubit/quiz_cubit.dart';
 import '../quiz/quiz_screen.dart';
@@ -13,8 +12,29 @@ import '../threat_checker/threat_checker_screen.dart';
 import 'cubit/home_cubit.dart';
 import 'cubit/home_state.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  late Future<List<Map<String, dynamic>>> _newsFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _newsFuture = NewsService().fetchCyberNews();
+  }
+
+  Future<void> _refreshHomeNews() async {
+    setState(() {
+      _newsFuture = NewsService().fetchCyberNews();
+    });
+
+    await _newsFuture;
+  }
 
   void _openQuiz(BuildContext context) {
     final homeState = context.read<HomeCubit>().state;
@@ -50,20 +70,31 @@ class HomeScreen extends StatelessWidget {
   Future<void> _openNewsUrl(BuildContext context, String url) async {
     final uri = Uri.tryParse(url);
 
-    if (uri == null) {
+    if (uri == null || url.isEmpty) {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text("Invalid news link.")));
       return;
     }
 
-    final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    await launchUrl(uri, mode: LaunchMode.externalApplication);
+  }
 
-    if (!opened && context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Could not open news link.")),
-      );
+  String _cleanSource(dynamic source) {
+    if (source == null) return "Online source";
+
+    if (source is Map) {
+      return source["name"]?.toString() ?? "Online source";
     }
+
+    final text = source.toString();
+
+    if (text.contains("name:")) {
+      final match = RegExp(r'name:\s*([^,}]+)').firstMatch(text);
+      return match?.group(1)?.trim() ?? "Online source";
+    }
+
+    return text;
   }
 
   @override
@@ -73,110 +104,182 @@ class HomeScreen extends StatelessWidget {
       body: SafeArea(
         child: BlocBuilder<HomeCubit, HomeState>(
           builder: (context, state) {
-            return ListView(
-              children: [
-                _HomeHeader(state: state),
-                Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    children: [
-                      const _SectionHeader(
-                        title: "WEEKLY STREAK",
-                        actionText: "",
-                        onTap: null,
-                      ),
-                      const SizedBox(height: 8),
-                      _WeeklyStreakRow(streak: state.streak),
+            return RefreshIndicator(
+              onRefresh: _refreshHomeNews,
+              child: ListView(
+                children: [
+                  _HomeHeader(state: state),
+                  Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      children: [
+                        const _SectionHeader(
+                          title: "WEEKLY STREAK",
+                          actionText: "",
+                          onTap: null,
+                        ),
+                        const SizedBox(height: 8),
+                        _WeeklyStreakRow(streak: state.streak),
 
-                      const SizedBox(height: 18),
+                        const SizedBox(height: 18),
 
-                      _SectionHeader(
-                        title: "DAILY QUESTS",
-                        actionText: "View all",
-                        onTap: () => _openLearning(context),
-                      ),
-                      const SizedBox(height: 8),
-
-                      GridView.count(
-                        crossAxisCount: 2,
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        crossAxisSpacing: 10,
-                        mainAxisSpacing: 10,
-                        childAspectRatio: 1.28,
-                        children: [
-                          _QuestCard(
-                            icon: "📖",
-                            title: "Complete 1\nmodule",
-                            xp: "+10 XP",
-                            progress: 0.15,
-                            onTap: () => _openLearning(context),
-                          ),
-                          _QuestCard(
-                            icon: "🎯",
-                            title: "Score 80%+\nquiz",
-                            xp: "+20 XP",
-                            progress: 0.30,
-                            onTap: () => _openQuiz(context),
-                          ),
-                          _QuestCard(
-                            icon: "⚡",
-                            title: "New topic\ntoday",
-                            xp: "+15 XP",
-                            progress: 0.60,
-                            onTap: () => _openLearning(context),
-                          ),
-                          _QuestCard(
-                            icon: "🔍",
-                            title: "Use threat\nchecker",
-                            xp: "+25 XP",
-                            progress: 1.0,
-                            onTap: () => _openThreatChecker(context),
-                          ),
-                        ],
-                      ),
-
-                      const SizedBox(height: 22),
-
-                      _SectionHeader(
-                        title: "RECOMMENDED FOR YOU",
-                        actionText: "More",
-                        onTap: () => _openLearning(context),
-                      ),
-                      const SizedBox(height: 8),
-
-                      ...state.recommendedModules.map((module) {
-                        final score = state.moduleScores[module] ?? 0;
-                        final reason =
-                            state.moduleReasons[module] ??
-                            "Recommended based on your learning progress.";
-
-                        return _RecommendedCard(
-                          title: module,
-                          score: score,
-                          reason: reason,
+                        _SectionHeader(
+                          title: "DAILY QUESTS",
+                          actionText: "View all",
                           onTap: () => _openLearning(context),
-                        );
-                      }),
+                        ),
+                        const SizedBox(height: 8),
 
-                      const SizedBox(height: 18),
+                        GridView.count(
+                          crossAxisCount: 2,
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          crossAxisSpacing: 10,
+                          mainAxisSpacing: 10,
+                          childAspectRatio: 1.28,
+                          children: [
+                            _QuestCard(
+                              icon: "📖",
+                              title: "Complete 1\nmodule",
+                              xp: "+10 XP",
+                              progress: 0.15,
+                              onTap: () => _openLearning(context),
+                            ),
+                            _QuestCard(
+                              icon: "🎯",
+                              title: "Score 80%+\nquiz",
+                              xp: "+20 XP",
+                              progress: 0.30,
+                              onTap: () => _openQuiz(context),
+                            ),
+                            _QuestCard(
+                              icon: "⚡",
+                              title: "New topic\ntoday",
+                              xp: "+15 XP",
+                              progress: 0.60,
+                              onTap: () => _openLearning(context),
+                            ),
+                            _QuestCard(
+                              icon: "🔍",
+                              title: "Use threat\nchecker",
+                              xp: "+25 XP",
+                              progress: 1.0,
+                              onTap: () => _openThreatChecker(context),
+                            ),
+                          ],
+                        ),
 
-                      _SectionHeader(
-                        title: "LIVE CYBER NEWS",
-                        actionText: "All news",
-                        onTap: () => _openNews(context),
-                      ),
-                      const SizedBox(height: 8),
+                        const SizedBox(height: 22),
 
-                      _LiveNewsSection(
-                        onOpenNews: (url) => _openNewsUrl(context, url),
-                      ),
+                        _SectionHeader(
+                          title: "RECOMMENDED FOR YOU",
+                          actionText: "More",
+                          onTap: () => _openLearning(context),
+                        ),
+                        const SizedBox(height: 8),
 
-                      const SizedBox(height: 90),
-                    ],
+                        ...state.recommendedModules.map((module) {
+                          final score = state.moduleScores[module] ?? 0;
+                          final reason =
+                              state.moduleReasons[module] ??
+                              "Recommended based on your learning progress.";
+
+                          return _RecommendedCard(
+                            title: module,
+                            score: score,
+                            reason: reason,
+                            onTap: () => _openLearning(context),
+                          );
+                        }),
+
+                        const SizedBox(height: 18),
+
+                        _NewsSectionHeader(
+                          onAllNews: () => _openNews(context),
+                          onRefresh: _refreshHomeNews,
+                        ),
+                        const SizedBox(height: 8),
+
+                        FutureBuilder<List<Map<String, dynamic>>>(
+                          future: _newsFuture,
+                          builder: (context, snapshot) {
+                            if (snapshot.connectionState ==
+                                ConnectionState.waiting) {
+                              return Container(
+                                padding: const EdgeInsets.all(18),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(18),
+                                  border: Border.all(
+                                    color: const Color(0xFFE2E8F0),
+                                  ),
+                                ),
+                                child: const Center(
+                                  child: CircularProgressIndicator(),
+                                ),
+                              );
+                            }
+
+                            if (snapshot.hasError) {
+                              return Container(
+                                padding: const EdgeInsets.all(16),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(18),
+                                  border: Border.all(
+                                    color: const Color(0xFFE2E8F0),
+                                  ),
+                                ),
+                                child: Text(
+                                  "News error: ${snapshot.error}",
+                                  style: const TextStyle(color: Colors.red),
+                                ),
+                              );
+                            }
+
+                            final newsList = snapshot.data ?? [];
+
+                            if (newsList.isEmpty) {
+                              return Container(
+                                padding: const EdgeInsets.all(16),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(18),
+                                  border: Border.all(
+                                    color: const Color(0xFFE2E8F0),
+                                  ),
+                                ),
+                                child: const Text(
+                                  "No relevant cybersecurity news found.",
+                                ),
+                              );
+                            }
+
+                            return Column(
+                              children: newsList.take(3).map((news) {
+                                return _NewsCard(
+                                  icon: "📰",
+                                  tag: "LIVE",
+                                  title:
+                                      news["title"]?.toString() ??
+                                      "Cybersecurity news",
+                                  source: _cleanSource(news["source"]),
+                                  onTap: () => _openNewsUrl(
+                                    context,
+                                    news["url"]?.toString() ?? "",
+                                  ),
+                                );
+                              }).toList(),
+                            );
+                          },
+                        ),
+
+                        const SizedBox(height: 90),
+                      ],
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             );
           },
         ),
@@ -185,69 +288,44 @@ class HomeScreen extends StatelessWidget {
   }
 }
 
-class _LiveNewsSection extends StatelessWidget {
-  final void Function(String url) onOpenNews;
+class _NewsSectionHeader extends StatelessWidget {
+  final VoidCallback onAllNews;
+  final Future<void> Function() onRefresh;
 
-  const _LiveNewsSection({required this.onOpenNews});
+  const _NewsSectionHeader({required this.onAllNews, required this.onRefresh});
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<List<Map<String, dynamic>>>(
-      future: NewsService().fetchCyberNews(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return Container(
-            padding: const EdgeInsets.all(18),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: const Color(0xFFE2E8F0)),
+    return Row(
+      children: [
+        const Text(
+          "LIVE CYBER NEWS",
+          style: TextStyle(
+            color: Color(0xFF0F172A),
+            fontSize: 15,
+            fontWeight: FontWeight.w900,
+            letterSpacing: 0.8,
+          ),
+        ),
+        const Spacer(),
+        IconButton(
+          onPressed: onRefresh,
+          icon: const Icon(Icons.refresh),
+          color: const Color(0xFF2563EB),
+          tooltip: "Refresh news",
+        ),
+        GestureDetector(
+          onTap: onAllNews,
+          child: const Text(
+            "All news",
+            style: TextStyle(
+              color: Color(0xFF2563EB),
+              fontSize: 13,
+              fontWeight: FontWeight.bold,
             ),
-            child: const Center(child: CircularProgressIndicator()),
-          );
-        }
-
-        if (snapshot.hasError) {
-          return Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: const Color(0xFFE2E8F0)),
-            ),
-            child: Text(
-              "News error: ${snapshot.error}",
-              style: const TextStyle(color: Colors.red),
-            ),
-          );
-        }
-
-        final newsList = snapshot.data ?? [];
-
-        if (newsList.isEmpty) {
-          return Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: const Color(0xFFE2E8F0)),
-            ),
-            child: const Text("No relevant cybersecurity news found."),
-          );
-        }
-
-        return Column(
-          children: newsList.take(3).map((news) {
-            return _NewsCard(
-              icon: "📰",
-              tag: "LIVE",
-              title: news["title"]?.toString() ?? "Cybersecurity news",
-              source: news["source"]?.toString() ?? "Online source",
-              onTap: () => onOpenNews(news["url"]?.toString() ?? ""),
-            );
-          }).toList(),
-        );
-      },
+          ),
+        ),
+      ],
     );
   }
 }
@@ -783,6 +861,10 @@ class _NewsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final sourceText = source.length > 35
+        ? "${source.substring(0, 35)}..."
+        : source;
+
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(18),
@@ -836,7 +918,7 @@ class _NewsCard extends StatelessWidget {
                     children: [
                       Expanded(
                         child: Text(
-                          source,
+                          sourceText,
                           style: const TextStyle(
                             color: Colors.grey,
                             fontSize: 11,
