@@ -5,7 +5,7 @@ class ThreatCheckerCubit extends Cubit<ThreatCheckerState> {
   ThreatCheckerCubit() : super(const ThreatCheckerState());
 
   void updateInput(String value) {
-    emit(state.copyWith(input: value));
+    emit(state.copyWith(input: value, analysed: false));
   }
 
   void analyseThreat() {
@@ -18,7 +18,7 @@ class ThreatCheckerCubit extends Cubit<ThreatCheckerState> {
       emit(
         state.copyWith(
           riskScore: 0,
-          verdict: "Please enter a message or URL first.",
+          verdict: "Please enter a URL, email, or message first.",
           flags: const [],
           analysed: true,
         ),
@@ -27,51 +27,62 @@ class ThreatCheckerCubit extends Cubit<ThreatCheckerState> {
     }
 
     if (text.contains("http://")) {
-      score += 25;
-      flags.add("Uses insecure HTTP instead of HTTPS.");
+      score += 20;
+      flags.add("Insecure link: uses HTTP instead of HTTPS.");
+    }
+
+    if (text.contains("maybank-secure") ||
+        text.contains("secure-login") ||
+        text.contains("verify-login") ||
+        text.contains("-verify") ||
+        text.contains("-secure")) {
+      score += 30;
+      flags.add(
+        "Lookalike domain: this is NOT the official domain. Possible typosquatting.",
+      );
+    }
+
+    if (text.contains("login") ||
+        text.contains("verify") ||
+        text.contains("password") ||
+        text.contains("otp") ||
+        text.contains("bank")) {
+      score += 20;
+      flags.add(
+        "Sensitive request: asks for login, banking, password, or OTP action.",
+      );
     }
 
     if (text.contains("urgent") ||
         text.contains("immediately") ||
-        text.contains("verify now") ||
-        text.contains("before 11:59")) {
+        text.contains("24 hours") ||
+        text.contains("locked") ||
+        text.contains("suspended")) {
       score += 20;
-      flags.add("Uses urgency to pressure the user.");
+      flags.add(
+        "Pressure tactic: uses urgency, account lock, or suspension warning.",
+      );
     }
 
-    if (text.contains("password") ||
-        text.contains("otp") ||
-        text.contains("login") ||
-        text.contains("bank")) {
-      score += 20;
-      flags.add("Requests or relates to sensitive information.");
-    }
-
-    if (text.contains("free") ||
-        text.contains("prize") ||
-        text.contains("claim") ||
-        text.contains("reward")) {
-      score += 15;
-      flags.add("Uses reward or prize bait.");
-    }
-
-    if (text.contains(".net") ||
-        text.contains(".xyz") ||
-        text.contains("-verify") ||
-        text.contains("-secure")) {
-      score += 20;
-      flags.add("Contains suspicious or lookalike domain pattern.");
+    if (text.contains("redirect") ||
+        text.contains("ref=") ||
+        text.contains("sms") ||
+        text.contains("alert")) {
+      score += 17;
+      flags.add(
+        "Suspicious path/query: contains redirect or tracking-like parameters.",
+      );
     }
 
     if (score > 100) score = 100;
 
     String verdict;
     if (score >= 70) {
-      verdict = "High Risk — Likely Phishing";
+      verdict = "🚨 High Risk — Likely Phishing";
     } else if (score >= 40) {
-      verdict = "Medium Risk — Be Careful";
+      verdict = "⚠️ Medium Risk — Be Careful";
     } else {
-      verdict = "Low Risk — No major red flags detected";
+      verdict = "✅ Low Risk — No major red flags detected";
     }
 
     emit(

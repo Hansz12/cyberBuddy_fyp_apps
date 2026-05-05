@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import 'features/home/cubit/home_cubit.dart';
 import 'features/home/home_screen.dart';
 import 'features/learning/learning_screen.dart';
 import 'features/leaderboard/leaderboard_screen.dart';
 import 'features/profile/profile_screen.dart';
 import 'features/threat_checker/threat_checker_screen.dart';
-
 import 'features/quiz/cubit/quiz_cubit.dart';
 import 'features/quiz/quiz_screen.dart';
 
@@ -29,11 +29,15 @@ class _MainNavigationState extends State<MainNavigation> {
   ];
 
   void _onTap(int index) {
-    setState(() => _currentIndex = index);
+    setState(() {
+      _currentIndex = index;
+    });
   }
 
   void _startQuiz(BuildContext context) {
-    context.read<QuizCubit>().loadQuiz();
+    final homeState = context.read<HomeCubit>().state;
+
+    context.read<QuizCubit>().loadQuiz(homeState: homeState);
 
     Navigator.push(
       context,
@@ -45,13 +49,12 @@ class _MainNavigationState extends State<MainNavigation> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: _screens[_currentIndex],
-
-      // 🚀 QUICK QUIZ BUTTON
       floatingActionButton: FloatingActionButton(
         onPressed: () => _startQuiz(context),
+        backgroundColor: const Color(0xFF2563EB),
+        foregroundColor: Colors.white,
         child: const Icon(Icons.play_arrow),
       ),
-
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
         onTap: _onTap,
