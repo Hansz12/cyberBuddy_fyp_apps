@@ -5,16 +5,14 @@ class UserProgressRepository {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
-  String get _uid {
-    final user = _auth.currentUser;
-    if (user == null) {
-      throw Exception("No logged in user found.");
-    }
-    return user.uid;
-  }
+  String? get _userId => _auth.currentUser?.uid;
 
   Future<Map<String, dynamic>?> loadProgress() async {
-    final doc = await _firestore.collection('user_progress').doc(_uid).get();
+    final userId = _userId;
+
+    if (userId == null) return null;
+
+    final doc = await _firestore.collection('user_progress').doc(userId).get();
 
     if (!doc.exists) return null;
 
@@ -28,19 +26,31 @@ class UserProgressRepository {
     required List<String> badges,
     required Map<String, double> topicScores,
     required DateTime? lastActiveDate,
+    required List<String> notifications,
+    required bool hasUnreadNotifications,
   }) async {
-    await _firestore.collection('user_progress').doc(_uid).set({
+    final userId = _userId;
+
+    if (userId == null) return;
+
+    await _firestore.collection('user_progress').doc(userId).set({
       'xp': xp,
       'level': level,
       'streak': streak,
       'badges': badges,
       'topicScores': topicScores,
       'lastActiveDate': lastActiveDate?.toIso8601String(),
+      'notifications': notifications,
+      'hasUnreadNotifications': hasUnreadNotifications,
       'updatedAt': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
   }
 
   Future<void> resetProgress() async {
-    await _firestore.collection('user_progress').doc(_uid).delete();
+    final userId = _userId;
+
+    if (userId == null) return;
+
+    await _firestore.collection('user_progress').doc(userId).delete();
   }
 }

@@ -35,7 +35,7 @@ class HomeCubit extends Cubit<HomeState> {
             ? topicRaw.map(
                 (key, value) => MapEntry(key, (value as num).toDouble()),
               )
-            : const {"phishing": 0.5, "password": 0.5, "social": 0.5};
+            : state.topicScores;
 
         final lastActiveString = cloudData['lastActiveDate'] as String?;
 
@@ -49,11 +49,14 @@ class HomeCubit extends Cubit<HomeState> {
             lastActiveDate: lastActiveString == null
                 ? null
                 : DateTime.tryParse(lastActiveString),
+            notifications: List<String>.from(cloudData['notifications'] ?? []),
+            hasUnreadNotifications:
+                cloudData['hasUnreadNotifications'] ?? false,
           ),
         );
 
         updateStreak();
-        checkBadges();
+        _checkBadges();
         _generateRecommendation();
 
         await _saveLocalProgress();
@@ -75,15 +78,14 @@ class HomeCubit extends Cubit<HomeState> {
     final level = prefs.getInt('level') ?? 1;
     final streak = prefs.getInt('streak') ?? 0;
     final badges = prefs.getStringList('badges') ?? [];
+    final notifications = prefs.getStringList('notifications') ?? [];
+    final hasUnreadNotifications =
+        prefs.getBool('hasUnreadNotifications') ?? false;
 
     final topicJson = prefs.getString('topicScores');
     final lastActiveString = prefs.getString('lastActiveDate');
 
-    Map<String, double> topicScores = const {
-      "phishing": 0.5,
-      "password": 0.5,
-      "social": 0.5,
-    };
+    Map<String, double> topicScores = state.topicScores;
 
     if (topicJson != null) {
       final decoded = jsonDecode(topicJson) as Map<String, dynamic>;
@@ -98,6 +100,8 @@ class HomeCubit extends Cubit<HomeState> {
         level: level,
         streak: streak,
         badges: badges,
+        notifications: notifications,
+        hasUnreadNotifications: hasUnreadNotifications,
         topicScores: topicScores,
         lastActiveDate: lastActiveString == null
             ? null
@@ -106,7 +110,7 @@ class HomeCubit extends Cubit<HomeState> {
     );
 
     updateStreak();
-    checkBadges();
+    _checkBadges();
     _generateRecommendation();
 
     await _saveAllProgress();
@@ -130,12 +134,41 @@ class HomeCubit extends Cubit<HomeState> {
     final newXP = state.xp + value;
     final newLevel = (newXP ~/ 100) + 1;
 
-    emit(state.copyWith(xp: newXP, level: newLevel));
+    final updatedNotifications = List<String>.from(state.notifications)
+      ..insert(0, "You gained +$value XP.");
+
+    emit(
+      state.copyWith(
+        xp: newXP,
+        level: newLevel,
+        notifications: updatedNotifications,
+        hasUnreadNotifications: true,
+      ),
+    );
 
     updateStreak();
-    checkBadges();
+    _checkBadges();
     _generateRecommendation();
 
+    await _saveAllProgress();
+  }
+
+  Future<void> addNotification(String message) async {
+    final updatedNotifications = List<String>.from(state.notifications)
+      ..insert(0, message);
+
+    emit(
+      state.copyWith(
+        notifications: updatedNotifications,
+        hasUnreadNotifications: true,
+      ),
+    );
+
+    await _saveAllProgress();
+  }
+
+  Future<void> markNotificationsAsRead() async {
+    emit(state.copyWith(hasUnreadNotifications: false));
     await _saveAllProgress();
   }
 
@@ -162,30 +195,35 @@ class HomeCubit extends Cubit<HomeState> {
     }
   }
 
-  void checkBadges() {
+  void _checkBadges() {
     final updatedBadges = List<String>.from(state.badges);
+    final updatedNotifications = List<String>.from(state.notifications);
+    bool hasNewNotification = false;
 
-    if (!updatedBadges.contains("Rookie Badge")) {
-      updatedBadges.add("Rookie Badge");
+    void unlockBadge(String badgeName) {
+      if (!updatedBadges.contains(badgeName)) {
+        updatedBadges.add(badgeName);
+        updatedNotifications.insert(0, "Badge unlocked: $badgeName.");
+        hasNewNotification = true;
+      }
     }
 
-    if (state.xp >= 100 && !updatedBadges.contains("Beginner Defender")) {
-      updatedBadges.add("Beginner Defender");
-    }
+    unlockBadge("Rookie Badge");
 
-    if (state.xp >= 300 && !updatedBadges.contains("Intermediate Defender")) {
-      updatedBadges.add("Intermediate Defender");
-    }
+    if (state.xp >= 100) unlockBadge("Beginner Defender");
+    if (state.xp >= 300) unlockBadge("Intermediate Defender");
+    if (state.xp >= 500) unlockBadge("Cyber Hero");
+    if (state.streak >= 3) unlockBadge("Consistent Learner");
 
-    if (state.xp >= 500 && !updatedBadges.contains("Cyber Hero")) {
-      updatedBadges.add("Cyber Hero");
-    }
-
-    if (state.streak >= 3 && !updatedBadges.contains("Consistent Learner")) {
-      updatedBadges.add("Consistent Learner");
-    }
-
-    emit(state.copyWith(badges: updatedBadges));
+    emit(
+      state.copyWith(
+        badges: updatedBadges,
+        notifications: updatedNotifications,
+        hasUnreadNotifications: hasNewNotification
+            ? true
+            : state.hasUnreadNotifications,
+      ),
+    );
   }
 
   Future<void> resetProgress() async {
@@ -199,16 +237,16 @@ class HomeCubit extends Cubit<HomeState> {
     emit(const HomeState());
 
     _generateRecommendation();
-    checkBadges();
+    _checkBadges();
 
     await _saveAllProgress();
   }
 
   void _generateRecommendation() {
     final userVector = [
-      1 - state.topicScores["phishing"]!,
-      1 - state.topicScores["password"]!,
-      1 - state.topicScores["social"]!,
+      1 - (state.topicScores["phishing"] ?? 0.5),
+      1 - (state.topicScores["password"] ?? 0.5),
+      1 - (state.topicScores["social"] ?? 0.5),
     ];
 
     String weakestTopic = "phishing";
@@ -278,10 +316,10 @@ class HomeCubit extends Cubit<HomeState> {
         badges: state.badges,
         topicScores: state.topicScores,
         lastActiveDate: state.lastActiveDate,
+        notifications: state.notifications,
+        hasUnreadNotifications: state.hasUnreadNotifications,
       );
-    } catch (_) {
-      // Firestore progress fail, local storage masih backup.
-    }
+    } catch (_) {}
 
     await _saveLeaderboard();
   }
@@ -294,15 +332,15 @@ class HomeCubit extends Cubit<HomeState> {
     try {
       await _leaderboardRepository.updateUser(
         userId: user.uid,
-        name: user.email ?? "User",
+        name: user.displayName?.trim().isNotEmpty == true
+            ? user.displayName!.trim()
+            : user.email ?? "User",
         xp: state.xp,
         level: state.level,
         streak: state.streak,
         badges: state.badges.length,
       );
-    } catch (_) {
-      // Leaderboard fail, app masih boleh jalan.
-    }
+    } catch (_) {}
   }
 
   Future<void> _saveLocalProgress() async {
@@ -312,6 +350,8 @@ class HomeCubit extends Cubit<HomeState> {
     await prefs.setInt('level', state.level);
     await prefs.setInt('streak', state.streak);
     await prefs.setStringList('badges', state.badges);
+    await prefs.setStringList('notifications', state.notifications);
+    await prefs.setBool('hasUnreadNotifications', state.hasUnreadNotifications);
     await prefs.setString('topicScores', jsonEncode(state.topicScores));
 
     if (state.lastActiveDate != null) {

@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -120,16 +121,13 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                         const SizedBox(height: 8),
                         _WeeklyStreakRow(streak: state.streak),
-
                         const SizedBox(height: 18),
-
                         _SectionHeader(
                           title: "DAILY QUESTS",
                           actionText: "View all",
                           onTap: () => _openLearning(context),
                         ),
                         const SizedBox(height: 8),
-
                         GridView.count(
                           crossAxisCount: 2,
                           shrinkWrap: true,
@@ -168,16 +166,13 @@ class _HomeScreenState extends State<HomeScreen> {
                             ),
                           ],
                         ),
-
                         const SizedBox(height: 22),
-
                         _SectionHeader(
                           title: "RECOMMENDED FOR YOU",
                           actionText: "More",
                           onTap: () => _openLearning(context),
                         ),
                         const SizedBox(height: 8),
-
                         ...state.recommendedModules.map((module) {
                           final score = state.moduleScores[module] ?? 0;
                           final reason =
@@ -191,15 +186,12 @@ class _HomeScreenState extends State<HomeScreen> {
                             onTap: () => _openLearning(context),
                           );
                         }),
-
                         const SizedBox(height: 18),
-
                         _NewsSectionHeader(
                           onAllNews: () => _openNews(context),
                           onRefresh: _refreshHomeNews,
                         ),
                         const SizedBox(height: 8),
-
                         FutureBuilder<List<Map<String, dynamic>>>(
                           future: _newsFuture,
                           builder: (context, snapshot) {
@@ -273,7 +265,6 @@ class _HomeScreenState extends State<HomeScreen> {
                             );
                           },
                         ),
-
                         const SizedBox(height: 90),
                       ],
                     ),
@@ -288,52 +279,110 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-class _NewsSectionHeader extends StatelessWidget {
-  final VoidCallback onAllNews;
-  final Future<void> Function() onRefresh;
-
-  const _NewsSectionHeader({required this.onAllNews, required this.onRefresh});
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        const Text(
-          "LIVE CYBER NEWS",
-          style: TextStyle(
-            color: Color(0xFF0F172A),
-            fontSize: 15,
-            fontWeight: FontWeight.w900,
-            letterSpacing: 0.8,
-          ),
-        ),
-        const Spacer(),
-        IconButton(
-          onPressed: onRefresh,
-          icon: const Icon(Icons.refresh),
-          color: const Color(0xFF2563EB),
-          tooltip: "Refresh news",
-        ),
-        GestureDetector(
-          onTap: onAllNews,
-          child: const Text(
-            "All news",
-            style: TextStyle(
-              color: Color(0xFF2563EB),
-              fontSize: 13,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
 class _HomeHeader extends StatelessWidget {
   final HomeState state;
 
   const _HomeHeader({required this.state});
+
+  String _getGreeting() {
+    final hour = DateTime.now().hour;
+
+    if (hour >= 5 && hour < 12) {
+      return "Good morning,";
+    } else if (hour >= 12 && hour < 18) {
+      return "Good afternoon,";
+    } else if (hour >= 18 && hour < 22) {
+      return "Good evening,";
+    } else {
+      return "Good night,";
+    }
+  }
+
+  String _getUserName() {
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (user?.displayName != null && user!.displayName!.trim().isNotEmpty) {
+      return user.displayName!.trim();
+    }
+
+    final email = user?.email ?? "User";
+
+    if (email.contains("@")) {
+      final name = email.split("@").first;
+      if (name.isEmpty) return "User";
+      return name[0].toUpperCase() + name.substring(1);
+    }
+
+    return "User";
+  }
+
+  void _showNotifications(BuildContext context) {
+    context.read<HomeCubit>().markNotificationsAsRead();
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFFF1F5F9),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
+      ),
+      builder: (_) {
+        final notifications = state.notifications;
+
+        return Padding(
+          padding: const EdgeInsets.all(18),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                "Notifications 🔔",
+                style: TextStyle(
+                  color: Color(0xFF0F172A),
+                  fontSize: 20,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 14),
+              if (notifications.isEmpty)
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: const Text(
+                    "No notifications yet.",
+                    style: TextStyle(color: Colors.grey),
+                  ),
+                )
+              else
+                ...notifications.take(8).map((item) {
+                  return Container(
+                    width: double.infinity,
+                    margin: const EdgeInsets.only(bottom: 10),
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                    ),
+                    child: Text(
+                      item,
+                      style: const TextStyle(
+                        color: Color(0xFF0F172A),
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  );
+                }),
+              const SizedBox(height: 10),
+            ],
+          ),
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -345,8 +394,10 @@ class _HomeHeader extends StatelessWidget {
         ? 0.0
         : (currentProgress / neededProgress).clamp(0.0, 1.0);
 
+    final userName = _getUserName();
+
     return Container(
-      padding: const EdgeInsets.fromLTRB(18, 14, 18, 28),
+      padding: const EdgeInsets.fromLTRB(18, 30, 18, 28),
       decoration: const BoxDecoration(
         gradient: LinearGradient(
           colors: [Color(0xFF0D1B3E), Color(0xFF1E3A8A)],
@@ -356,40 +407,24 @@ class _HomeHeader extends StatelessWidget {
       ),
       child: Column(
         children: [
-          const Row(
-            children: [
-              Text(
-                "9:41",
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              Spacer(),
-              Text(
-                "WIFI 🔋",
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 12,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 22),
           Row(
             children: [
-              const Expanded(
+              Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      "Good morning,",
-                      style: TextStyle(color: Colors.white70, fontSize: 13),
+                      _getGreeting(),
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 13,
+                      ),
                     ),
                     Text(
-                      "Farhana 👋",
-                      style: TextStyle(
+                      "$userName 👋",
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
                         color: Colors.white,
                         fontSize: 22,
                         fontWeight: FontWeight.w900,
@@ -398,31 +433,35 @@ class _HomeHeader extends StatelessWidget {
                   ],
                 ),
               ),
-              Container(
-                width: 46,
-                height: 46,
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.12),
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: Stack(
-                  children: [
-                    const Center(
-                      child: Text("🔔", style: TextStyle(fontSize: 22)),
-                    ),
-                    Positioned(
-                      right: 8,
-                      top: 8,
-                      child: Container(
-                        width: 8,
-                        height: 8,
-                        decoration: const BoxDecoration(
-                          color: Colors.red,
-                          shape: BoxShape.circle,
-                        ),
+              GestureDetector(
+                onTap: () => _showNotifications(context),
+                child: Container(
+                  width: 46,
+                  height: 46,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Stack(
+                    children: [
+                      const Center(
+                        child: Text("🔔", style: TextStyle(fontSize: 22)),
                       ),
-                    ),
-                  ],
+                      if (state.hasUnreadNotifications)
+                        Positioned(
+                          right: 8,
+                          top: 8,
+                          child: Container(
+                            width: 8,
+                            height: 8,
+                            decoration: const BoxDecoration(
+                              color: Colors.red,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
                 ),
               ),
             ],
@@ -483,6 +522,48 @@ class _HomeHeader extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _NewsSectionHeader extends StatelessWidget {
+  final VoidCallback onAllNews;
+  final Future<void> Function() onRefresh;
+
+  const _NewsSectionHeader({required this.onAllNews, required this.onRefresh});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        const Text(
+          "LIVE CYBER NEWS",
+          style: TextStyle(
+            color: Color(0xFF0F172A),
+            fontSize: 15,
+            fontWeight: FontWeight.w900,
+            letterSpacing: 0.8,
+          ),
+        ),
+        const Spacer(),
+        IconButton(
+          onPressed: onRefresh,
+          icon: const Icon(Icons.refresh),
+          color: const Color(0xFF2563EB),
+          tooltip: "Refresh news",
+        ),
+        GestureDetector(
+          onTap: onAllNews,
+          child: const Text(
+            "All news",
+            style: TextStyle(
+              color: Color(0xFF2563EB),
+              fontSize: 13,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -580,7 +661,7 @@ class _WeeklyStreakRow extends StatelessWidget {
     return Row(
       children: List.generate(days.length, (index) {
         final isDone = index < streak.clamp(0, 7);
-        final isToday = index == 4;
+        final isToday = index == DateTime.now().weekday - 1;
 
         return Expanded(
           child: Container(

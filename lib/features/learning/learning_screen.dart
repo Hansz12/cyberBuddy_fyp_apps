@@ -14,11 +14,30 @@ class LearningScreen extends StatefulWidget {
 
 class _LearningScreenState extends State<LearningScreen> {
   String selectedFilter = "All topics";
+  String searchQuery = "";
+
+  final TextEditingController _searchController = TextEditingController();
+
+  final List<String> filters = const [
+    "All topics",
+    "Phishing",
+    "Malware",
+    "Password",
+    "Privacy",
+    "Scam",
+    "Mobile",
+  ];
 
   @override
   void initState() {
     super.initState();
     context.read<LearningCubit>().loadModules();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   IconData _topicIcon(String topic) {
@@ -73,6 +92,10 @@ class _LearningScreenState extends State<LearningScreen> {
         return const Color(0xFFF59E0B);
       case "privacy":
         return const Color(0xFFD946EF);
+      case "scam":
+        return const Color(0xFF10B981);
+      case "mobile":
+        return const Color(0xFF38BDF8);
       default:
         return const Color(0xFF2563EB);
     }
@@ -94,18 +117,14 @@ class _LearningScreenState extends State<LearningScreen> {
   }
 
   String _progressText(LearningModule module) {
-    if (module.completed) return "4/4 modules · Complete ✓";
+    final progress = _moduleProgress(module);
+    final percent = (progress * 100).round();
 
-    switch (module.topic) {
-      case "phishing":
-        return "3/4 modules · 75%";
-      case "malware":
-        return "2/4 modules · 50%";
-      case "privacy":
-        return "1/4 modules · 25%";
-      default:
-        return "0/4 modules · Not started";
-    }
+    if (module.completed) return "4/4 modules · Complete ✓";
+    if (percent == 0) return "0/4 modules · Not started";
+
+    final done = (progress * 4).round();
+    return "$done/4 modules · $percent%";
   }
 
   String _difficultyBadge(LearningModule module) {
@@ -117,28 +136,51 @@ class _LearningScreenState extends State<LearningScreen> {
   }
 
   List<LearningModule> _filteredModules(List<LearningModule> modules) {
-    if (selectedFilter == "All topics") return modules;
-
-    final filter = selectedFilter.toLowerCase();
+    final query = searchQuery.trim().toLowerCase();
 
     return modules.where((module) {
-      return module.topic.toLowerCase().contains(filter) ||
-          module.title.toLowerCase().contains(filter);
+      final matchesFilter = selectedFilter == "All topics"
+          ? true
+          : module.topic.toLowerCase() == selectedFilter.toLowerCase() ||
+                module.title.toLowerCase().contains(
+                  selectedFilter.toLowerCase(),
+                );
+
+      final matchesSearch = query.isEmpty
+          ? true
+          : module.title.toLowerCase().contains(query) ||
+                module.topic.toLowerCase().contains(query) ||
+                module.content.toLowerCase().contains(query);
+
+      return matchesFilter && matchesSearch;
     }).toList();
+  }
+
+  LearningModule? _continueModule(List<LearningModule> modules) {
+    final inProgress = modules.where((module) {
+      final progress = _moduleProgress(module);
+      return progress > 0 && progress < 1.0;
+    }).toList();
+
+    if (inProgress.isNotEmpty) return inProgress.first;
+    if (modules.isNotEmpty) return modules.first;
+
+    return null;
+  }
+
+  int _topicCount(List<LearningModule> modules) {
+    return modules.map((module) => module.topic).toSet().length;
+  }
+
+  void _openModule(BuildContext context, LearningModule module) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => ModuleDetailScreen(module: module)),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    const filters = [
-      "All topics",
-      "Phishing",
-      "Malware",
-      "Password",
-      "Privacy",
-      "Scam",
-      "Mobile",
-    ];
-
     return Scaffold(
       backgroundColor: const Color(0xFFF1F5F9),
       body: SafeArea(
@@ -148,13 +190,14 @@ class _LearningScreenState extends State<LearningScreen> {
               return const Center(child: CircularProgressIndicator());
             }
 
-            final modules = _filteredModules(state.modules);
+            final filteredModules = _filteredModules(state.modules);
+            final continueModule = _continueModule(state.modules);
 
             return Column(
               children: [
                 Container(
                   width: double.infinity,
-                  padding: const EdgeInsets.fromLTRB(18, 14, 18, 18),
+                  padding: const EdgeInsets.fromLTRB(18, 28, 18, 22),
                   decoration: const BoxDecoration(
                     gradient: LinearGradient(
                       colors: [Color(0xFF0D1B3E), Color(0xFF1E3A8A)],
@@ -165,66 +208,69 @@ class _LearningScreenState extends State<LearningScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Row(
-                        children: [
-                          Text(
-                            "9:41",
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          Spacer(),
-                          Text(
-                            "WIFI 🔋",
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 20),
                       const Text(
                         "Learning Hub",
                         style: TextStyle(
                           color: Colors.white,
-                          fontSize: 24,
+                          fontSize: 26,
                           fontWeight: FontWeight.w900,
                         ),
                       ),
-                      const SizedBox(height: 4),
-                      const Text(
-                        "16 modules · 9 cybersecurity topics",
-                        style: TextStyle(color: Colors.white70, fontSize: 13),
+                      const SizedBox(height: 5),
+                      Text(
+                        "${state.modules.length} modules · ${_topicCount(state.modules)} cybersecurity topics",
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontSize: 13,
+                        ),
                       ),
                       const SizedBox(height: 18),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 12,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.12),
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: Colors.white24),
-                        ),
-                        child: const Row(
-                          children: [
-                            Icon(
-                              Icons.search,
+                      TextField(
+                        controller: _searchController,
+                        onChanged: (value) {
+                          setState(() => searchQuery = value);
+                        },
+                        style: const TextStyle(color: Colors.white),
+                        cursorColor: const Color(0xFF38BDF8),
+                        decoration: InputDecoration(
+                          hintText: "Search modules, topics...",
+                          hintStyle: const TextStyle(
+                            color: Colors.white54,
+                            fontSize: 14,
+                          ),
+                          prefixIcon: const Icon(
+                            Icons.search,
+                            color: Color(0xFF38BDF8),
+                          ),
+                          suffixIcon: searchQuery.isEmpty
+                              ? null
+                              : IconButton(
+                                  icon: const Icon(
+                                    Icons.close,
+                                    color: Colors.white70,
+                                  ),
+                                  onPressed: () {
+                                    _searchController.clear();
+                                    setState(() => searchQuery = "");
+                                  },
+                                ),
+                          filled: true,
+                          fillColor: Colors.white.withOpacity(0.12),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 14,
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(18),
+                            borderSide: const BorderSide(color: Colors.white24),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(18),
+                            borderSide: const BorderSide(
                               color: Color(0xFF38BDF8),
-                              size: 20,
+                              width: 1.4,
                             ),
-                            SizedBox(width: 10),
-                            Text(
-                              "Search modules, topics...",
-                              style: TextStyle(
-                                color: Colors.white54,
-                                fontSize: 14,
-                              ),
-                            ),
-                          ],
+                          ),
                         ),
                       ),
                     ],
@@ -232,7 +278,7 @@ class _LearningScreenState extends State<LearningScreen> {
                 ),
 
                 SizedBox(
-                  height: 54,
+                  height: 58,
                   child: ListView.separated(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 16,
@@ -281,58 +327,54 @@ class _LearningScreenState extends State<LearningScreen> {
 
                 Expanded(
                   child: ListView(
-                    padding: const EdgeInsets.fromLTRB(16, 4, 16, 90),
+                    padding: const EdgeInsets.fromLTRB(16, 4, 16, 95),
                     children: [
-                      const _LearningSectionTitle("CONTINUE LEARNING"),
-                      const SizedBox(height: 10),
-
-                      if (state.modules.isNotEmpty)
+                      if (continueModule != null) ...[
+                        const _LearningSectionTitle("CONTINUE LEARNING"),
+                        const SizedBox(height: 10),
                         _LearningCard(
-                          module: state.modules.first,
-                          icon: _topicIcon(state.modules.first.topic),
-                          iconColor: _topicColor(state.modules.first.topic),
-                          progressColor: _progressColor(
-                            state.modules.first.topic,
-                          ),
-                          progress: _moduleProgress(state.modules.first),
-                          progressText: _progressText(state.modules.first),
-                          badge: _difficultyBadge(state.modules.first),
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => ModuleDetailScreen(
-                                  module: state.modules.first,
-                                ),
-                              ),
-                            );
-                          },
+                          module: continueModule,
+                          icon: _topicIcon(continueModule.topic),
+                          iconColor: _topicColor(continueModule.topic),
+                          progressColor: _progressColor(continueModule.topic),
+                          progress: _moduleProgress(continueModule),
+                          progressText: _progressText(continueModule),
+                          badge: _difficultyBadge(continueModule),
+                          onTap: () => _openModule(context, continueModule),
                         ),
+                        const SizedBox(height: 18),
+                      ],
 
-                      const SizedBox(height: 18),
                       const _LearningSectionTitle("ALL TOPICS"),
                       const SizedBox(height: 10),
 
-                      ...modules.map((module) {
-                        return _LearningCard(
-                          module: module,
-                          icon: _topicIcon(module.topic),
-                          iconColor: _topicColor(module.topic),
-                          progressColor: _progressColor(module.topic),
-                          progress: _moduleProgress(module),
-                          progressText: _progressText(module),
-                          badge: _difficultyBadge(module),
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) =>
-                                    ModuleDetailScreen(module: module),
-                              ),
-                            );
-                          },
-                        );
-                      }),
+                      if (filteredModules.isEmpty)
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(18),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(18),
+                            border: Border.all(color: const Color(0xFFE2E8F0)),
+                          ),
+                          child: const Text(
+                            "No module found. Try another keyword or filter.",
+                            style: TextStyle(color: Colors.grey),
+                          ),
+                        )
+                      else
+                        ...filteredModules.map((module) {
+                          return _LearningCard(
+                            module: module,
+                            icon: _topicIcon(module.topic),
+                            iconColor: _topicColor(module.topic),
+                            progressColor: _progressColor(module.topic),
+                            progress: _moduleProgress(module),
+                            progressText: _progressText(module),
+                            badge: _difficultyBadge(module),
+                            onTap: () => _openModule(context, module),
+                          );
+                        }),
                     ],
                   ),
                 ),

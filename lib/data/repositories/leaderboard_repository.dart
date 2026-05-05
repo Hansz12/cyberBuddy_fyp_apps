@@ -14,6 +14,7 @@ class LeaderboardRepository {
     final leaderboardScore = xp + (streak * 10) + (badges * 25);
 
     await _firestore.collection('leaderboard').doc(userId).set({
+      'userId': userId,
       'name': name,
       'xp': xp,
       'level': level,
