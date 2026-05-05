@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:url_launcher/url_launcher.dart';
 
+import '../../data/services/news_service.dart';
 import '../learning/learning_screen.dart';
 import '../leaderboard/leaderboard_screen.dart';
 import '../news/news_screen.dart';
@@ -15,7 +17,8 @@ class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
   void _openQuiz(BuildContext context) {
-    context.read<QuizCubit>().loadQuiz();
+    final homeState = context.read<HomeCubit>().state;
+    context.read<QuizCubit>().loadQuiz(homeState: homeState);
 
     Navigator.push(
       context,
@@ -37,12 +40,30 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-
   void _openNews(BuildContext context) {
     Navigator.push(
       context,
       MaterialPageRoute(builder: (_) => const NewsScreen()),
     );
+  }
+
+  Future<void> _openNewsUrl(BuildContext context, String url) async {
+    final uri = Uri.tryParse(url);
+
+    if (uri == null) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("Invalid news link.")));
+      return;
+    }
+
+    final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
+
+    if (!opened && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Could not open news link.")),
+      );
+    }
   }
 
   @override
@@ -59,7 +80,7 @@ class HomeScreen extends StatelessWidget {
                   padding: const EdgeInsets.all(16),
                   child: Column(
                     children: [
-                      _SectionHeader(
+                      const _SectionHeader(
                         title: "WEEKLY STREAK",
                         actionText: "",
                         onTap: null,
@@ -75,6 +96,7 @@ class HomeScreen extends StatelessWidget {
                         onTap: () => _openLearning(context),
                       ),
                       const SizedBox(height: 8),
+
                       GridView.count(
                         crossAxisCount: 2,
                         shrinkWrap: true,
@@ -140,35 +162,14 @@ class HomeScreen extends StatelessWidget {
                       const SizedBox(height: 18),
 
                       _SectionHeader(
-                        title: "MALAYSIA CYBER NEWS",
+                        title: "LIVE CYBER NEWS",
                         actionText: "All news",
                         onTap: () => _openNews(context),
                       ),
                       const SizedBox(height: 8),
 
-                      _NewsCard(
-                        icon: "⚠️",
-                        tag: "🚨 SCAM ALERT",
-                        title:
-                            "Macau scam targets UiTM & UTM students via WhatsApp — PDRM warns",
-                        source: "MyCERT · 2 hours ago",
-                        onTap: () => _openNews(context),
-                      ),
-                      _NewsCard(
-                        icon: "🔐",
-                        tag: "📋 ADVISORY",
-                        title:
-                            "New phishing kit spoofing Maybank2u & CIMB login pages detected",
-                        source: "CyberSecurity MY · 5h ago",
-                        onTap: () => _openNews(context),
-                      ),
-                      _NewsCard(
-                        icon: "🛡️",
-                        tag: "📊 REPORT",
-                        title:
-                            "MyCERT Q1 2025: 62% of cyber incidents in Malaysia involved social engineering",
-                        source: "MyCERT · 1 day ago",
-                        onTap: () => _openNews(context),
+                      _LiveNewsSection(
+                        onOpenNews: (url) => _openNewsUrl(context, url),
                       ),
 
                       const SizedBox(height: 90),
@@ -180,6 +181,73 @@ class HomeScreen extends StatelessWidget {
           },
         ),
       ),
+    );
+  }
+}
+
+class _LiveNewsSection extends StatelessWidget {
+  final void Function(String url) onOpenNews;
+
+  const _LiveNewsSection({required this.onOpenNews});
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<List<Map<String, dynamic>>>(
+      future: NewsService().fetchCyberNews(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Container(
+            padding: const EdgeInsets.all(18),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
+            ),
+            child: const Center(child: CircularProgressIndicator()),
+          );
+        }
+
+        if (snapshot.hasError) {
+          return Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
+            ),
+            child: Text(
+              "News error: ${snapshot.error}",
+              style: const TextStyle(color: Colors.red),
+            ),
+          );
+        }
+
+        final newsList = snapshot.data ?? [];
+
+        if (newsList.isEmpty) {
+          return Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
+            ),
+            child: const Text("No relevant cybersecurity news found."),
+          );
+        }
+
+        return Column(
+          children: newsList.take(3).map((news) {
+            return _NewsCard(
+              icon: "📰",
+              tag: "LIVE",
+              title: news["title"]?.toString() ?? "Cybersecurity news",
+              source: news["source"]?.toString() ?? "Online source",
+              onTap: () => onOpenNews(news["url"]?.toString() ?? ""),
+            );
+          }).toList(),
+        );
+      },
     );
   }
 }
@@ -210,18 +278,18 @@ class _HomeHeader extends StatelessWidget {
       ),
       child: Column(
         children: [
-          Row(
+          const Row(
             children: [
-              const Text(
+              Text(
                 "9:41",
                 style: TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              const Spacer(),
-              const Text(
-                "▮▮▮ WiFi 🔋",
+              Spacer(),
+              Text(
+                "WIFI 🔋",
                 style: TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.bold,

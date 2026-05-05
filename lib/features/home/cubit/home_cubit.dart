@@ -297,6 +297,8 @@ class HomeCubit extends Cubit<HomeState> {
         name: user.email ?? "User",
         xp: state.xp,
         level: state.level,
+        streak: state.streak,
+        badges: state.badges.length,
       );
     } catch (_) {
       // Leaderboard fail, app masih boleh jalan.
