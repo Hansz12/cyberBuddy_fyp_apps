@@ -5,6 +5,8 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../data/services/news_service.dart';
 import '../learning/learning_screen.dart';
+// ignore: unused_import
+import '../learning/cubit/learning_cubit.dart';
 import '../news/news_screen.dart';
 import '../quiz/cubit/quiz_cubit.dart';
 import '../quiz/quiz_screen.dart';
@@ -38,8 +40,18 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _openQuiz(BuildContext context) {
-    final homeState = context.read<HomeCubit>().state;
-    context.read<QuizCubit>().loadQuiz(homeState: homeState);
+    final learningState = context.read<LearningCubit>().state;
+
+    if (learningState.modules.isEmpty) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("Modules not loaded yet.")));
+      return;
+    }
+
+    final module = learningState.modules.first;
+
+    context.read<QuizCubit>().loadQuiz(module.id);
 
     Navigator.push(
       context,

@@ -1,54 +1,36 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+
+import '../../../data/services/local_data_service.dart';
 import 'learning_state.dart';
 
 class LearningCubit extends Cubit<LearningState> {
   LearningCubit() : super(const LearningState());
 
-  void loadModules() {
-    const modules = [
-      LearningModule(
-        title: "Phishing Awareness",
-        topic: "phishing",
-        difficulty: "Beginner",
-        xpReward: 25,
-        content:
-            "Phishing is a cyberattack where attackers trick users into giving sensitive information such as passwords, banking details, or login codes. Always check the sender, URL spelling, and avoid clicking suspicious links.",
-      ),
-      LearningModule(
-        title: "Password Security",
-        topic: "password",
-        difficulty: "Beginner",
-        xpReward: 25,
-        content:
-            "A strong password uses uppercase letters, lowercase letters, numbers, and symbols. Avoid using birthdays, names, or repeated passwords. Use multi-factor authentication whenever possible.",
-      ),
-      LearningModule(
-        title: "Social Engineering",
-        topic: "social",
-        difficulty: "Intermediate",
-        xpReward: 30,
-        content:
-            "Social engineering manipulates users into making unsafe actions. Attackers may create urgency, fear, fake authority, or rewards to trick victims. Always verify through official channels.",
-      ),
-      LearningModule(
-        title: "Malware & Safe Downloads",
-        topic: "malware",
-        difficulty: "Intermediate",
-        xpReward: 30,
-        content:
-            "Malware includes viruses, spyware, ransomware, and trojans. Avoid downloading files from unknown websites and always update your device and applications.",
-      ),
-      LearningModule(
-        title: "Privacy Protection",
-        topic: "privacy",
-        difficulty: "Beginner",
-        xpReward: 20,
-        content:
-            "Protect your privacy by limiting what you share online, reviewing app permissions, using privacy settings, and avoiding oversharing personal information on social media.",
-      ),
-    ];
+  final LocalDataService _dataService = LocalDataService();
 
-    emit(state.copyWith(modules: modules));
+  Future<void> loadModules() async {
+    try {
+      final data = await _dataService.loadModules();
+
+      final modules = data.map((json) {
+        return LearningModule(
+          id: json['id']?.toString() ?? '',
+          title: json['title']?.toString() ?? 'Untitled Module',
+          topic: json['topic']?.toString().toLowerCase() ?? 'general',
+          difficulty: json['difficulty']?.toString() ?? 'Beginner',
+          xpReward: int.tryParse(json['xpReward'].toString()) ?? 20,
+          content:
+              json['content']?.toString() ??
+              json['description']?.toString() ??
+              '',
+          completed: false,
+        );
+      }).toList();
+
+      emit(state.copyWith(modules: modules));
+    } catch (e) {
+      emit(state.copyWith(modules: const []));
+    }
   }
 
   void completeModule(String title) {
@@ -56,9 +38,18 @@ class LearningCubit extends Cubit<LearningState> {
       if (module.title == title) {
         return module.copyWith(completed: true);
       }
+
       return module;
     }).toList();
 
     emit(state.copyWith(modules: updatedModules));
+  }
+
+  LearningModule? getModuleById(String id) {
+    try {
+      return state.modules.firstWhere((module) => module.id == id);
+    } catch (_) {
+      return null;
+    }
   }
 }

@@ -1,6 +1,7 @@
 {
   "project_info": {
     "project_number": "950456615757",
+    "firebase_url": "https://cyberbuddy-app-default-rtdb.asia-southeast1.firebasedatabase.app",
     "project_id": "cyberbuddy-app",
     "storage_bucket": "cyberbuddy-app.firebasestorage.app"
   },
@@ -12,7 +13,20 @@
           "package_name": "com.example.cyberbuddy"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "950456615757-uorl8nigtia6dv4vp4embcj38cd4os7g.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.cyberbuddy",
+            "certificate_hash": "fb8137fb387926c41530aff50c27082069862ef4"
+          }
+        },
+        {
+          "client_id": "950456615757-agno7h5fr76avo984pq3ndc7b8df81jc.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyBblhXvWFD2mtwNHRgdZZya4nCh-bKZr-E"
@@ -20,7 +34,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "950456615757-agno7h5fr76avo984pq3ndc7b8df81jc.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

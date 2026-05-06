@@ -9,6 +9,7 @@ import 'features/profile/profile_screen.dart';
 import 'features/threat_checker/threat_checker_screen.dart';
 import 'features/quiz/cubit/quiz_cubit.dart';
 import 'features/quiz/quiz_screen.dart';
+import 'features/learning/cubit/learning_cubit.dart';
 
 class MainNavigation extends StatefulWidget {
   const MainNavigation({super.key});
@@ -35,9 +36,19 @@ class _MainNavigationState extends State<MainNavigation> {
   }
 
   void _startQuiz(BuildContext context) {
-    final homeState = context.read<HomeCubit>().state;
+    final learningState = context.read<LearningCubit>().state;
 
-    context.read<QuizCubit>().loadQuiz(homeState: homeState);
+    if (learningState.modules.isEmpty) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("Modules not loaded yet")));
+      return;
+    }
+
+    // 👉 ambil module pertama (safe default)
+    final module = learningState.modules.first;
+
+    context.read<QuizCubit>().loadQuiz(module.id);
 
     Navigator.push(
       context,
@@ -49,12 +60,12 @@ class _MainNavigationState extends State<MainNavigation> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: _screens[_currentIndex],
+
       floatingActionButton: FloatingActionButton(
         onPressed: () => _startQuiz(context),
-        backgroundColor: const Color(0xFF2563EB),
-        foregroundColor: Colors.white,
         child: const Icon(Icons.play_arrow),
       ),
+
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
         onTap: _onTap,
