@@ -22,6 +22,13 @@ class HomeState extends Equatable {
   final int perfectQuizzes;
   final int threatChecks;
 
+  final int dailyModulesCompleted;
+  final int dailyQuizAttempts;
+  final int dailyTopicsTried;
+  final int dailyThreatChecks;
+  final int dailyBestQuizScore;
+  final DateTime? dailyQuestDate;
+
   final Map<String, double> moduleScores;
   final Map<String, String> moduleReasons;
 
@@ -77,6 +84,12 @@ class HomeState extends Equatable {
     this.quizzesCompleted = 0,
     this.perfectQuizzes = 0,
     this.threatChecks = 0,
+    this.dailyModulesCompleted = 0,
+    this.dailyQuizAttempts = 0,
+    this.dailyTopicsTried = 0,
+    this.dailyThreatChecks = 0,
+    this.dailyBestQuizScore = 0,
+    this.dailyQuestDate,
     this.moduleScores = const {},
     this.moduleReasons = const {},
     this.lastActiveDate,
@@ -152,6 +165,13 @@ class HomeState extends Equatable {
     int? quizzesCompleted,
     int? perfectQuizzes,
     int? threatChecks,
+    int? dailyModulesCompleted,
+    int? dailyQuizAttempts,
+    int? dailyTopicsTried,
+    int? dailyThreatChecks,
+    int? dailyBestQuizScore,
+    DateTime? dailyQuestDate,
+    bool clearDailyQuestDate = false,
     Map<String, double>? moduleScores,
     Map<String, String>? moduleReasons,
     DateTime? lastActiveDate,
@@ -176,6 +196,15 @@ class HomeState extends Equatable {
       quizzesCompleted: quizzesCompleted ?? this.quizzesCompleted,
       perfectQuizzes: perfectQuizzes ?? this.perfectQuizzes,
       threatChecks: threatChecks ?? this.threatChecks,
+      dailyModulesCompleted:
+          dailyModulesCompleted ?? this.dailyModulesCompleted,
+      dailyQuizAttempts: dailyQuizAttempts ?? this.dailyQuizAttempts,
+      dailyTopicsTried: dailyTopicsTried ?? this.dailyTopicsTried,
+      dailyThreatChecks: dailyThreatChecks ?? this.dailyThreatChecks,
+      dailyBestQuizScore: dailyBestQuizScore ?? this.dailyBestQuizScore,
+      dailyQuestDate: clearDailyQuestDate
+          ? null
+          : dailyQuestDate ?? this.dailyQuestDate,
       moduleScores: moduleScores ?? this.moduleScores,
       moduleReasons: moduleReasons ?? this.moduleReasons,
       lastActiveDate: clearLastActiveDate
@@ -202,6 +231,12 @@ class HomeState extends Equatable {
     quizzesCompleted,
     perfectQuizzes,
     threatChecks,
+    dailyModulesCompleted,
+    dailyQuizAttempts,
+    dailyTopicsTried,
+    dailyThreatChecks,
+    dailyBestQuizScore,
+    dailyQuestDate,
     moduleScores,
     moduleReasons,
     lastActiveDate,

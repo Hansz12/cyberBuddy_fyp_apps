@@ -48,7 +48,11 @@ class _HomeScreenState extends State<HomeScreen> {
       return;
     }
 
-    final module = learningState.modules.first;
+    final notCompleted = learningState.modules.where((m) => !m.completed);
+
+    final module = notCompleted.isNotEmpty
+        ? notCompleted.first
+        : learningState.modules.first;
 
     context.read<QuizCubit>().loadQuiz(module.id);
 
@@ -90,7 +94,6 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     await context.read<HomeCubit>().gainXP(5);
-
     await launchUrl(uri, mode: LaunchMode.externalApplication);
   }
 
@@ -101,18 +104,40 @@ class _HomeScreenState extends State<HomeScreen> {
       return source["name"]?.toString() ?? "Online source";
     }
 
-    final text = source.toString();
-
-    if (text.contains("name:")) {
-      final match = RegExp(r'name:\s*([^,}]+)').firstMatch(text);
-      return match?.group(1)?.trim() ?? "Online source";
-    }
-
-    return text;
+    return source.toString();
   }
 
-  double _questProgress(double value) {
+  double _safeProgress(double value) {
     return value.clamp(0.0, 1.0);
+  }
+
+  int _completedModulesToday(HomeState state) {
+    return state.completedModules.length;
+  }
+
+  double _completeModuleQuest(HomeState state) {
+    return _safeProgress(_completedModulesToday(state) / 1);
+  }
+
+  double _score80Quest(HomeState state) {
+    if (state.totalQuestionsAnswered == 0) return 0.0;
+    return _safeProgress(state.avgScore / 80);
+  }
+
+  double _newTopicQuest(HomeState state) {
+    final attemptedTopics = state.topicAnswered.values
+        .where((count) => count > 0)
+        .length;
+
+    return _safeProgress(attemptedTopics / 1);
+  }
+
+  double _threatCheckerQuest(HomeState state) {
+    return _safeProgress(state.threatChecks / 1);
+  }
+
+  String _questStatus(double progress) {
+    return progress >= 1.0 ? "DONE" : "IN PROGRESS";
   }
 
   @override
@@ -128,22 +153,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 .modules
                 .length;
 
-            final completedModuleQuest = state.completedModules.isNotEmpty
-                ? 1.0
-                : 0.0;
-
-            final quiz80Quest = state.totalQuestionsAnswered == 0
-                ? 0.0
-                : state.avgScore >= 80
-                ? 1.0
-                : state.avgScore / 80;
-
-            final newTopicQuest =
-                state.topicAnswered.values.any((count) => count > 0)
-                ? 1.0
-                : 0.0;
-
-            final threatQuest = state.threatChecks > 0 ? 1.0 : 0.0;
+            final completeModuleProgress = _completeModuleQuest(state);
+            final score80Progress = _score80Quest(state);
+            final newTopicProgress = _newTopicQuest(state);
+            final threatProgress = _threatCheckerQuest(state);
 
             return RefreshIndicator(
               onRefresh: _refreshHomeNews,
@@ -176,34 +189,46 @@ class _HomeScreenState extends State<HomeScreen> {
                           physics: const NeverScrollableScrollPhysics(),
                           crossAxisSpacing: 10,
                           mainAxisSpacing: 10,
-                          childAspectRatio: 1.28,
+                          childAspectRatio: 1.25,
                           children: [
                             _QuestCard(
                               icon: "📖",
                               title: "Complete 1\nmodule",
                               xp: "+10 XP",
-                              progress: _questProgress(completedModuleQuest),
+                              status: _questStatus(completeModuleProgress),
+                              progress: completeModuleProgress,
+                              progressText:
+                                  "${_completedModulesToday(state)}/1 completed",
                               onTap: () => _openLearning(context),
                             ),
                             _QuestCard(
                               icon: "🎯",
                               title: "Score 80%+\nquiz",
                               xp: "+20 XP",
-                              progress: _questProgress(quiz80Quest),
+                              status: _questStatus(score80Progress),
+                              progress: score80Progress,
+                              progressText: state.totalQuestionsAnswered == 0
+                                  ? "No quiz yet"
+                                  : "${state.avgScore}% / 80%",
                               onTap: () => _openQuiz(context),
                             ),
                             _QuestCard(
                               icon: "⚡",
-                              title: "New topic\ntoday",
+                              title: "Try 1 new\ntopic",
                               xp: "+15 XP",
-                              progress: _questProgress(newTopicQuest),
+                              status: _questStatus(newTopicProgress),
+                              progress: newTopicProgress,
+                              progressText:
+                                  "${state.topicAnswered.values.where((v) => v > 0).length}/1 topic",
                               onTap: () => _openLearning(context),
                             ),
                             _QuestCard(
                               icon: "🔍",
                               title: "Use threat\nchecker",
                               xp: "+25 XP",
-                              progress: _questProgress(threatQuest),
+                              status: _questStatus(threatProgress),
+                              progress: threatProgress,
+                              progressText: "${state.threatChecks}/1 checked",
                               onTap: () => _openThreatChecker(context),
                             ),
                           ],
@@ -222,7 +247,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           _EmptyCard(
                             text:
                                 "Complete quizzes first to get personalised module recommendations.",
-                            onTap: () => _openLearning(context),
+                            onTap: () => _openQuiz(context),
                           )
                         else
                           ...state.recommendedModules.map((module) {
@@ -549,6 +574,257 @@ class _HomeHeader extends StatelessWidget {
   }
 }
 
+class _WeeklyStreakRow extends StatelessWidget {
+  final int streak;
+
+  const _WeeklyStreakRow({required this.streak});
+
+  @override
+  Widget build(BuildContext context) {
+    final days = ["M", "T", "W", "T", "F", "S", "S"];
+
+    final todayIndex = DateTime.now().weekday - 1;
+    final safeStreak = streak.clamp(0, 7);
+
+    bool isStreakDay(int index) {
+      if (safeStreak == 0) return false;
+
+      for (int i = 0; i < safeStreak; i++) {
+        final streakIndex = (todayIndex - i) % 7;
+        if (index == streakIndex) return true;
+      }
+
+      return false;
+    }
+
+    return Row(
+      children: List.generate(days.length, (index) {
+        final isToday = index == todayIndex;
+        final isDone = isStreakDay(index);
+
+        return Expanded(
+          child: Container(
+            margin: const EdgeInsets.symmetric(horizontal: 3),
+            height: 42,
+            decoration: BoxDecoration(
+              color: isToday
+                  ? const Color(0xFF2563EB)
+                  : isDone
+                  ? const Color(0xFF0D1B3E)
+                  : const Color(0xFFE2E8F0),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  isDone ? "✓" : "○",
+                  style: TextStyle(
+                    color: isDone || isToday ? Colors.white : Colors.grey,
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                Text(
+                  days[index],
+                  style: TextStyle(
+                    color: isDone || isToday ? Colors.white70 : Colors.grey,
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      }),
+    );
+  }
+}
+
+class _QuestCard extends StatelessWidget {
+  final String icon;
+  final String title;
+  final String xp;
+  final String status;
+  final double progress;
+  final String progressText;
+  final VoidCallback onTap;
+
+  const _QuestCard({
+    required this.icon,
+    required this.title,
+    required this.xp,
+    required this.status,
+    required this.progress,
+    required this.progressText,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final safeProgress = progress.clamp(0.0, 1.0);
+    final completed = safeProgress >= 1.0;
+
+    return InkWell(
+      borderRadius: BorderRadius.circular(16),
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(13),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: completed
+                ? const Color(0xFFBBF7D0)
+                : const Color(0xFFE2E8F0),
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF1F5F9),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Center(
+                    child: Text(icon, style: const TextStyle(fontSize: 18)),
+                  ),
+                ),
+                const Spacer(),
+                Text(
+                  completed ? status : xp,
+                  style: TextStyle(
+                    color: completed
+                        ? const Color(0xFF10B981)
+                        : const Color(0xFF2563EB),
+                    fontSize: 10,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ],
+            ),
+            const Spacer(),
+            Text(
+              title,
+              style: const TextStyle(
+                color: Color(0xFF0F172A),
+                fontWeight: FontWeight.w900,
+                fontSize: 13,
+                height: 1.05,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              progressText,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: Colors.grey,
+                fontSize: 10,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 8),
+            LinearProgressIndicator(
+              value: safeProgress,
+              minHeight: 5,
+              backgroundColor: const Color(0xFFE2E8F0),
+              color: completed
+                  ? const Color(0xFF10B981)
+                  : const Color(0xFF2563EB),
+              borderRadius: BorderRadius.circular(20),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _RecommendedCard extends StatelessWidget {
+  final String title;
+  final double score;
+  final String reason;
+  final VoidCallback onTap;
+
+  const _RecommendedCard({
+    required this.title,
+    required this.score,
+    required this.reason,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return _SimpleCard(
+      onTap: onTap,
+      child: Row(
+        children: [
+          const _IconBox(icon: "🛡️", bg: Color(0xFFECFDF5)),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              "$title\nSimilarity ${score.toStringAsFixed(2)} · $reason",
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: Color(0xFF0F172A),
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _NewsCard extends StatelessWidget {
+  final String icon;
+  final String tag;
+  final String title;
+  final String source;
+  final VoidCallback onTap;
+
+  const _NewsCard({
+    required this.icon,
+    required this.tag,
+    required this.title,
+    required this.source,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return _SimpleCard(
+      onTap: onTap,
+      child: Row(
+        children: [
+          _IconBox(icon: icon, bg: const Color(0xFFFEF2F2)),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              "$tag · $title\n$source · +5 XP reading",
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: Color(0xFF0F172A),
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _NewsSectionHeader extends StatelessWidget {
   final VoidCallback onAllNews;
   final Future<void> Function() onRefresh;
@@ -565,7 +841,6 @@ class _NewsSectionHeader extends StatelessWidget {
             color: Color(0xFF0F172A),
             fontSize: 15,
             fontWeight: FontWeight.w900,
-            letterSpacing: 0.8,
           ),
         ),
         const Spacer(),
@@ -573,7 +848,6 @@ class _NewsSectionHeader extends StatelessWidget {
           onPressed: onRefresh,
           icon: const Icon(Icons.refresh),
           color: const Color(0xFF2563EB),
-          tooltip: "Refresh news",
         ),
         GestureDetector(
           onTap: onAllNews,
@@ -581,7 +855,6 @@ class _NewsSectionHeader extends StatelessWidget {
             "All news",
             style: TextStyle(
               color: Color(0xFF2563EB),
-              fontSize: 13,
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -651,7 +924,6 @@ class _SectionHeader extends StatelessWidget {
             color: Color(0xFF0F172A),
             fontSize: 15,
             fontWeight: FontWeight.w900,
-            letterSpacing: 0.8,
           ),
         ),
         const Spacer(),
@@ -662,7 +934,6 @@ class _SectionHeader extends StatelessWidget {
               actionText,
               style: const TextStyle(
                 color: Color(0xFF2563EB),
-                fontSize: 13,
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -672,394 +943,52 @@ class _SectionHeader extends StatelessWidget {
   }
 }
 
-class _WeeklyStreakRow extends StatelessWidget {
-  final int streak;
+class _SimpleCard extends StatelessWidget {
+  final Widget child;
+  final VoidCallback? onTap;
 
-  const _WeeklyStreakRow({required this.streak});
-
-  @override
-  Widget build(BuildContext context) {
-    final days = ["M", "T", "W", "T", "F", "S", "S"];
-
-    return Row(
-      children: List.generate(days.length, (index) {
-        final isDone = index < streak.clamp(0, 7);
-        final isToday = index == DateTime.now().weekday - 1;
-
-        return Expanded(
-          child: Container(
-            margin: const EdgeInsets.symmetric(horizontal: 3),
-            height: 38,
-            decoration: BoxDecoration(
-              color: isToday
-                  ? const Color(0xFF2563EB)
-                  : isDone
-                  ? const Color(0xFF0D1B3E)
-                  : const Color(0xFFE2E8F0),
-              borderRadius: BorderRadius.circular(10),
-              boxShadow: isToday
-                  ? [
-                      BoxShadow(
-                        color: const Color(0xFF2563EB).withOpacity(0.4),
-                        blurRadius: 12,
-                      ),
-                    ]
-                  : [],
-            ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  isDone || isToday ? "✓" : "○",
-                  style: TextStyle(
-                    color: isDone || isToday ? Colors.white : Colors.grey,
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                Text(
-                  days[index],
-                  style: TextStyle(
-                    color: isDone || isToday ? Colors.white70 : Colors.grey,
-                    fontSize: 9,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      }),
-    );
-  }
-}
-
-class _QuestCard extends StatelessWidget {
-  final String icon;
-  final String title;
-  final String xp;
-  final double progress;
-  final VoidCallback onTap;
-
-  const _QuestCard({
-    required this.icon,
-    required this.title,
-    required this.xp,
-    required this.progress,
-    required this.onTap,
-  });
+  const _SimpleCard({required this.child, this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    final safeProgress = progress.clamp(0.0, 1.0);
-    final completed = safeProgress >= 1.0;
-
-    return InkWell(
-      borderRadius: BorderRadius.circular(16),
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(13),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFFE2E8F0)),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  width: 38,
-                  height: 38,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF1F5F9),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Center(
-                    child: Text(icon, style: const TextStyle(fontSize: 18)),
-                  ),
-                ),
-                const Spacer(),
-                Text(
-                  completed ? "DONE" : xp,
-                  style: TextStyle(
-                    color: completed
-                        ? const Color(0xFF10B981)
-                        : const Color(0xFF2563EB),
-                    fontSize: 11,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-              ],
-            ),
-            const Spacer(),
-            Text(
-              title,
-              style: const TextStyle(
-                color: Color(0xFF0F172A),
-                fontWeight: FontWeight.w900,
-                fontSize: 13,
-                height: 1.05,
-              ),
-            ),
-            const SizedBox(height: 8),
-            LinearProgressIndicator(
-              value: safeProgress,
-              minHeight: 5,
-              backgroundColor: const Color(0xFFE2E8F0),
-              color: completed
-                  ? const Color(0xFF10B981)
-                  : const Color(0xFF2563EB),
-              borderRadius: BorderRadius.circular(20),
-            ),
-          ],
-        ),
+    final card = Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
       ),
+      child: child,
     );
-  }
-}
 
-class _RecommendedCard extends StatelessWidget {
-  final String title;
-  final double score;
-  final String reason;
-  final VoidCallback onTap;
-
-  const _RecommendedCard({
-    required this.title,
-    required this.score,
-    required this.reason,
-    required this.onTap,
-  });
-
-  bool get isPassword => title.toLowerCase().contains("password");
-  bool get isPhishing => title.toLowerCase().contains("phishing");
-  bool get isMalware => title.toLowerCase().contains("malware");
-  bool get isPrivacy => title.toLowerCase().contains("privacy");
-
-  @override
-  Widget build(BuildContext context) {
-    final tag = isPhishing
-        ? "PHISHING"
-        : isPassword
-        ? "PASSWORD"
-        : isMalware
-        ? "MALWARE"
-        : isPrivacy
-        ? "PRIVACY"
-        : "CYBER";
-
-    final icon = isPhishing
-        ? "🎣"
-        : isPassword
-        ? "🔐"
-        : isMalware
-        ? "🦠"
-        : isPrivacy
-        ? "👁️"
-        : "🛡️";
+    if (onTap == null) return card;
 
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(18),
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: const Color(0xFFE2E8F0)),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 54,
-              height: 54,
-              decoration: BoxDecoration(
-                color: const Color(0xFFECFDF5),
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: Center(
-                child: Text(icon, style: const TextStyle(fontSize: 24)),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 3,
-                    ),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFECFDF5),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Text(
-                      tag,
-                      style: const TextStyle(
-                        color: Color(0xFF059669),
-                        fontSize: 10,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      color: Color(0xFF0F172A),
-                      fontWeight: FontWeight.w900,
-                      fontSize: 14,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    "Similarity ${score.toStringAsFixed(2)} · $reason",
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Colors.grey,
-                      fontSize: 10,
-                      height: 1.25,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-              decoration: BoxDecoration(
-                color: const Color(0xFFE0F2FE),
-                borderRadius: BorderRadius.circular(7),
-              ),
-              child: const Text(
-                "RECOMMENDED",
-                style: TextStyle(
-                  color: Color(0xFF38BDF8),
-                  fontSize: 9,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
+      child: card,
     );
   }
 }
 
-class _NewsCard extends StatelessWidget {
+class _IconBox extends StatelessWidget {
   final String icon;
-  final String tag;
-  final String title;
-  final String source;
-  final VoidCallback onTap;
+  final Color bg;
 
-  const _NewsCard({
-    required this.icon,
-    required this.tag,
-    required this.title,
-    required this.source,
-    required this.onTap,
-  });
+  const _IconBox({required this.icon, required this.bg});
 
   @override
   Widget build(BuildContext context) {
-    final sourceText = source.length > 35
-        ? "${source.substring(0, 35)}..."
-        : source;
-
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(18),
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: const Color(0xFFE2E8F0)),
-        ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              width: 54,
-              height: 54,
-              decoration: BoxDecoration(
-                color: const Color(0xFFFEF2F2),
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: Center(
-                child: Text(icon, style: const TextStyle(fontSize: 24)),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    tag,
-                    style: const TextStyle(
-                      color: Color(0xFFDC2626),
-                      fontSize: 10,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      color: Color(0xFF0F172A),
-                      fontWeight: FontWeight.w900,
-                      fontSize: 13,
-                      height: 1.25,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          sourceText,
-                          style: const TextStyle(
-                            color: Colors.grey,
-                            fontSize: 11,
-                          ),
-                        ),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFDCFCE7),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: const Text(
-                          "+5 XP reading",
-                          style: TextStyle(
-                            color: Color(0xFF10B981),
-                            fontSize: 10,
-                            fontWeight: FontWeight.w900,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
+    return Container(
+      width: 54,
+      height: 54,
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(14),
       ),
+      child: Center(child: Text(icon, style: const TextStyle(fontSize: 24))),
     );
   }
 }
@@ -1069,15 +998,7 @@ class _LoadingCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
-      ),
-      child: const Center(child: CircularProgressIndicator()),
-    );
+    return const _SimpleCard(child: Center(child: CircularProgressIndicator()));
   }
 }
 
@@ -1088,13 +1009,7 @@ class _ErrorCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
-      ),
+    return _SimpleCard(
       child: Text(text, style: const TextStyle(color: Colors.red)),
     );
   }
@@ -1108,30 +1023,12 @@ class _EmptyCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final content = Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
-      ),
+    return _SimpleCard(
+      onTap: onTap,
       child: Text(
         text,
-        style: const TextStyle(
-          color: Colors.grey,
-          fontWeight: FontWeight.w600,
-          height: 1.4,
-        ),
+        style: const TextStyle(color: Colors.grey, fontWeight: FontWeight.w600),
       ),
-    );
-
-    if (onTap == null) return content;
-
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(18),
-      child: content,
     );
   }
 }

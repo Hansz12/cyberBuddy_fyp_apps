@@ -36,6 +36,7 @@ class _MainNavigationState extends State<MainNavigation> {
     });
   }
 
+  // ignore: unused_element
   void _startQuiz(BuildContext context) {
     final learningState = context.read<LearningCubit>().state;
 
@@ -61,11 +62,6 @@ class _MainNavigationState extends State<MainNavigation> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: _screens[_currentIndex],
-
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _startQuiz(context),
-        child: const Icon(Icons.play_arrow),
-      ),
 
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
