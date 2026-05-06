@@ -27,12 +27,22 @@ class CyberBuddyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiBlocProvider(
       providers: [
-        BlocProvider(create: (_) => AuthCubit()),
-        BlocProvider(create: (_) => HomeCubit()..loadUserData()),
-        BlocProvider(create: (_) => QuizCubit()), // ❗ REMOVE auto load
-        BlocProvider(create: (_) => LeaderboardCubit()..loadLeaderboard()),
-        BlocProvider(create: (_) => LearningCubit()..loadModules()),
-        BlocProvider(create: (_) => ThreatCheckerCubit()),
+        BlocProvider<AuthCubit>(create: (_) => AuthCubit()),
+
+        // IMPORTANT:
+        // Jangan auto load kat sini.
+        // Load user data hanya selepas login berjaya.
+        BlocProvider<HomeCubit>(create: (_) => HomeCubit()),
+
+        BlocProvider<QuizCubit>(create: (_) => QuizCubit()),
+
+        BlocProvider<LeaderboardCubit>(create: (_) => LeaderboardCubit()),
+
+        BlocProvider<LearningCubit>(
+          create: (_) => LearningCubit()..loadModules(),
+        ),
+
+        BlocProvider<ThreatCheckerCubit>(create: (_) => ThreatCheckerCubit()),
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,

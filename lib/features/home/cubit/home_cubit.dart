@@ -15,6 +15,16 @@ class HomeCubit extends Cubit<HomeState> {
   final UserProgressRepository _progressRepository = UserProgressRepository();
   final LeaderboardRepository _leaderboardRepository = LeaderboardRepository();
 
+  String? _activeUid;
+
+  String? get _uid => FirebaseAuth.instance.currentUser?.uid;
+
+  String _key(String name) {
+    final uid = _uid;
+    if (uid == null) return name;
+    return '${uid}_$name';
+  }
+
   final Map<String, List<double>> moduleVectors = {
     "Phishing Awareness": [1, 0, 0],
     "Password Security": [0, 1, 0],
@@ -30,9 +40,27 @@ class HomeCubit extends Cubit<HomeState> {
     "Safe Online Banking": [0.9, 0.4, 0.7],
   };
 
+  void clearSession() {
+    _activeUid = null;
+    emit(const HomeState());
+  }
+
   Future<void> loadUserData() async {
+    final uid = _uid;
+
+    emit(const HomeState());
+
+    if (uid == null) {
+      _activeUid = null;
+      return;
+    }
+
+    _activeUid = uid;
+
     try {
       final cloudData = await _progressRepository.loadProgress();
+
+      if (_activeUid != uid) return;
 
       if (cloudData != null) {
         emit(
@@ -41,17 +69,20 @@ class HomeCubit extends Cubit<HomeState> {
             level: cloudData['level'] ?? 1,
             streak: cloudData['streak'] ?? 0,
             badges: List<String>.from(cloudData['badges'] ?? []),
+            completedModules: List<String>.from(
+              cloudData['completedModules'] ?? [],
+            ),
             topicScores: _mapDouble(
               cloudData['topicScores'],
-              state.topicScores,
+              const HomeState().topicScores,
             ),
             topicAnswered: _mapInt(
               cloudData['topicAnswered'],
-              state.topicAnswered,
+              const HomeState().topicAnswered,
             ),
             topicCorrect: _mapInt(
               cloudData['topicCorrect'],
-              state.topicCorrect,
+              const HomeState().topicCorrect,
             ),
             totalQuestionsAnswered: cloudData['totalQuestionsAnswered'] ?? 0,
             totalCorrectAnswers: cloudData['totalCorrectAnswers'] ?? 0,
@@ -75,64 +106,87 @@ class HomeCubit extends Cubit<HomeState> {
         await _saveLeaderboard();
         return;
       }
-    } catch (_) {
-      await _loadLocalProgress();
-      return;
-    }
 
-    await _loadLocalProgress();
+      // IMPORTANT:
+      // New account with no Firestore progress must NOT read old local data.
+      emit(const HomeState());
+      await _saveAllProgress();
+      return;
+    } catch (_) {
+      // Only use local cache if cloud fails for same logged-in user.
+      if (_activeUid == uid) {
+        await _loadLocalProgress();
+      }
+    }
   }
 
   Map<String, double> _mapDouble(dynamic raw, Map<String, double> fallback) {
     if (raw == null) return fallback;
 
     final data = Map<String, dynamic>.from(raw);
-    return data.map((key, value) {
-      return MapEntry(key, (value as num).toDouble());
+    final defaults = Map<String, double>.from(fallback);
+
+    data.forEach((key, value) {
+      defaults[key] = (value as num).toDouble();
     });
+
+    return defaults;
   }
 
   Map<String, int> _mapInt(dynamic raw, Map<String, int> fallback) {
     if (raw == null) return fallback;
 
     final data = Map<String, dynamic>.from(raw);
-    return data.map((key, value) {
-      return MapEntry(key, int.tryParse(value.toString()) ?? 0);
+    final defaults = Map<String, int>.from(fallback);
+
+    data.forEach((key, value) {
+      defaults[key] = int.tryParse(value.toString()) ?? 0;
     });
+
+    return defaults;
   }
 
   Future<void> _loadLocalProgress() async {
     final prefs = await SharedPreferences.getInstance();
 
+    final uid = _uid;
+
+    if (uid == null || _activeUid != uid) {
+      emit(const HomeState());
+      return;
+    }
+
     emit(
       state.copyWith(
-        xp: prefs.getInt('xp') ?? 0,
-        level: prefs.getInt('level') ?? 1,
-        streak: prefs.getInt('streak') ?? 0,
-        badges: prefs.getStringList('badges') ?? [],
-        notifications: prefs.getStringList('notifications') ?? [],
+        xp: prefs.getInt(_key('xp')) ?? 0,
+        level: prefs.getInt(_key('level')) ?? 1,
+        streak: prefs.getInt(_key('streak')) ?? 0,
+        badges: prefs.getStringList(_key('badges')) ?? [],
+        completedModules: prefs.getStringList(_key('completedModules')) ?? [],
+        notifications: prefs.getStringList(_key('notifications')) ?? [],
         hasUnreadNotifications:
-            prefs.getBool('hasUnreadNotifications') ?? false,
+            prefs.getBool(_key('hasUnreadNotifications')) ?? false,
         topicScores: _decodeDoubleMap(
-          prefs.getString('topicScores'),
-          state.topicScores,
+          prefs.getString(_key('topicScores')),
+          const HomeState().topicScores,
         ),
         topicAnswered: _decodeIntMap(
-          prefs.getString('topicAnswered'),
-          state.topicAnswered,
+          prefs.getString(_key('topicAnswered')),
+          const HomeState().topicAnswered,
         ),
         topicCorrect: _decodeIntMap(
-          prefs.getString('topicCorrect'),
-          state.topicCorrect,
+          prefs.getString(_key('topicCorrect')),
+          const HomeState().topicCorrect,
         ),
-        totalQuestionsAnswered: prefs.getInt('totalQuestionsAnswered') ?? 0,
-        totalCorrectAnswers: prefs.getInt('totalCorrectAnswers') ?? 0,
-        quizzesCompleted: prefs.getInt('quizzesCompleted') ?? 0,
-        perfectQuizzes: prefs.getInt('perfectQuizzes') ?? 0,
-        threatChecks: prefs.getInt('threatChecks') ?? 0,
-        lastActiveDate: prefs.getString('lastActiveDate') == null
+        totalQuestionsAnswered:
+            prefs.getInt(_key('totalQuestionsAnswered')) ?? 0,
+        totalCorrectAnswers: prefs.getInt(_key('totalCorrectAnswers')) ?? 0,
+        quizzesCompleted: prefs.getInt(_key('quizzesCompleted')) ?? 0,
+        perfectQuizzes: prefs.getInt(_key('perfectQuizzes')) ?? 0,
+        threatChecks: prefs.getInt(_key('threatChecks')) ?? 0,
+        lastActiveDate: prefs.getString(_key('lastActiveDate')) == null
             ? null
-            : DateTime.tryParse(prefs.getString('lastActiveDate')!),
+            : DateTime.tryParse(prefs.getString(_key('lastActiveDate'))!),
       ),
     );
 
@@ -150,18 +204,26 @@ class HomeCubit extends Cubit<HomeState> {
     if (json == null) return fallback;
 
     final decoded = jsonDecode(json) as Map<String, dynamic>;
-    return decoded.map((key, value) {
-      return MapEntry(key, (value as num).toDouble());
+    final defaults = Map<String, double>.from(fallback);
+
+    decoded.forEach((key, value) {
+      defaults[key] = (value as num).toDouble();
     });
+
+    return defaults;
   }
 
   Map<String, int> _decodeIntMap(String? json, Map<String, int> fallback) {
     if (json == null) return fallback;
 
     final decoded = jsonDecode(json) as Map<String, dynamic>;
-    return decoded.map((key, value) {
-      return MapEntry(key, int.tryParse(value.toString()) ?? 0);
+    final defaults = Map<String, int>.from(fallback);
+
+    decoded.forEach((key, value) {
+      defaults[key] = int.tryParse(value.toString()) ?? 0;
     });
+
+    return defaults;
   }
 
   Future<void> recordQuizAnswer(String topic, bool correct) async {
@@ -301,7 +363,9 @@ class HomeCubit extends Cubit<HomeState> {
       }
     }
 
-    unlockBadge("Rookie Badge");
+    if (state.totalQuestionsAnswered > 0 || state.xp > 0) {
+      unlockBadge("Rookie Badge");
+    }
 
     if (state.xp >= 100) unlockBadge("Beginner Defender");
     if (state.xp >= 300) unlockBadge("Intermediate Defender");
@@ -346,7 +410,29 @@ class HomeCubit extends Cubit<HomeState> {
 
   Future<void> resetProgress() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.clear();
+
+    final keys = [
+      'xp',
+      'level',
+      'streak',
+      'badges',
+      'completedModules',
+      'notifications',
+      'hasUnreadNotifications',
+      'topicScores',
+      'topicAnswered',
+      'topicCorrect',
+      'totalQuestionsAnswered',
+      'totalCorrectAnswers',
+      'quizzesCompleted',
+      'perfectQuizzes',
+      'threatChecks',
+      'lastActiveDate',
+    ];
+
+    for (final key in keys) {
+      await prefs.remove(_key(key));
+    }
 
     try {
       await _progressRepository.resetProgress();
@@ -355,13 +441,21 @@ class HomeCubit extends Cubit<HomeState> {
     emit(const HomeState());
 
     await _saveLocalProgress();
-
-    try {
-      await _saveLeaderboard();
-    } catch (_) {}
+    await _saveLeaderboard();
   }
 
   void _generateRecommendation() {
+    if (state.totalQuestionsAnswered == 0) {
+      emit(
+        state.copyWith(
+          recommendedModules: const [],
+          moduleScores: const {},
+          moduleReasons: const {},
+        ),
+      );
+      return;
+    }
+
     final phishingWeakness = 1 - state.topicProgress("phishing");
     final passwordWeakness = 1 - state.topicProgress("password");
     final socialWeakness = 1 - state.topicProgress("social");
@@ -459,26 +553,38 @@ class HomeCubit extends Cubit<HomeState> {
   Future<void> _saveLocalProgress() async {
     final prefs = await SharedPreferences.getInstance();
 
-    await prefs.setInt('xp', state.xp);
-    await prefs.setInt('level', state.level);
-    await prefs.setInt('streak', state.streak);
-    await prefs.setStringList('badges', state.badges);
-    await prefs.setStringList('notifications', state.notifications);
-    await prefs.setBool('hasUnreadNotifications', state.hasUnreadNotifications);
+    if (_uid == null) return;
 
-    await prefs.setString('topicScores', jsonEncode(state.topicScores));
-    await prefs.setString('topicAnswered', jsonEncode(state.topicAnswered));
-    await prefs.setString('topicCorrect', jsonEncode(state.topicCorrect));
+    await prefs.setInt(_key('xp'), state.xp);
+    await prefs.setInt(_key('level'), state.level);
+    await prefs.setInt(_key('streak'), state.streak);
+    await prefs.setStringList(_key('badges'), state.badges);
+    await prefs.setStringList(_key('completedModules'), state.completedModules);
+    await prefs.setStringList(_key('notifications'), state.notifications);
+    await prefs.setBool(
+      _key('hasUnreadNotifications'),
+      state.hasUnreadNotifications,
+    );
 
-    await prefs.setInt('totalQuestionsAnswered', state.totalQuestionsAnswered);
-    await prefs.setInt('totalCorrectAnswers', state.totalCorrectAnswers);
-    await prefs.setInt('quizzesCompleted', state.quizzesCompleted);
-    await prefs.setInt('perfectQuizzes', state.perfectQuizzes);
-    await prefs.setInt('threatChecks', state.threatChecks);
+    await prefs.setString(_key('topicScores'), jsonEncode(state.topicScores));
+    await prefs.setString(
+      _key('topicAnswered'),
+      jsonEncode(state.topicAnswered),
+    );
+    await prefs.setString(_key('topicCorrect'), jsonEncode(state.topicCorrect));
+
+    await prefs.setInt(
+      _key('totalQuestionsAnswered'),
+      state.totalQuestionsAnswered,
+    );
+    await prefs.setInt(_key('totalCorrectAnswers'), state.totalCorrectAnswers);
+    await prefs.setInt(_key('quizzesCompleted'), state.quizzesCompleted);
+    await prefs.setInt(_key('perfectQuizzes'), state.perfectQuizzes);
+    await prefs.setInt(_key('threatChecks'), state.threatChecks);
 
     if (state.lastActiveDate != null) {
       await prefs.setString(
-        'lastActiveDate',
+        _key('lastActiveDate'),
         state.lastActiveDate!.toIso8601String(),
       );
     }
