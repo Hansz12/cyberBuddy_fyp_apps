@@ -36,6 +36,9 @@ class QuizScreen extends StatelessWidget {
     if (lower.contains("privacy")) return "privacy";
     if (lower.contains("scam")) return "scam";
     if (lower.contains("mobile")) return "mobile";
+    if (lower.contains("network")) return "network";
+    if (lower.contains("ethics")) return "ethics";
+    if (lower.contains("banking")) return "banking";
 
     return "phishing";
   }
@@ -178,7 +181,6 @@ class QuizScreen extends StatelessWidget {
                     ],
                   ),
                 ),
-
                 Expanded(
                   child: ListView(
                     padding: const EdgeInsets.fromLTRB(18, 16, 18, 100),
@@ -211,7 +213,6 @@ class QuizScreen extends StatelessWidget {
                         ),
                         const SizedBox(height: 18),
                       ],
-
                       ...List.generate(options.length, (index) {
                         return _OptionCard(
                           letter: String.fromCharCode(65 + index),
@@ -222,12 +223,10 @@ class QuizScreen extends StatelessWidget {
                           isAnswered: state.isAnswered,
                           onTap: () {
                             if (state.isAnswered) return;
-
                             context.read<QuizCubit>().selectAnswer(index);
                           },
                         );
                       }),
-
                       if (state.isAnswered) ...[
                         const SizedBox(height: 14),
                         _ExplanationBox(
@@ -240,7 +239,6 @@ class QuizScreen extends StatelessWidget {
                     ],
                   ),
                 ),
-
                 Container(
                   padding: const EdgeInsets.fromLTRB(18, 10, 18, 16),
                   decoration: const BoxDecoration(
@@ -252,16 +250,15 @@ class QuizScreen extends StatelessWidget {
                     child: ElevatedButton(
                       onPressed: state.selectedIndex == null
                           ? null
-                          : () {
+                          : () async {
                               if (!state.isAnswered) {
                                 final topicKey = _getTopicKey(_topic(state));
                                 final correct =
                                     state.selectedIndex == correctIndex;
 
-                                context.read<HomeCubit>().updateTopicScore(
-                                  topicKey,
-                                  correct,
-                                );
+                                await context
+                                    .read<HomeCubit>()
+                                    .recordQuizAnswer(topicKey, correct);
 
                                 context.read<QuizCubit>().submitAnswer();
                               } else {
@@ -581,6 +578,12 @@ class _QuizResultScreen extends StatelessWidget {
                 child: ElevatedButton(
                   onPressed: () async {
                     await context.read<HomeCubit>().gainXP(earnedXp);
+
+                    await context.read<HomeCubit>().recordQuizCompleted(
+                      totalQuestions: state.questions.length,
+                      correctAnswers: state.score,
+                    );
+
                     context.read<QuizCubit>().resetQuiz();
 
                     if (context.mounted) {

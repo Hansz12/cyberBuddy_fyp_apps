@@ -13,6 +13,15 @@ class HomeState extends Equatable {
   final bool hasUnreadNotifications;
 
   final Map<String, double> topicScores;
+  final Map<String, int> topicAnswered;
+  final Map<String, int> topicCorrect;
+
+  final int totalQuestionsAnswered;
+  final int totalCorrectAnswers;
+  final int quizzesCompleted;
+  final int perfectQuizzes;
+  final int threatChecks;
+
   final Map<String, double> moduleScores;
   final Map<String, String> moduleReasons;
 
@@ -28,17 +37,103 @@ class HomeState extends Equatable {
     this.notifications = const [],
     this.hasUnreadNotifications = false,
     this.topicScores = const {
-      "phishing": 0.5,
-      "password": 0.5,
-      "social": 0.5,
-      "malware": 0.5,
-      "scam": 0.5,
-      "mobile": 0.5,
+      "phishing": 0.0,
+      "password": 0.0,
+      "social": 0.0,
+      "malware": 0.0,
+      "privacy": 0.0,
+      "scam": 0.0,
+      "mobile": 0.0,
+      "network": 0.0,
+      "ethics": 0.0,
+      "banking": 0.0,
     },
+    this.topicAnswered = const {
+      "phishing": 0,
+      "password": 0,
+      "social": 0,
+      "malware": 0,
+      "privacy": 0,
+      "scam": 0,
+      "mobile": 0,
+      "network": 0,
+      "ethics": 0,
+      "banking": 0,
+    },
+    this.topicCorrect = const {
+      "phishing": 0,
+      "password": 0,
+      "social": 0,
+      "malware": 0,
+      "privacy": 0,
+      "scam": 0,
+      "mobile": 0,
+      "network": 0,
+      "ethics": 0,
+      "banking": 0,
+    },
+    this.totalQuestionsAnswered = 0,
+    this.totalCorrectAnswers = 0,
+    this.quizzesCompleted = 0,
+    this.perfectQuizzes = 0,
+    this.threatChecks = 0,
     this.moduleScores = const {},
     this.moduleReasons = const {},
     this.lastActiveDate,
   });
+
+  int get avgScore {
+    if (totalQuestionsAnswered == 0) return 0;
+    return ((totalCorrectAnswers / totalQuestionsAnswered) * 100).round();
+  }
+
+  double topicProgress(String topic) {
+    final key = topic.toLowerCase();
+    final answered = topicAnswered[key] ?? 0;
+    final correct = topicCorrect[key] ?? 0;
+
+    if (answered == 0) return 0.0;
+
+    return (correct / answered).clamp(0.0, 1.0);
+  }
+
+  String get weakestTopic {
+    if (topicAnswered.values.every((count) => count == 0)) {
+      return "Not enough quiz data";
+    }
+
+    final attemptedTopics = topicAnswered.entries
+        .where((entry) => entry.value > 0)
+        .map((entry) => entry.key)
+        .toList();
+
+    attemptedTopics.sort(
+      (a, b) => topicProgress(a).compareTo(topicProgress(b)),
+    );
+
+    return attemptedTopics.isEmpty
+        ? "Not enough quiz data"
+        : attemptedTopics.first;
+  }
+
+  String get strongestTopic {
+    if (topicAnswered.values.every((count) => count == 0)) {
+      return "Not enough quiz data";
+    }
+
+    final attemptedTopics = topicAnswered.entries
+        .where((entry) => entry.value > 0)
+        .map((entry) => entry.key)
+        .toList();
+
+    attemptedTopics.sort(
+      (a, b) => topicProgress(b).compareTo(topicProgress(a)),
+    );
+
+    return attemptedTopics.isEmpty
+        ? "Not enough quiz data"
+        : attemptedTopics.first;
+  }
 
   HomeState copyWith({
     int? xp,
@@ -50,6 +145,13 @@ class HomeState extends Equatable {
     List<String>? notifications,
     bool? hasUnreadNotifications,
     Map<String, double>? topicScores,
+    Map<String, int>? topicAnswered,
+    Map<String, int>? topicCorrect,
+    int? totalQuestionsAnswered,
+    int? totalCorrectAnswers,
+    int? quizzesCompleted,
+    int? perfectQuizzes,
+    int? threatChecks,
     Map<String, double>? moduleScores,
     Map<String, String>? moduleReasons,
     DateTime? lastActiveDate,
@@ -66,6 +168,14 @@ class HomeState extends Equatable {
       hasUnreadNotifications:
           hasUnreadNotifications ?? this.hasUnreadNotifications,
       topicScores: topicScores ?? this.topicScores,
+      topicAnswered: topicAnswered ?? this.topicAnswered,
+      topicCorrect: topicCorrect ?? this.topicCorrect,
+      totalQuestionsAnswered:
+          totalQuestionsAnswered ?? this.totalQuestionsAnswered,
+      totalCorrectAnswers: totalCorrectAnswers ?? this.totalCorrectAnswers,
+      quizzesCompleted: quizzesCompleted ?? this.quizzesCompleted,
+      perfectQuizzes: perfectQuizzes ?? this.perfectQuizzes,
+      threatChecks: threatChecks ?? this.threatChecks,
       moduleScores: moduleScores ?? this.moduleScores,
       moduleReasons: moduleReasons ?? this.moduleReasons,
       lastActiveDate: clearLastActiveDate
@@ -85,6 +195,13 @@ class HomeState extends Equatable {
     notifications,
     hasUnreadNotifications,
     topicScores,
+    topicAnswered,
+    topicCorrect,
+    totalQuestionsAnswered,
+    totalCorrectAnswers,
+    quizzesCompleted,
+    perfectQuizzes,
+    threatChecks,
     moduleScores,
     moduleReasons,
     lastActiveDate,
