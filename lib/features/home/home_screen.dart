@@ -5,7 +5,6 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../data/services/news_service.dart';
 import '../learning/learning_screen.dart';
-// ignore: unused_import
 import '../learning/cubit/learning_cubit.dart';
 import '../news/news_screen.dart';
 import '../quiz/cubit/quiz_cubit.dart';
@@ -90,6 +89,8 @@ class _HomeScreenState extends State<HomeScreen> {
       return;
     }
 
+    await context.read<HomeCubit>().gainXP(5);
+
     await launchUrl(uri, mode: LaunchMode.externalApplication);
   }
 
@@ -110,6 +111,10 @@ class _HomeScreenState extends State<HomeScreen> {
     return text;
   }
 
+  double _questProgress(double value) {
+    return value.clamp(0.0, 1.0);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -117,11 +122,34 @@ class _HomeScreenState extends State<HomeScreen> {
       body: SafeArea(
         child: BlocBuilder<HomeCubit, HomeState>(
           builder: (context, state) {
+            final totalModules = context
+                .watch<LearningCubit>()
+                .state
+                .modules
+                .length;
+
+            final completedModuleQuest = state.completedModules.isNotEmpty
+                ? 1.0
+                : 0.0;
+
+            final quiz80Quest = state.totalQuestionsAnswered == 0
+                ? 0.0
+                : state.avgScore >= 80
+                ? 1.0
+                : state.avgScore / 80;
+
+            final newTopicQuest =
+                state.topicAnswered.values.any((count) => count > 0)
+                ? 1.0
+                : 0.0;
+
+            final threatQuest = state.threatChecks > 0 ? 1.0 : 0.0;
+
             return RefreshIndicator(
               onRefresh: _refreshHomeNews,
               child: ListView(
                 children: [
-                  _HomeHeader(state: state),
+                  _HomeHeader(state: state, totalModules: totalModules),
                   Padding(
                     padding: const EdgeInsets.all(16),
                     child: Column(
@@ -134,12 +162,14 @@ class _HomeScreenState extends State<HomeScreen> {
                         const SizedBox(height: 8),
                         _WeeklyStreakRow(streak: state.streak),
                         const SizedBox(height: 18),
+
                         _SectionHeader(
                           title: "DAILY QUESTS",
                           actionText: "View all",
                           onTap: () => _openLearning(context),
                         ),
                         const SizedBox(height: 8),
+
                         GridView.count(
                           crossAxisCount: 2,
                           shrinkWrap: true,
@@ -152,110 +182,90 @@ class _HomeScreenState extends State<HomeScreen> {
                               icon: "📖",
                               title: "Complete 1\nmodule",
                               xp: "+10 XP",
-                              progress: 0.15,
+                              progress: _questProgress(completedModuleQuest),
                               onTap: () => _openLearning(context),
                             ),
                             _QuestCard(
                               icon: "🎯",
                               title: "Score 80%+\nquiz",
                               xp: "+20 XP",
-                              progress: 0.30,
+                              progress: _questProgress(quiz80Quest),
                               onTap: () => _openQuiz(context),
                             ),
                             _QuestCard(
                               icon: "⚡",
                               title: "New topic\ntoday",
                               xp: "+15 XP",
-                              progress: 0.60,
+                              progress: _questProgress(newTopicQuest),
                               onTap: () => _openLearning(context),
                             ),
                             _QuestCard(
                               icon: "🔍",
                               title: "Use threat\nchecker",
                               xp: "+25 XP",
-                              progress: 1.0,
+                              progress: _questProgress(threatQuest),
                               onTap: () => _openThreatChecker(context),
                             ),
                           ],
                         ),
+
                         const SizedBox(height: 22),
+
                         _SectionHeader(
                           title: "RECOMMENDED FOR YOU",
                           actionText: "More",
                           onTap: () => _openLearning(context),
                         ),
                         const SizedBox(height: 8),
-                        ...state.recommendedModules.map((module) {
-                          final score = state.moduleScores[module] ?? 0;
-                          final reason =
-                              state.moduleReasons[module] ??
-                              "Recommended based on your learning progress.";
 
-                          return _RecommendedCard(
-                            title: module,
-                            score: score,
-                            reason: reason,
+                        if (state.recommendedModules.isEmpty)
+                          _EmptyCard(
+                            text:
+                                "Complete quizzes first to get personalised module recommendations.",
                             onTap: () => _openLearning(context),
-                          );
-                        }),
+                          )
+                        else
+                          ...state.recommendedModules.map((module) {
+                            final score = state.moduleScores[module] ?? 0;
+                            final reason =
+                                state.moduleReasons[module] ??
+                                "Recommended based on your learning progress.";
+
+                            return _RecommendedCard(
+                              title: module,
+                              score: score,
+                              reason: reason,
+                              onTap: () => _openLearning(context),
+                            );
+                          }),
+
                         const SizedBox(height: 18),
+
                         _NewsSectionHeader(
                           onAllNews: () => _openNews(context),
                           onRefresh: _refreshHomeNews,
                         ),
                         const SizedBox(height: 8),
+
                         FutureBuilder<List<Map<String, dynamic>>>(
                           future: _newsFuture,
                           builder: (context, snapshot) {
                             if (snapshot.connectionState ==
                                 ConnectionState.waiting) {
-                              return Container(
-                                padding: const EdgeInsets.all(18),
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(18),
-                                  border: Border.all(
-                                    color: const Color(0xFFE2E8F0),
-                                  ),
-                                ),
-                                child: const Center(
-                                  child: CircularProgressIndicator(),
-                                ),
-                              );
+                              return const _LoadingCard();
                             }
 
                             if (snapshot.hasError) {
-                              return Container(
-                                padding: const EdgeInsets.all(16),
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(18),
-                                  border: Border.all(
-                                    color: const Color(0xFFE2E8F0),
-                                  ),
-                                ),
-                                child: Text(
-                                  "News error: ${snapshot.error}",
-                                  style: const TextStyle(color: Colors.red),
-                                ),
+                              return _ErrorCard(
+                                text: "News error: ${snapshot.error}",
                               );
                             }
 
                             final newsList = snapshot.data ?? [];
 
                             if (newsList.isEmpty) {
-                              return Container(
-                                padding: const EdgeInsets.all(16),
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(18),
-                                  border: Border.all(
-                                    color: const Color(0xFFE2E8F0),
-                                  ),
-                                ),
-                                child: const Text(
-                                  "No relevant cybersecurity news found.",
-                                ),
+                              return const _EmptyCard(
+                                text: "No relevant cybersecurity news found.",
                               );
                             }
 
@@ -277,6 +287,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             );
                           },
                         ),
+
                         const SizedBox(height: 90),
                       ],
                     ),
@@ -293,21 +304,17 @@ class _HomeScreenState extends State<HomeScreen> {
 
 class _HomeHeader extends StatelessWidget {
   final HomeState state;
+  final int totalModules;
 
-  const _HomeHeader({required this.state});
+  const _HomeHeader({required this.state, required this.totalModules});
 
   String _getGreeting() {
     final hour = DateTime.now().hour;
 
-    if (hour >= 5 && hour < 12) {
-      return "Good morning,";
-    } else if (hour >= 12 && hour < 18) {
-      return "Good afternoon,";
-    } else if (hour >= 18 && hour < 22) {
-      return "Good evening,";
-    } else {
-      return "Good night,";
-    }
+    if (hour >= 5 && hour < 12) return "Good morning,";
+    if (hour >= 12 && hour < 18) return "Good afternoon,";
+    if (hour >= 18 && hour < 22) return "Good evening,";
+    return "Good night,";
   }
 
   String _getUserName() {
@@ -360,7 +367,6 @@ class _HomeHeader extends StatelessWidget {
                     borderRadius: BorderRadius.circular(20),
                   ),
                 ),
-
                 const Text(
                   "Notifications 🔔",
                   style: TextStyle(
@@ -369,23 +375,9 @@ class _HomeHeader extends StatelessWidget {
                     fontWeight: FontWeight.w900,
                   ),
                 ),
-
                 const SizedBox(height: 14),
-
                 if (notifications.isEmpty)
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: const Color(0xFFE2E8F0)),
-                    ),
-                    child: const Text(
-                      "No notifications yet.",
-                      style: TextStyle(color: Colors.grey),
-                    ),
-                  )
+                  const _EmptyCard(text: "No notifications yet.")
                 else
                   ...notifications.take(20).map((item) {
                     return Container(
@@ -406,7 +398,6 @@ class _HomeHeader extends StatelessWidget {
                       ),
                     );
                   }),
-
                 const SizedBox(height: 24),
               ],
             );
@@ -547,9 +538,9 @@ class _HomeHeader extends StatelessWidget {
             children: [
               _HeaderStatCard(value: "🔥 ${state.streak}", label: "Day Streak"),
               const SizedBox(width: 10),
-              const _HeaderStatCard(value: "8", label: "Modules"),
+              _HeaderStatCard(value: "$totalModules", label: "Modules"),
               const SizedBox(width: 10),
-              const _HeaderStatCard(value: "78%", label: "Avg Score"),
+              _HeaderStatCard(value: "${state.avgScore}%", label: "Avg Score"),
             ],
           ),
         ],
@@ -760,7 +751,8 @@ class _QuestCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final completed = progress >= 1.0;
+    final safeProgress = progress.clamp(0.0, 1.0);
+    final completed = safeProgress >= 1.0;
 
     return InkWell(
       borderRadius: BorderRadius.circular(16),
@@ -790,9 +782,11 @@ class _QuestCard extends StatelessWidget {
                 ),
                 const Spacer(),
                 Text(
-                  xp,
-                  style: const TextStyle(
-                    color: Color(0xFF10B981),
+                  completed ? "DONE" : xp,
+                  style: TextStyle(
+                    color: completed
+                        ? const Color(0xFF10B981)
+                        : const Color(0xFF2563EB),
                     fontSize: 11,
                     fontWeight: FontWeight.w900,
                   ),
@@ -811,7 +805,7 @@ class _QuestCard extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             LinearProgressIndicator(
-              value: progress,
+              value: safeProgress,
               minHeight: 5,
               backgroundColor: const Color(0xFFE2E8F0),
               color: completed
@@ -841,6 +835,8 @@ class _RecommendedCard extends StatelessWidget {
 
   bool get isPassword => title.toLowerCase().contains("password");
   bool get isPhishing => title.toLowerCase().contains("phishing");
+  bool get isMalware => title.toLowerCase().contains("malware");
+  bool get isPrivacy => title.toLowerCase().contains("privacy");
 
   @override
   Widget build(BuildContext context) {
@@ -848,15 +844,21 @@ class _RecommendedCard extends StatelessWidget {
         ? "PHISHING"
         : isPassword
         ? "PASSWORD"
+        : isMalware
+        ? "MALWARE"
+        : isPrivacy
+        ? "PRIVACY"
         : "CYBER";
 
     final icon = isPhishing
         ? "🎣"
         : isPassword
         ? "🔐"
+        : isMalware
+        ? "🦠"
+        : isPrivacy
+        ? "👁️"
         : "🛡️";
-
-    final badge = score > 0.75 ? "RECOMMENDED" : "WEAK AREA";
 
     return InkWell(
       onTap: onTap,
@@ -875,9 +877,7 @@ class _RecommendedCard extends StatelessWidget {
               width: 54,
               height: 54,
               decoration: BoxDecoration(
-                color: isPhishing
-                    ? const Color(0xFFFEF2F2)
-                    : const Color(0xFFECFDF5),
+                color: const Color(0xFFECFDF5),
                 borderRadius: BorderRadius.circular(14),
               ),
               child: Center(
@@ -895,17 +895,13 @@ class _RecommendedCard extends StatelessWidget {
                       vertical: 3,
                     ),
                     decoration: BoxDecoration(
-                      color: isPhishing
-                          ? const Color(0xFFFEF2F2)
-                          : const Color(0xFFECFDF5),
+                      color: const Color(0xFFECFDF5),
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: Text(
                       tag,
-                      style: TextStyle(
-                        color: isPhishing
-                            ? const Color(0xFFDC2626)
-                            : const Color(0xFF059669),
+                      style: const TextStyle(
+                        color: Color(0xFF059669),
                         fontSize: 10,
                         fontWeight: FontWeight.w900,
                       ),
@@ -941,9 +937,9 @@ class _RecommendedCard extends StatelessWidget {
                 color: const Color(0xFFE0F2FE),
                 borderRadius: BorderRadius.circular(7),
               ),
-              child: Text(
-                badge,
-                style: const TextStyle(
+              child: const Text(
+                "RECOMMENDED",
+                style: TextStyle(
                   color: Color(0xFF38BDF8),
                   fontSize: 9,
                   fontWeight: FontWeight.w900,
@@ -1064,6 +1060,78 @@ class _NewsCard extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _LoadingCard extends StatelessWidget {
+  const _LoadingCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: const Center(child: CircularProgressIndicator()),
+    );
+  }
+}
+
+class _ErrorCard extends StatelessWidget {
+  final String text;
+
+  const _ErrorCard({required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: Text(text, style: const TextStyle(color: Colors.red)),
+    );
+  }
+}
+
+class _EmptyCard extends StatelessWidget {
+  final String text;
+  final VoidCallback? onTap;
+
+  const _EmptyCard({required this.text, this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final content = Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: Text(
+        text,
+        style: const TextStyle(
+          color: Colors.grey,
+          fontWeight: FontWeight.w600,
+          height: 1.4,
+        ),
+      ),
+    );
+
+    if (onTap == null) return content;
+
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(18),
+      child: content,
     );
   }
 }

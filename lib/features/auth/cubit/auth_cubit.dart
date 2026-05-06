@@ -9,25 +9,35 @@ class AuthCubit extends Cubit<AuthState> {
 
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
-  static const String _serverClientId =
-      '950456615757-agno7h5fr76avo984pq3ndc7b8df81jc.apps.googleusercontent.com';
-
-  bool _googleInitialized = false;
-
-  Future<void> _initializeGoogleSignIn() async {
-    if (_googleInitialized) return;
-
-    await GoogleSignIn.instance.initialize(serverClientId: _serverClientId);
-
-    _googleInitialized = true;
-  }
-
   void updateEmail(String value) {
     emit(state.copyWith(email: value, clearError: true));
   }
 
   void updatePassword(String value) {
     emit(state.copyWith(password: value, clearError: true));
+  }
+
+  String _friendlyAuthError(FirebaseAuthException e) {
+    switch (e.code) {
+      case 'invalid-credential':
+      case 'wrong-password':
+      case 'user-not-found':
+        return 'Email or password is incorrect. If you registered with Google, tap Forgot password first to set a password for manual login.';
+      case 'invalid-email':
+        return 'Please enter a valid email address.';
+      case 'user-disabled':
+        return 'This account has been disabled.';
+      case 'too-many-requests':
+        return 'Too many login attempts. Please try again later.';
+      case 'network-request-failed':
+        return 'Network error. Please check your internet connection.';
+      case 'email-already-in-use':
+        return 'This email already exists. Please sign in or reset your password.';
+      case 'weak-password':
+        return 'Password must be at least 6 characters.';
+      default:
+        return e.message ?? 'Authentication failed. Please try again.';
+    }
   }
 
   Future<bool> signIn() async {
@@ -48,13 +58,10 @@ class AuthCubit extends Cubit<AuthState> {
       return true;
     } on FirebaseAuthException catch (e) {
       emit(
-        state.copyWith(
-          isLoading: false,
-          errorMessage: e.message ?? 'Login failed.',
-        ),
+        state.copyWith(isLoading: false, errorMessage: _friendlyAuthError(e)),
       );
       return false;
-    } catch (e) {
+    } catch (_) {
       emit(
         state.copyWith(
           isLoading: false,
@@ -93,13 +100,10 @@ class AuthCubit extends Cubit<AuthState> {
       return true;
     } on FirebaseAuthException catch (e) {
       emit(
-        state.copyWith(
-          isLoading: false,
-          errorMessage: e.message ?? 'Registration failed.',
-        ),
+        state.copyWith(isLoading: false, errorMessage: _friendlyAuthError(e)),
       );
       return false;
-    } catch (e) {
+    } catch (_) {
       emit(
         state.copyWith(
           isLoading: false,
@@ -114,7 +118,9 @@ class AuthCubit extends Cubit<AuthState> {
     final email = state.email.trim();
 
     if (email.isEmpty) {
-      emit(state.copyWith(errorMessage: 'Please enter your email address.'));
+      emit(
+        state.copyWith(errorMessage: 'Please enter your email address first.'),
+      );
       return false;
     }
 
@@ -123,21 +129,25 @@ class AuthCubit extends Cubit<AuthState> {
     try {
       await _auth.sendPasswordResetEmail(email: email);
 
-      emit(state.copyWith(isLoading: false));
+      emit(
+        state.copyWith(
+          isLoading: false,
+          errorMessage:
+              'Password setup link sent. Check your email, set a password, then you can login manually or with Google.',
+        ),
+      );
+
       return true;
     } on FirebaseAuthException catch (e) {
       emit(
-        state.copyWith(
-          isLoading: false,
-          errorMessage: e.message ?? 'Reset password failed.',
-        ),
+        state.copyWith(isLoading: false, errorMessage: _friendlyAuthError(e)),
       );
       return false;
-    } catch (e) {
+    } catch (_) {
       emit(
         state.copyWith(
           isLoading: false,
-          errorMessage: 'Reset password failed. Please try again.',
+          errorMessage: 'Failed to send password reset email.',
         ),
       );
       return false;
@@ -148,7 +158,10 @@ class AuthCubit extends Cubit<AuthState> {
     emit(state.copyWith(isLoading: true, clearError: true));
 
     try {
-      await _initializeGoogleSignIn();
+      await GoogleSignIn.instance.initialize(
+        serverClientId:
+            '950456615757-agno7h5fr76avo984pq3ndc7b8df81jc.apps.googleusercontent.com',
+      );
 
       final googleUser = await GoogleSignIn.instance.authenticate();
       final googleAuth = googleUser.authentication;
@@ -171,17 +184,14 @@ class AuthCubit extends Cubit<AuthState> {
       return false;
     } on FirebaseAuthException catch (e) {
       emit(
-        state.copyWith(
-          isLoading: false,
-          errorMessage: e.message ?? 'Google Sign-In failed.',
-        ),
+        state.copyWith(isLoading: false, errorMessage: _friendlyAuthError(e)),
       );
       return false;
-    } catch (e) {
+    } catch (_) {
       emit(
         state.copyWith(
           isLoading: false,
-          errorMessage: 'Google Sign-In failed: $e',
+          errorMessage: 'Google Sign-In failed. Please try again.',
         ),
       );
       return false;
@@ -190,7 +200,6 @@ class AuthCubit extends Cubit<AuthState> {
 
   Future<void> signOut() async {
     try {
-      await _initializeGoogleSignIn();
       await GoogleSignIn.instance.signOut();
     } catch (_) {}
 

@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -11,12 +12,25 @@ class LearningCubit extends Cubit<LearningState> {
 
   static const String _completedKey = 'completed_module_ids';
 
+  String? get _uid => FirebaseAuth.instance.currentUser?.uid;
+
+  String _key(String name) {
+    final uid = _uid;
+
+    if (uid == null) return name;
+
+    return '${uid}_$name';
+  }
+
   Future<void> loadModules() async {
     emit(state.copyWith(isLoading: true));
 
     try {
       final prefs = await SharedPreferences.getInstance();
-      final completedIds = prefs.getStringList(_completedKey) ?? [];
+
+      final completedIds = _uid == null
+          ? <String>[]
+          : prefs.getStringList(_key(_completedKey)) ?? [];
 
       final data = await _dataService.loadModules();
 
@@ -47,8 +61,14 @@ class LearningCubit extends Cubit<LearningState> {
           isLoading: false,
         ),
       );
-    } catch (e) {
-      emit(state.copyWith(modules: const [], isLoading: false));
+    } catch (_) {
+      emit(
+        state.copyWith(
+          modules: const [],
+          completedModuleIds: const [],
+          isLoading: false,
+        ),
+      );
     }
   }
 
@@ -77,7 +97,28 @@ class LearningCubit extends Cubit<LearningState> {
     );
 
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setStringList(_completedKey, updatedCompletedIds);
+
+    if (_uid != null) {
+      await prefs.setStringList(_key(_completedKey), updatedCompletedIds);
+    }
+  }
+
+  Future<void> resetLearningProgress() async {
+    final prefs = await SharedPreferences.getInstance();
+
+    if (_uid != null) {
+      await prefs.remove(_key(_completedKey));
+    }
+
+    final resetModules = state.modules.map((module) {
+      return module.copyWith(completed: false);
+    }).toList();
+
+    emit(state.copyWith(modules: resetModules, completedModuleIds: const []));
+  }
+
+  void clearSession() {
+    emit(const LearningState());
   }
 
   LearningModule? getModuleById(String id) {

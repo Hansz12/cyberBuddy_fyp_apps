@@ -13,7 +13,7 @@ class ModuleDetailScreen extends StatelessWidget {
   const ModuleDetailScreen({super.key, required this.module});
 
   Color _topicColor(String topic) {
-    switch (topic) {
+    switch (topic.toLowerCase()) {
       case "phishing":
         return const Color(0xFFEF4444);
       case "password":
@@ -40,7 +40,7 @@ class ModuleDetailScreen extends StatelessWidget {
   }
 
   IconData _topicIcon(String topic) {
-    switch (topic) {
+    switch (topic.toLowerCase()) {
       case "phishing":
         return Icons.phishing;
       case "password":
@@ -66,33 +66,84 @@ class ModuleDetailScreen extends StatelessWidget {
     }
   }
 
-  List<String> _contentPoints(String content) {
+  List<String> _contentPoints(String content, String title) {
     final cleaned = content.trim();
 
     if (cleaned.isEmpty) {
       return [
-        "Understand the main cybersecurity risk in this topic.",
-        "Identify warning signs before taking action.",
-        "Apply safe behaviour in daily digital activities.",
+        "Understand the main cybersecurity risk related to $title.",
+        "Identify warning signs before taking any action.",
+        "Apply safe digital behaviour in real-life situations.",
       ];
     }
 
-    return cleaned
+    final points = cleaned
         .split(".")
         .map((e) => e.trim())
         .where((e) => e.isNotEmpty)
         .toList();
+
+    if (points.isEmpty) {
+      return [
+        "Understand the main cybersecurity risk related to $title.",
+        "Identify warning signs before taking any action.",
+        "Apply safe digital behaviour in real-life situations.",
+      ];
+    }
+
+    return points;
   }
 
-  void _startQuiz(BuildContext context) {
-    if (module.id.isEmpty) {
+  List<String> _actionPoints(String topic) {
+    switch (topic.toLowerCase()) {
+      case "phishing":
+        return [
+          "Check sender address and URL before clicking any link.",
+          "Open official websites manually instead of using suspicious links.",
+          "Report phishing emails or messages when possible.",
+        ];
+      case "password":
+        return [
+          "Use strong and unique passwords for each account.",
+          "Avoid using birthdays, names, or repeated passwords.",
+          "Enable multi-factor authentication whenever possible.",
+        ];
+      case "malware":
+        return [
+          "Avoid downloading cracked apps or unknown APK files.",
+          "Install apps only from trusted stores or official websites.",
+          "Keep your operating system and apps updated.",
+        ];
+      case "privacy":
+        return [
+          "Review app permissions before allowing access.",
+          "Avoid sharing personal information publicly online.",
+          "Use privacy settings to limit who can view your data.",
+        ];
+      case "banking":
+        return [
+          "Never share OTP, TAC, PIN, or banking password.",
+          "Verify banking links through the official app or website.",
+          "Contact the bank using official customer service numbers.",
+        ];
+      default:
+        return [
+          "Verify suspicious messages through official channels.",
+          "Avoid sharing passwords, OTP, banking details, or private information.",
+          "Report suspicious links, messages, or files when possible.",
+        ];
+    }
+  }
+
+  void _startQuiz(BuildContext context, LearningModule currentModule) {
+    if (currentModule.id.isEmpty) {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text("Module ID not found.")));
       return;
     }
 
-    context.read<QuizCubit>().loadQuiz(module.id);
+    context.read<QuizCubit>().loadQuiz(currentModule.id);
 
     Navigator.push(
       context,
@@ -100,14 +151,21 @@ class ModuleDetailScreen extends StatelessWidget {
     );
   }
 
-  Future<void> _completeModule(BuildContext context) async {
-    await context.read<LearningCubit>().completeModule(module.id);
-    await context.read<HomeCubit>().gainXP(module.xpReward);
+  Future<void> _completeModule(
+    BuildContext context,
+    LearningModule currentModule,
+  ) async {
+    if (currentModule.completed) return;
+
+    await context.read<LearningCubit>().completeModule(currentModule.id);
+    await context.read<HomeCubit>().gainXP(currentModule.xpReward);
 
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text("Module completed! +${module.xpReward} XP earned."),
+          content: Text(
+            "Module completed! +${currentModule.xpReward} XP earned.",
+          ),
         ),
       );
 
@@ -115,14 +173,32 @@ class ModuleDetailScreen extends StatelessWidget {
     }
   }
 
+  LearningModule _getLatestModule(BuildContext context) {
+    final modules = context.watch<LearningCubit>().state.modules;
+
+    try {
+      return modules.firstWhere((m) => m.id == module.id);
+    } catch (_) {
+      return module;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final color = _topicColor(module.topic);
-    final overviewText = module.content.trim().isEmpty
-        ? "This module helps you learn important cybersecurity practices related to ${module.title.toLowerCase()}."
-        : module.content;
+    final currentModule = _getLatestModule(context);
 
-    final points = _contentPoints(module.content);
+    final color = _topicColor(currentModule.topic);
+
+    final overviewText = currentModule.content.trim().isEmpty
+        ? "This module helps you learn important cybersecurity practices related to ${currentModule.title.toLowerCase()}."
+        : currentModule.content;
+
+    final points = _contentPoints(
+      currentModule.content,
+      currentModule.title.toLowerCase(),
+    );
+
+    final actions = _actionPoints(currentModule.topic);
 
     return Scaffold(
       backgroundColor: const Color(0xFFF1F5F9),
@@ -159,14 +235,14 @@ class ModuleDetailScreen extends StatelessWidget {
                       border: Border.all(color: color.withOpacity(0.4)),
                     ),
                     child: Icon(
-                      _topicIcon(module.topic),
+                      _topicIcon(currentModule.topic),
                       color: Colors.white,
                       size: 32,
                     ),
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    module.title,
+                    currentModule.title,
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 26,
@@ -178,14 +254,21 @@ class ModuleDetailScreen extends StatelessWidget {
                   Row(
                     children: [
                       _HeaderChip(
-                        text: module.difficulty,
+                        text: currentModule.difficulty,
                         icon: Icons.bar_chart,
                       ),
                       const SizedBox(width: 8),
                       _HeaderChip(
-                        text: "+${module.xpReward} XP",
+                        text: "+${currentModule.xpReward} XP",
                         icon: Icons.bolt,
                       ),
+                      if (currentModule.completed) ...[
+                        const SizedBox(width: 8),
+                        const _HeaderChip(
+                          text: "Completed",
+                          icon: Icons.check_circle,
+                        ),
+                      ],
                     ],
                   ),
                 ],
@@ -217,23 +300,12 @@ class ModuleDetailScreen extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 14),
-                  const _InfoCard(
+                  _InfoCard(
                     title: "What You Should Do",
                     child: Column(
-                      children: [
-                        _LearningPoint(
-                          text:
-                              "Verify suspicious messages through official channels.",
-                        ),
-                        _LearningPoint(
-                          text:
-                              "Avoid sharing passwords, OTP, banking details, or private information.",
-                        ),
-                        _LearningPoint(
-                          text:
-                              "Report suspicious links, messages, or files when possible.",
-                        ),
-                      ],
+                      children: actions.map((point) {
+                        return _LearningPoint(text: point);
+                      }).toList(),
                     ),
                   ),
                 ],
@@ -251,7 +323,7 @@ class ModuleDetailScreen extends StatelessWidget {
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton.icon(
-                      onPressed: () => _startQuiz(context),
+                      onPressed: () => _startQuiz(context, currentModule),
                       icon: const Icon(Icons.quiz),
                       label: const Text("Start Module Quiz"),
                       style: ElevatedButton.styleFrom(
@@ -268,19 +340,29 @@ class ModuleDetailScreen extends StatelessWidget {
                   SizedBox(
                     width: double.infinity,
                     child: OutlinedButton.icon(
-                      onPressed: module.completed
+                      onPressed: currentModule.completed
                           ? null
-                          : () => _completeModule(context),
-                      icon: const Icon(Icons.check_circle_outline),
+                          : () => _completeModule(context, currentModule),
+                      icon: Icon(
+                        currentModule.completed
+                            ? Icons.check_circle
+                            : Icons.check_circle_outline,
+                      ),
                       label: Text(
-                        module.completed
+                        currentModule.completed
                             ? "Module Completed"
                             : "Mark as Completed",
                       ),
                       style: OutlinedButton.styleFrom(
-                        foregroundColor: const Color(0xFF0D1B3E),
+                        foregroundColor: currentModule.completed
+                            ? const Color(0xFF10B981)
+                            : const Color(0xFF0D1B3E),
                         padding: const EdgeInsets.symmetric(vertical: 14),
-                        side: const BorderSide(color: Color(0xFF0D1B3E)),
+                        side: BorderSide(
+                          color: currentModule.completed
+                              ? const Color(0xFF10B981)
+                              : const Color(0xFF0D1B3E),
+                        ),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(16),
                         ),
