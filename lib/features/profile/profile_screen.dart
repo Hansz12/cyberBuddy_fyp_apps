@@ -389,6 +389,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> logout() async {
+    context.read<HomeCubit>().clearSession();
+
     try {
       await GoogleSignIn.instance.signOut();
     } catch (_) {}

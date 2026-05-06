@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../main_navigation.dart';
+import '../home/cubit/home_cubit.dart';
 import 'cubit/auth_cubit.dart';
 import 'cubit/auth_state.dart';
 import 'forgot_password_screen.dart';
@@ -14,6 +15,8 @@ class LoginScreen extends StatelessWidget {
     final success = await context.read<AuthCubit>().signIn();
 
     if (success && context.mounted) {
+      await context.read<HomeCubit>().loadUserData();
+
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (_) => const MainNavigation()),
@@ -25,6 +28,8 @@ class LoginScreen extends StatelessWidget {
     final success = await context.read<AuthCubit>().signInWithGoogle();
 
     if (success && context.mounted) {
+      await context.read<HomeCubit>().loadUserData();
+
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (_) => const MainNavigation()),
@@ -135,7 +140,6 @@ class LoginScreen extends StatelessWidget {
                           ],
                         ),
                       ),
-
                       Transform.translate(
                         offset: const Offset(0, -20),
                         child: Container(
@@ -162,9 +166,7 @@ class LoginScreen extends StatelessWidget {
                                   hintText: "farhana@uitm.edu.my",
                                 ),
                               ),
-
                               const SizedBox(height: 16),
-
                               const _FieldLabel("PASSWORD"),
                               const SizedBox(height: 6),
                               TextField(
@@ -177,7 +179,6 @@ class LoginScreen extends StatelessWidget {
                                   hintText: "Password",
                                 ),
                               ),
-
                               Align(
                                 alignment: Alignment.centerRight,
                                 child: TextButton(
@@ -191,7 +192,6 @@ class LoginScreen extends StatelessWidget {
                                   ),
                                 ),
                               ),
-
                               if (state.errorMessage != null)
                                 Padding(
                                   padding: const EdgeInsets.only(bottom: 10),
@@ -203,7 +203,6 @@ class LoginScreen extends StatelessWidget {
                                     ),
                                   ),
                                 ),
-
                               SizedBox(
                                 width: double.infinity,
                                 child: ElevatedButton(
@@ -222,9 +221,7 @@ class LoginScreen extends StatelessWidget {
                                       : const Text("Sign in →"),
                                 ),
                               ),
-
                               const SizedBox(height: 16),
-
                               Row(
                                 children: const [
                                   Expanded(child: Divider()),
@@ -237,9 +234,7 @@ class LoginScreen extends StatelessWidget {
                                   Expanded(child: Divider()),
                                 ],
                               ),
-
                               const SizedBox(height: 16),
-
                               SizedBox(
                                 width: double.infinity,
                                 child: OutlinedButton.icon(
@@ -262,9 +257,7 @@ class LoginScreen extends StatelessWidget {
                                   ),
                                 ),
                               ),
-
                               const SizedBox(height: 16),
-
                               Center(
                                 child: GestureDetector(
                                   onTap: () => _goToRegister(context),
@@ -287,10 +280,8 @@ class LoginScreen extends StatelessWidget {
                                   ),
                                 ),
                               ),
-
                               const SizedBox(height: 20),
                               const Divider(),
-
                               const Row(
                                 children: [
                                   Icon(
