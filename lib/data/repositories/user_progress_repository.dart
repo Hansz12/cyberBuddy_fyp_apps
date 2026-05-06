@@ -7,6 +7,26 @@ class UserProgressRepository {
 
   String? get _userId => _auth.currentUser?.uid;
 
+  String _getDisplayName() {
+    final user = _auth.currentUser;
+
+    if (user?.displayName != null && user!.displayName!.trim().isNotEmpty) {
+      return user.displayName!.trim();
+    }
+
+    final email = user?.email ?? "User";
+    if (email.contains("@")) {
+      final name = email.split("@").first;
+      return name.isEmpty ? "User" : name;
+    }
+
+    return "User";
+  }
+
+  String _getEmail() {
+    return _auth.currentUser?.email ?? "";
+  }
+
   Future<Map<String, dynamic>?> loadProgress() async {
     final userId = _userId;
 
@@ -33,12 +53,20 @@ class UserProgressRepository {
 
     if (userId == null) return;
 
+    final leaderboardScore = xp + (streak * 10) + (badges.length * 25);
+
     await _firestore.collection('user_progress').doc(userId).set({
+      'userId': userId,
+      'name': _getDisplayName(),
+      'email': _getEmail(),
+      'faculty': 'FSKM Mobile Computing',
       'xp': xp,
       'level': level,
       'streak': streak,
       'badges': badges,
+      'badgesCount': badges.length,
       'topicScores': topicScores,
+      'leaderboardScore': leaderboardScore,
       'lastActiveDate': lastActiveDate?.toIso8601String(),
       'notifications': notifications,
       'hasUnreadNotifications': hasUnreadNotifications,

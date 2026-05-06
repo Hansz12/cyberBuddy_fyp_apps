@@ -19,13 +19,31 @@ class LeaderboardUser extends Equatable {
 
 class LeaderboardState extends Equatable {
   final List<LeaderboardUser> users;
+  final bool isLoading;
+  final String errorMessage;
+  final bool loaded;
 
-  const LeaderboardState({this.users = const []});
+  const LeaderboardState({
+    this.users = const [],
+    this.isLoading = false,
+    this.errorMessage = '',
+    this.loaded = false,
+  });
 
-  LeaderboardState copyWith({List<LeaderboardUser>? users}) {
-    return LeaderboardState(users: users ?? this.users);
+  LeaderboardState copyWith({
+    List<LeaderboardUser>? users,
+    bool? isLoading,
+    String? errorMessage,
+    bool? loaded,
+  }) {
+    return LeaderboardState(
+      users: users ?? this.users,
+      isLoading: isLoading ?? this.isLoading,
+      errorMessage: errorMessage ?? this.errorMessage,
+      loaded: loaded ?? this.loaded,
+    );
   }
 
   @override
-  List<Object> get props => [users];
+  List<Object> get props => [users, isLoading, errorMessage, loaded];
 }

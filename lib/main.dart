@@ -30,7 +30,7 @@ class CyberBuddyApp extends StatelessWidget {
         BlocProvider(create: (_) => AuthCubit()),
         BlocProvider(create: (_) => HomeCubit()..loadUserData()),
         BlocProvider(create: (_) => QuizCubit()), // ❗ REMOVE auto load
-        BlocProvider(create: (_) => LeaderboardCubit()),
+        BlocProvider(create: (_) => LeaderboardCubit()..loadLeaderboard()),
         BlocProvider(create: (_) => LearningCubit()..loadModules()),
         BlocProvider(create: (_) => ThreatCheckerCubit()),
       ],
