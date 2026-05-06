@@ -20,88 +20,273 @@ class QuizScreen extends StatelessWidget {
 
   String _explanation(QuizState state) => _q(state)['explanation'] ?? '';
 
+  String _topic(QuizState state) => _q(state)['topic'] ?? 'cyber';
+
+  String _difficulty(QuizState state) => _q(state)['difficulty'] ?? 'beginner';
+
   int _xp(QuizState state) => _q(state)['xpReward'] ?? 0;
+
+  String _getTopicKey(String topic) {
+    final lower = topic.toLowerCase();
+
+    if (lower.contains("phishing")) return "phishing";
+    if (lower.contains("password")) return "password";
+    if (lower.contains("social")) return "social";
+    if (lower.contains("malware")) return "malware";
+    if (lower.contains("privacy")) return "privacy";
+    if (lower.contains("scam")) return "scam";
+    if (lower.contains("mobile")) return "mobile";
+
+    return "phishing";
+  }
 
   @override
   Widget build(BuildContext context) {
     return BlocBuilder<QuizCubit, QuizState>(
       builder: (context, state) {
-        if (state.isLoading || state.questions.isEmpty) {
+        if (state.isLoading) {
           return const Scaffold(
+            backgroundColor: Color(0xFFF1F5F9),
             body: Center(child: CircularProgressIndicator()),
           );
         }
 
-        if (state.isFinished) {
-          return _Result(state: state);
+        if (state.questions.isEmpty) {
+          return Scaffold(
+            backgroundColor: const Color(0xFFF1F5F9),
+            body: SafeArea(
+              child: Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Text("😕", style: TextStyle(fontSize: 46)),
+                      const SizedBox(height: 12),
+                      const Text(
+                        "No quiz questions found",
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: Color(0xFF0F172A),
+                          fontSize: 22,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      const Text(
+                        "This module may not have active questions yet.",
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: Colors.grey),
+                      ),
+                      const SizedBox(height: 18),
+                      ElevatedButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: const Text("Back"),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          );
         }
+
+        if (state.isFinished) {
+          return _QuizResultScreen(state: state);
+        }
+
+        final correctIndex = _correctIndex(state);
+        final options = _options(state);
+        final selectedIndex = state.selectedIndex;
+        final isCorrect = selectedIndex == correctIndex;
 
         return Scaffold(
           backgroundColor: const Color(0xFFF1F5F9),
           body: SafeArea(
             child: Column(
               children: [
-                _Header(state: state),
-
-                Expanded(
-                  child: ListView(
-                    padding: const EdgeInsets.all(16),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.fromLTRB(18, 12, 18, 18),
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [Color(0xFF0D1B3E), Color(0xFF1E3A8A)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _ScenarioBox(text: _scenario(state)),
+                      IconButton(
+                        onPressed: () => Navigator.pop(context),
+                        icon: const Icon(Icons.arrow_back),
+                        color: Colors.white,
+                        padding: EdgeInsets.zero,
+                        alignment: Alignment.centerLeft,
+                      ),
+                      const SizedBox(height: 2),
+                      Row(
+                        children: [
+                          ...List.generate(state.questions.length, (index) {
+                            final active = index <= state.currentIndex;
 
+                            return Expanded(
+                              child: Container(
+                                margin: const EdgeInsets.only(right: 5),
+                                height: 5,
+                                decoration: BoxDecoration(
+                                  color: active
+                                      ? const Color(0xFF38BDF8)
+                                      : Colors.white24,
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                              ),
+                            );
+                          }),
+                          const SizedBox(width: 8),
+                          Text(
+                            "${state.currentIndex + 1}/${state.questions.length}",
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
                       const SizedBox(height: 16),
-
+                      Text(
+                        "🎧 ${_topic(state).toUpperCase()} · ${_difficulty(state).toUpperCase()}",
+                        style: const TextStyle(
+                          color: Color(0xFF38BDF8),
+                          fontSize: 11,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 1.1,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
                       Text(
                         _question(state),
                         style: const TextStyle(
+                          color: Colors.white,
                           fontSize: 20,
-                          fontWeight: FontWeight.bold,
+                          fontWeight: FontWeight.w900,
+                          height: 1.25,
                         ),
                       ),
+                    ],
+                  ),
+                ),
 
-                      const SizedBox(height: 16),
+                Expanded(
+                  child: ListView(
+                    padding: const EdgeInsets.fromLTRB(18, 16, 18, 100),
+                    children: [
+                      if (_scenario(state).trim().isNotEmpty) ...[
+                        Container(
+                          padding: const EdgeInsets.all(18),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFEFF6FF),
+                            borderRadius: BorderRadius.circular(18),
+                          ),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text("💬", style: TextStyle(fontSize: 24)),
+                              const SizedBox(width: 14),
+                              Expanded(
+                                child: Text(
+                                  '"${_scenario(state)}"',
+                                  style: const TextStyle(
+                                    color: Color(0xFF0F172A),
+                                    fontSize: 14,
+                                    height: 1.35,
+                                    fontStyle: FontStyle.italic,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 18),
+                      ],
 
-                      ...List.generate(_options(state).length, (index) {
+                      ...List.generate(options.length, (index) {
                         return _OptionCard(
-                          text: _options(state)[index],
+                          letter: String.fromCharCode(65 + index),
+                          text: options[index].toString(),
                           index: index,
-                          state: state,
-                          correctIndex: _correctIndex(state),
+                          selectedIndex: selectedIndex,
+                          correctIndex: correctIndex,
+                          isAnswered: state.isAnswered,
                           onTap: () {
+                            if (state.isAnswered) return;
+
                             context.read<QuizCubit>().selectAnswer(index);
                           },
                         );
                       }),
 
                       if (state.isAnswered) ...[
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 14),
                         _ExplanationBox(
-                          isCorrect:
-                              state.selectedIndex == _correctIndex(state),
-                          text: _explanation(state),
+                          isCorrect: isCorrect,
+                          explanation: _explanation(state),
                         ),
-                        const SizedBox(height: 12),
-                        _XpBox(
-                          isCorrect:
-                              state.selectedIndex == _correctIndex(state),
-                          xp: _xp(state),
-                        ),
+                        const SizedBox(height: 14),
+                        _XpBox(isCorrect: isCorrect, xp: _xp(state)),
                       ],
                     ],
                   ),
                 ),
 
-                Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: ElevatedButton(
-                    onPressed: () {
-                      if (!state.isAnswered) {
-                        context.read<QuizCubit>().submitAnswer();
-                      } else {
-                        context.read<QuizCubit>().nextQuestion();
-                      }
-                    },
-                    child: Text(state.isAnswered ? "Next" : "Submit"),
+                Container(
+                  padding: const EdgeInsets.fromLTRB(18, 10, 18, 16),
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                    border: Border(top: BorderSide(color: Color(0xFFE2E8F0))),
+                  ),
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: state.selectedIndex == null
+                          ? null
+                          : () {
+                              if (!state.isAnswered) {
+                                final topicKey = _getTopicKey(_topic(state));
+                                final correct =
+                                    state.selectedIndex == correctIndex;
+
+                                context.read<HomeCubit>().updateTopicScore(
+                                  topicKey,
+                                  correct,
+                                );
+
+                                context.read<QuizCubit>().submitAnswer();
+                              } else {
+                                context.read<QuizCubit>().nextQuestion();
+                              }
+                            },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF2563EB),
+                        foregroundColor: Colors.white,
+                        disabledBackgroundColor: const Color(0xFFE2E8F0),
+                        disabledForegroundColor: Colors.grey,
+                        padding: const EdgeInsets.symmetric(vertical: 15),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
+                      child: Text(
+                        state.isAnswered
+                            ? state.currentIndex == state.questions.length - 1
+                                  ? "Finish quiz →"
+                                  : "Next question →"
+                            : "Submit answer",
+                        style: const TextStyle(fontWeight: FontWeight.w900),
+                      ),
+                    ),
                   ),
                 ),
               ],
@@ -113,87 +298,118 @@ class QuizScreen extends StatelessWidget {
   }
 }
 
-class _Header extends StatelessWidget {
-  final QuizState state;
-  const _Header({required this.state});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      color: const Color(0xFF1E3A8A),
-      child: Row(
-        children: [
-          IconButton(
-            onPressed: () => Navigator.pop(context),
-            icon: const Icon(Icons.arrow_back, color: Colors.white),
-          ),
-          const SizedBox(width: 10),
-          Text(
-            "${state.currentIndex + 1}/${state.questions.length}",
-            style: const TextStyle(color: Colors.white),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ScenarioBox extends StatelessWidget {
-  final String text;
-  const _ScenarioBox({required this.text});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Colors.blue.shade50,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Text(text),
-    );
-  }
-}
-
 class _OptionCard extends StatelessWidget {
+  final String letter;
   final String text;
   final int index;
-  final QuizState state;
+  final int? selectedIndex;
   final int correctIndex;
+  final bool isAnswered;
   final VoidCallback onTap;
 
   const _OptionCard({
+    required this.letter,
     required this.text,
     required this.index,
-    required this.state,
+    required this.selectedIndex,
     required this.correctIndex,
+    required this.isAnswered,
     required this.onTap,
   });
 
-  @override
-  Widget build(BuildContext context) {
-    Color color = Colors.white;
-
-    if (state.isAnswered) {
-      if (index == correctIndex) {
-        color = Colors.green.shade100;
-      } else if (index == state.selectedIndex) {
-        color = Colors.red.shade100;
-      }
+  Color get _borderColor {
+    if (!isAnswered) {
+      return selectedIndex == index
+          ? const Color(0xFF2563EB)
+          : const Color(0xFFE2E8F0);
     }
 
-    return GestureDetector(
-      onTap: state.isAnswered ? null : onTap,
+    if (index == correctIndex) return const Color(0xFF10B981);
+    if (index == selectedIndex) return const Color(0xFFEF4444);
+
+    return const Color(0xFFE2E8F0);
+  }
+
+  Color get _backgroundColor {
+    if (!isAnswered) {
+      return selectedIndex == index ? const Color(0xFFEFF6FF) : Colors.white;
+    }
+
+    if (index == correctIndex) return const Color(0xFFECFDF5);
+    if (index == selectedIndex) return const Color(0xFFFEF2F2);
+
+    return Colors.white;
+  }
+
+  Color get _letterBgColor {
+    if (!isAnswered) {
+      return selectedIndex == index
+          ? const Color(0xFF2563EB)
+          : const Color(0xFFEFF6FF);
+    }
+
+    if (index == correctIndex) return const Color(0xFF10B981);
+    if (index == selectedIndex) return const Color(0xFFEF4444);
+
+    return const Color(0xFFEFF6FF);
+  }
+
+  Color get _letterTextColor {
+    if (!isAnswered) {
+      return selectedIndex == index ? Colors.white : const Color(0xFF2563EB);
+    }
+
+    if (index == correctIndex || index == selectedIndex) return Colors.white;
+
+    return const Color(0xFF64748B);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: isAnswered ? null : onTap,
+      borderRadius: BorderRadius.circular(18),
       child: Container(
-        margin: const EdgeInsets.only(bottom: 10),
+        margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: color,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.grey.shade300),
+          color: _backgroundColor,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: _borderColor, width: 1.4),
         ),
-        child: Text(text),
+        child: Row(
+          children: [
+            Container(
+              width: 34,
+              height: 34,
+              decoration: BoxDecoration(
+                color: _letterBgColor,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Center(
+                child: Text(
+                  letter,
+                  style: TextStyle(
+                    color: _letterTextColor,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Text(
+                text,
+                style: const TextStyle(
+                  color: Color(0xFF0F172A),
+                  fontWeight: FontWeight.w800,
+                  fontSize: 14,
+                  height: 1.25,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -201,21 +417,43 @@ class _OptionCard extends StatelessWidget {
 
 class _ExplanationBox extends StatelessWidget {
   final bool isCorrect;
-  final String text;
+  final String explanation;
 
-  const _ExplanationBox({required this.isCorrect, required this.text});
+  const _ExplanationBox({required this.isCorrect, required this.explanation});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(15),
       decoration: BoxDecoration(
-        color: Colors.blue.shade50,
-        borderRadius: BorderRadius.circular(12),
+        color: const Color(0xFFEFF6FF),
+        borderRadius: BorderRadius.circular(18),
       ),
-      child: Text(
-        text,
-        style: TextStyle(color: isCorrect ? Colors.green : Colors.red),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            isCorrect ? "✓ Correct answer!" : "✕ Not quite.",
+            style: TextStyle(
+              color: isCorrect
+                  ? const Color(0xFF10B981)
+                  : const Color(0xFFEF4444),
+              fontWeight: FontWeight.w900,
+              fontSize: 14,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            explanation.isEmpty
+                ? "Review the scenario carefully and choose the safest cybersecurity action."
+                : explanation,
+            style: const TextStyle(
+              color: Color(0xFF475569),
+              fontSize: 13,
+              height: 1.45,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -229,40 +467,132 @@ class _XpBox extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Text(
-      isCorrect ? "+$xp XP" : "+0 XP",
-      style: const TextStyle(fontWeight: FontWeight.bold),
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1E3A8A),
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              isCorrect ? "🏆 Question answered correctly" : "💡 Keep learning",
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ),
+          Text(
+            isCorrect ? "+$xp\nXP" : "+0\nXP",
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: Color(0xFF38BDF8),
+              fontSize: 18,
+              fontWeight: FontWeight.w900,
+              height: 1.05,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
 
-class _Result extends StatelessWidget {
+class _QuizResultScreen extends StatelessWidget {
   final QuizState state;
-  const _Result({required this.state});
+
+  const _QuizResultScreen({required this.state});
+
+  int _earnedXp() {
+    int total = 0;
+
+    for (int i = 0; i < state.questions.length; i++) {
+      final question = state.questions[i];
+      final xp = question['xpReward'] ?? 0;
+
+      if (i < state.score) {
+        total += xp is int ? xp : int.tryParse(xp.toString()) ?? 0;
+      }
+    }
+
+    return total;
+  }
 
   @override
   Widget build(BuildContext context) {
-    final totalXp = state.questions.fold(
-      0,
-      (sum, q) => sum + ((q['xpReward'] ?? 0) as int),
-    );
+    final percentage = ((state.score / state.questions.length) * 100).round();
+    final earnedXp = _earnedXp();
 
     return Scaffold(
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text("Score: ${state.score}/${state.questions.length}"),
-            Text("+$totalXp XP"),
-            ElevatedButton(
-              onPressed: () {
-                context.read<HomeCubit>().gainXP(totalXp);
-                context.read<QuizCubit>().resetQuiz();
-                Navigator.pop(context);
-              },
-              child: const Text("Back"),
-            ),
-          ],
+      backgroundColor: const Color(0xFFF1F5F9),
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(18),
+          child: Column(
+            children: [
+              const Spacer(),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(22),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF0D1B3E), Color(0xFF2563EB)],
+                  ),
+                  borderRadius: BorderRadius.circular(24),
+                ),
+                child: Column(
+                  children: [
+                    const Text("🎉", style: TextStyle(fontSize: 52)),
+                    const SizedBox(height: 12),
+                    const Text(
+                      "Quiz Completed",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 26,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      "Score: ${state.score}/${state.questions.length} · $percentage%",
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      "+$earnedXp XP earned",
+                      style: const TextStyle(
+                        color: Color(0xFF38BDF8),
+                        fontSize: 20,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () async {
+                    await context.read<HomeCubit>().gainXP(earnedXp);
+                    context.read<QuizCubit>().resetQuiz();
+
+                    if (context.mounted) {
+                      Navigator.pop(context);
+                    }
+                  },
+                  child: const Text("Back to Learning"),
+                ),
+              ),
+              const Spacer(),
+            ],
+          ),
         ),
       ),
     );

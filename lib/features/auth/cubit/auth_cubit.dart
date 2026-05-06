@@ -9,6 +9,19 @@ class AuthCubit extends Cubit<AuthState> {
 
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
+  static const String _serverClientId =
+      '950456615757-agno7h5fr76avo984pq3ndc7b8df81jc.apps.googleusercontent.com';
+
+  bool _googleInitialized = false;
+
+  Future<void> _initializeGoogleSignIn() async {
+    if (_googleInitialized) return;
+
+    await GoogleSignIn.instance.initialize(serverClientId: _serverClientId);
+
+    _googleInitialized = true;
+  }
+
   void updateEmail(String value) {
     emit(state.copyWith(email: value, clearError: true));
   }
@@ -38,6 +51,14 @@ class AuthCubit extends Cubit<AuthState> {
         state.copyWith(
           isLoading: false,
           errorMessage: e.message ?? 'Login failed.',
+        ),
+      );
+      return false;
+    } catch (e) {
+      emit(
+        state.copyWith(
+          isLoading: false,
+          errorMessage: 'Login failed. Please try again.',
         ),
       );
       return false;
@@ -78,6 +99,14 @@ class AuthCubit extends Cubit<AuthState> {
         ),
       );
       return false;
+    } catch (e) {
+      emit(
+        state.copyWith(
+          isLoading: false,
+          errorMessage: 'Registration failed. Please try again.',
+        ),
+      );
+      return false;
     }
   }
 
@@ -104,6 +133,14 @@ class AuthCubit extends Cubit<AuthState> {
         ),
       );
       return false;
+    } catch (e) {
+      emit(
+        state.copyWith(
+          isLoading: false,
+          errorMessage: 'Reset password failed. Please try again.',
+        ),
+      );
+      return false;
     }
   }
 
@@ -111,8 +148,9 @@ class AuthCubit extends Cubit<AuthState> {
     emit(state.copyWith(isLoading: true, clearError: true));
 
     try {
-      final googleUser = await GoogleSignIn.instance.authenticate();
+      await _initializeGoogleSignIn();
 
+      final googleUser = await GoogleSignIn.instance.authenticate();
       final googleAuth = googleUser.authentication;
 
       final credential = GoogleAuthProvider.credential(
@@ -139,11 +177,11 @@ class AuthCubit extends Cubit<AuthState> {
         ),
       );
       return false;
-    } catch (_) {
+    } catch (e) {
       emit(
         state.copyWith(
           isLoading: false,
-          errorMessage: 'Google Sign-In failed. Please try again.',
+          errorMessage: 'Google Sign-In failed: $e',
         ),
       );
       return false;
@@ -151,7 +189,11 @@ class AuthCubit extends Cubit<AuthState> {
   }
 
   Future<void> signOut() async {
-    await GoogleSignIn.instance.signOut();
+    try {
+      await _initializeGoogleSignIn();
+      await GoogleSignIn.instance.signOut();
+    } catch (_) {}
+
     await _auth.signOut();
   }
 }

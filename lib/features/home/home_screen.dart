@@ -333,6 +333,7 @@ class _HomeHeader extends StatelessWidget {
 
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       backgroundColor: const Color(0xFFF1F5F9),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
@@ -340,57 +341,76 @@ class _HomeHeader extends StatelessWidget {
       builder: (_) {
         final notifications = state.notifications;
 
-        return Padding(
-          padding: const EdgeInsets.all(18),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                "Notifications 🔔",
-                style: TextStyle(
-                  color: Color(0xFF0F172A),
-                  fontSize: 20,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-              const SizedBox(height: 14),
-              if (notifications.isEmpty)
+        return DraggableScrollableSheet(
+          expand: false,
+          initialChildSize: 0.62,
+          minChildSize: 0.35,
+          maxChildSize: 0.90,
+          builder: (context, scrollController) {
+            return ListView(
+              controller: scrollController,
+              padding: const EdgeInsets.all(18),
+              children: [
                 Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(16),
+                  width: 46,
+                  height: 5,
+                  margin: const EdgeInsets.only(bottom: 18),
                   decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
+                    color: const Color(0xFFCBD5E1),
+                    borderRadius: BorderRadius.circular(20),
                   ),
-                  child: const Text(
-                    "No notifications yet.",
-                    style: TextStyle(color: Colors.grey),
+                ),
+
+                const Text(
+                  "Notifications 🔔",
+                  style: TextStyle(
+                    color: Color(0xFF0F172A),
+                    fontSize: 20,
+                    fontWeight: FontWeight.w900,
                   ),
-                )
-              else
-                ...notifications.take(8).map((item) {
-                  return Container(
+                ),
+
+                const SizedBox(height: 14),
+
+                if (notifications.isEmpty)
+                  Container(
                     width: double.infinity,
-                    margin: const EdgeInsets.only(bottom: 10),
-                    padding: const EdgeInsets.all(14),
+                    padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(color: const Color(0xFFE2E8F0)),
                     ),
-                    child: Text(
-                      item,
-                      style: const TextStyle(
-                        color: Color(0xFF0F172A),
-                        fontWeight: FontWeight.w700,
-                      ),
+                    child: const Text(
+                      "No notifications yet.",
+                      style: TextStyle(color: Colors.grey),
                     ),
-                  );
-                }),
-              const SizedBox(height: 10),
-            ],
-          ),
+                  )
+                else
+                  ...notifications.take(20).map((item) {
+                    return Container(
+                      width: double.infinity,
+                      margin: const EdgeInsets.only(bottom: 10),
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: const Color(0xFFE2E8F0)),
+                      ),
+                      child: Text(
+                        item,
+                        style: const TextStyle(
+                          color: Color(0xFF0F172A),
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    );
+                  }),
+
+                const SizedBox(height: 24),
+              ],
+            );
+          },
         );
       },
     );

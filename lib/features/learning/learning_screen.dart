@@ -102,37 +102,30 @@ class _LearningScreenState extends State<LearningScreen> {
   }
 
   double _moduleProgress(LearningModule module) {
-    if (module.completed) return 1.0;
-
-    switch (module.topic) {
-      case "phishing":
-        return 0.75;
-      case "malware":
-        return 0.50;
-      case "privacy":
-        return 0.25;
-      default:
-        return 0.0;
-    }
+    return module.completed ? 1.0 : 0.0;
   }
 
   String _progressText(LearningModule module) {
-    final progress = _moduleProgress(module);
-    final percent = (progress * 100).round();
+    if (module.completed) {
+      return "1/1 module · Complete ✓";
+    }
 
-    if (module.completed) return "4/4 modules · Complete ✓";
-    if (percent == 0) return "0/4 modules · Not started";
-
-    final done = (progress * 4).round();
-    return "$done/4 modules · $percent%";
+    return "0/1 module · Not started";
   }
 
   String _difficultyBadge(LearningModule module) {
     if (module.completed) return "✓ Done";
-    if (module.topic == "phishing") return "Advanced next";
-    if (module.topic == "malware") return "Intermediate";
-    if (module.topic == "privacy") return "Beginner";
-    return "New";
+
+    switch (module.difficulty.toLowerCase()) {
+      case "beginner":
+        return "Beginner";
+      case "intermediate":
+        return "Intermediate";
+      case "advanced":
+        return "Advanced";
+      default:
+        return "New";
+    }
   }
 
   List<LearningModule> _filteredModules(List<LearningModule> modules) {
@@ -157,15 +150,12 @@ class _LearningScreenState extends State<LearningScreen> {
   }
 
   LearningModule? _continueModule(List<LearningModule> modules) {
-    final inProgress = modules.where((module) {
-      final progress = _moduleProgress(module);
-      return progress > 0 && progress < 1.0;
-    }).toList();
-
-    if (inProgress.isNotEmpty) return inProgress.first;
-    if (modules.isNotEmpty) return modules.first;
-
-    return null;
+    try {
+      return modules.firstWhere((module) => !module.completed);
+    } catch (_) {
+      if (modules.isNotEmpty) return modules.first;
+      return null;
+    }
   }
 
   int _topicCount(List<LearningModule> modules) {
@@ -251,7 +241,10 @@ class _LearningScreenState extends State<LearningScreen> {
                                   ),
                                   onPressed: () {
                                     _searchController.clear();
-                                    setState(() => searchQuery = "");
+
+                                    setState(() {
+                                      searchQuery = "";
+                                    });
                                   },
                                 ),
                           filled: true,
@@ -291,7 +284,9 @@ class _LearningScreenState extends State<LearningScreen> {
 
                       return GestureDetector(
                         onTap: () {
-                          setState(() => selectedFilter = filter);
+                          setState(() {
+                            selectedFilter = filter;
+                          });
                         },
                         child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 18),
@@ -332,6 +327,7 @@ class _LearningScreenState extends State<LearningScreen> {
                       if (continueModule != null) ...[
                         const _LearningSectionTitle("CONTINUE LEARNING"),
                         const SizedBox(height: 10),
+
                         _LearningCard(
                           module: continueModule,
                           icon: _topicIcon(continueModule.topic),
@@ -342,10 +338,12 @@ class _LearningScreenState extends State<LearningScreen> {
                           badge: _difficultyBadge(continueModule),
                           onTap: () => _openModule(context, continueModule),
                         ),
+
                         const SizedBox(height: 18),
                       ],
 
                       const _LearningSectionTitle("ALL TOPICS"),
+
                       const SizedBox(height: 10),
 
                       if (filteredModules.isEmpty)
@@ -460,7 +458,9 @@ class _LearningCard extends StatelessWidget {
               ),
               child: Icon(icon, color: const Color(0xFF0D1B3E), size: 28),
             ),
+
             const SizedBox(width: 14),
+
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -474,9 +474,13 @@ class _LearningCard extends StatelessWidget {
                       height: 1.1,
                     ),
                   ),
+
                   const SizedBox(height: 4),
+
                   Text(
-                    module.content.split(".").first,
+                    module.content.isEmpty
+                        ? "Cybersecurity learning module"
+                        : module.content.split(".").first,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
@@ -485,7 +489,9 @@ class _LearningCard extends StatelessWidget {
                       height: 1.2,
                     ),
                   ),
+
                   const SizedBox(height: 10),
+
                   LinearProgressIndicator(
                     value: progress,
                     minHeight: 6,
@@ -493,7 +499,9 @@ class _LearningCard extends StatelessWidget {
                     backgroundColor: const Color(0xFFE2E8F0),
                     borderRadius: BorderRadius.circular(20),
                   ),
+
                   const SizedBox(height: 8),
+
                   Row(
                     children: [
                       Expanded(
@@ -506,6 +514,7 @@ class _LearningCard extends StatelessWidget {
                           ),
                         ),
                       ),
+
                       Container(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 10,

@@ -53,17 +53,27 @@ class LearningModule extends Equatable {
 
 class LearningState extends Equatable {
   final List<LearningModule> modules;
+  final List<String> completedModuleIds;
   final bool isLoading;
 
-  const LearningState({this.modules = const [], this.isLoading = false});
+  const LearningState({
+    this.modules = const [],
+    this.completedModuleIds = const [],
+    this.isLoading = false,
+  });
 
-  LearningState copyWith({List<LearningModule>? modules, bool? isLoading}) {
+  LearningState copyWith({
+    List<LearningModule>? modules,
+    List<String>? completedModuleIds,
+    bool? isLoading,
+  }) {
     return LearningState(
       modules: modules ?? this.modules,
+      completedModuleIds: completedModuleIds ?? this.completedModuleIds,
       isLoading: isLoading ?? this.isLoading,
     );
   }
 
   @override
-  List<Object?> get props => [modules, isLoading];
+  List<Object?> get props => [modules, completedModuleIds, isLoading];
 }

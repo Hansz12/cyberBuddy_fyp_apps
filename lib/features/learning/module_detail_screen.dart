@@ -28,6 +28,12 @@ class ModuleDetailScreen extends StatelessWidget {
         return const Color(0xFF2563EB);
       case "mobile":
         return const Color(0xFF38BDF8);
+      case "network":
+        return const Color(0xFF0EA5E9);
+      case "ethics":
+        return const Color(0xFF8B5CF6);
+      case "banking":
+        return const Color(0xFF0284C7);
       default:
         return const Color(0xFF2563EB);
     }
@@ -49,13 +55,29 @@ class ModuleDetailScreen extends StatelessWidget {
         return Icons.attach_money;
       case "mobile":
         return Icons.phone_android;
+      case "network":
+        return Icons.wifi;
+      case "ethics":
+        return Icons.groups;
+      case "banking":
+        return Icons.account_balance;
       default:
         return Icons.security;
     }
   }
 
   List<String> _contentPoints(String content) {
-    return content
+    final cleaned = content.trim();
+
+    if (cleaned.isEmpty) {
+      return [
+        "Understand the main cybersecurity risk in this topic.",
+        "Identify warning signs before taking action.",
+        "Apply safe behaviour in daily digital activities.",
+      ];
+    }
+
+    return cleaned
         .split(".")
         .map((e) => e.trim())
         .where((e) => e.isNotEmpty)
@@ -63,6 +85,13 @@ class ModuleDetailScreen extends StatelessWidget {
   }
 
   void _startQuiz(BuildContext context) {
+    if (module.id.isEmpty) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("Module ID not found.")));
+      return;
+    }
+
     context.read<QuizCubit>().loadQuiz(module.id);
 
     Navigator.push(
@@ -72,7 +101,7 @@ class ModuleDetailScreen extends StatelessWidget {
   }
 
   Future<void> _completeModule(BuildContext context) async {
-    context.read<LearningCubit>().completeModule(module.title);
+    await context.read<LearningCubit>().completeModule(module.id);
     await context.read<HomeCubit>().gainXP(module.xpReward);
 
     if (context.mounted) {
@@ -81,12 +110,18 @@ class ModuleDetailScreen extends StatelessWidget {
           content: Text("Module completed! +${module.xpReward} XP earned."),
         ),
       );
+
+      Navigator.pop(context);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final color = _topicColor(module.topic);
+    final overviewText = module.content.trim().isEmpty
+        ? "This module helps you learn important cybersecurity practices related to ${module.title.toLowerCase()}."
+        : module.content;
+
     final points = _contentPoints(module.content);
 
     return Scaffold(
@@ -156,7 +191,6 @@ class ModuleDetailScreen extends StatelessWidget {
                 ],
               ),
             ),
-
             Expanded(
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(16, 16, 16, 110),
@@ -164,7 +198,7 @@ class ModuleDetailScreen extends StatelessWidget {
                   _InfoCard(
                     title: "Module Overview",
                     child: Text(
-                      module.content,
+                      overviewText,
                       style: const TextStyle(
                         color: Color(0xFF475569),
                         fontSize: 14,
@@ -173,9 +207,7 @@ class ModuleDetailScreen extends StatelessWidget {
                       ),
                     ),
                   ),
-
                   const SizedBox(height: 14),
-
                   _InfoCard(
                     title: "Key Learning Points",
                     child: Column(
@@ -184,13 +216,11 @@ class ModuleDetailScreen extends StatelessWidget {
                       }).toList(),
                     ),
                   ),
-
                   const SizedBox(height: 14),
-
-                  _InfoCard(
+                  const _InfoCard(
                     title: "What You Should Do",
                     child: Column(
-                      children: const [
+                      children: [
                         _LearningPoint(
                           text:
                               "Verify suspicious messages through official channels.",
@@ -209,7 +239,6 @@ class ModuleDetailScreen extends StatelessWidget {
                 ],
               ),
             ),
-
             Container(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
               decoration: const BoxDecoration(

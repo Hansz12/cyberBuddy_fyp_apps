@@ -19,9 +19,13 @@ class QuizCubit extends Cubit<QuizState> {
             final active =
                 q['active'] == true || q['active'].toString() == 'true';
 
-            return q['module_id'] == moduleId && active;
+            final qModuleId =
+                q['module_id']?.toString() ?? q['moduleId']?.toString() ?? '';
+
+            return qModuleId == moduleId && active;
           })
           .map((q) => _formatQuestion(q))
+          .where((q) => (q['question'] ?? '').toString().trim().isNotEmpty)
           .toList();
 
       final shuffledQuestions = List<Map<String, dynamic>>.from(filtered)
@@ -31,7 +35,7 @@ class QuizCubit extends Cubit<QuizState> {
         state.copyWith(
           questions: shuffledQuestions,
           currentIndex: 0,
-          selectedIndex: null,
+          clearSelectedIndex: true,
           score: 0,
           isLoading: false,
           isFinished: false,
@@ -44,6 +48,8 @@ class QuizCubit extends Cubit<QuizState> {
           questions: const [],
           isLoading: false,
           isFinished: false,
+          isAnswered: false,
+          clearSelectedIndex: true,
         ),
       );
     }
@@ -51,14 +57,17 @@ class QuizCubit extends Cubit<QuizState> {
 
   Map<String, dynamic> _formatQuestion(dynamic raw) {
     final correctLetter =
-        raw['correct_option']?.toString().toUpperCase() ?? 'A';
+        raw['correct_option']?.toString().trim().toUpperCase() ?? 'A';
 
-    final originalOptions = [
-      {'text': raw['option_a']?.toString() ?? '', 'letter': 'A'},
-      {'text': raw['option_b']?.toString() ?? '', 'letter': 'B'},
-      {'text': raw['option_c']?.toString() ?? '', 'letter': 'C'},
-      {'text': raw['option_d']?.toString() ?? '', 'letter': 'D'},
-    ];
+    final originalOptions =
+        [
+          {'text': raw['option_a']?.toString() ?? '', 'letter': 'A'},
+          {'text': raw['option_b']?.toString() ?? '', 'letter': 'B'},
+          {'text': raw['option_c']?.toString() ?? '', 'letter': 'C'},
+          {'text': raw['option_d']?.toString() ?? '', 'letter': 'D'},
+        ].where((option) {
+          return (option['text'] ?? '').toString().trim().isNotEmpty;
+        }).toList();
 
     final shouldShuffle =
         raw['shuffle_options'] == true ||
@@ -75,8 +84,9 @@ class QuizCubit extends Cubit<QuizState> {
     );
 
     return {
-      'id': raw['question_id']?.toString() ?? '',
-      'moduleId': raw['module_id']?.toString() ?? '',
+      'id': raw['question_id']?.toString() ?? raw['id']?.toString() ?? '',
+      'moduleId':
+          raw['module_id']?.toString() ?? raw['moduleId']?.toString() ?? '',
       'topic': raw['topic']?.toString() ?? '',
       'difficulty': raw['difficulty']?.toString() ?? '',
       'questionType': raw['question_type']?.toString() ?? 'MCQ',
@@ -123,7 +133,7 @@ class QuizCubit extends Cubit<QuizState> {
     emit(
       state.copyWith(
         currentIndex: state.currentIndex + 1,
-        selectedIndex: null,
+        clearSelectedIndex: true,
         isAnswered: false,
       ),
     );
