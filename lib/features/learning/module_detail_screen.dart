@@ -158,6 +158,9 @@ class ModuleDetailScreen extends StatelessWidget {
     if (currentModule.completed) return;
 
     await context.read<LearningCubit>().completeModule(currentModule.id);
+
+    await context.read<HomeCubit>().recordModuleCompleted(currentModule.id);
+
     await context.read<HomeCubit>().gainXP(currentModule.xpReward);
 
     if (context.mounted) {

@@ -111,29 +111,21 @@ class _HomeScreenState extends State<HomeScreen> {
     return value.clamp(0.0, 1.0);
   }
 
-  int _completedModulesToday(HomeState state) {
-    return state.completedModules.length;
-  }
-
   double _completeModuleQuest(HomeState state) {
-    return _safeProgress(_completedModulesToday(state) / 1);
+    return _safeProgress(state.dailyModulesCompleted / 1);
   }
 
   double _score80Quest(HomeState state) {
-    if (state.totalQuestionsAnswered == 0) return 0.0;
-    return _safeProgress(state.avgScore / 80);
+    if (state.dailyQuizAttempts == 0) return 0.0;
+    return _safeProgress(state.dailyBestQuizScore / 80);
   }
 
   double _newTopicQuest(HomeState state) {
-    final attemptedTopics = state.topicAnswered.values
-        .where((count) => count > 0)
-        .length;
-
-    return _safeProgress(attemptedTopics / 1);
+    return _safeProgress(state.dailyTopicsTried / 1);
   }
 
   double _threatCheckerQuest(HomeState state) {
-    return _safeProgress(state.threatChecks / 1);
+    return _safeProgress(state.dailyThreatChecks / 1);
   }
 
   String _questStatus(double progress) {
@@ -198,7 +190,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               status: _questStatus(completeModuleProgress),
                               progress: completeModuleProgress,
                               progressText:
-                                  "${_completedModulesToday(state)}/1 completed",
+                                  "${state.dailyModulesCompleted}/1 completed",
                               onTap: () => _openLearning(context),
                             ),
                             _QuestCard(
@@ -207,9 +199,9 @@ class _HomeScreenState extends State<HomeScreen> {
                               xp: "+20 XP",
                               status: _questStatus(score80Progress),
                               progress: score80Progress,
-                              progressText: state.totalQuestionsAnswered == 0
-                                  ? "No quiz yet"
-                                  : "${state.avgScore}% / 80%",
+                              progressText: state.dailyQuizAttempts == 0
+                                  ? "No quiz today"
+                                  : "${state.dailyBestQuizScore}% / 80%",
                               onTap: () => _openQuiz(context),
                             ),
                             _QuestCard(
@@ -219,7 +211,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               status: _questStatus(newTopicProgress),
                               progress: newTopicProgress,
                               progressText:
-                                  "${state.topicAnswered.values.where((v) => v > 0).length}/1 topic",
+                                  "${state.dailyTopicsTried}/1 topic today",
                               onTap: () => _openLearning(context),
                             ),
                             _QuestCard(
@@ -228,7 +220,8 @@ class _HomeScreenState extends State<HomeScreen> {
                               xp: "+25 XP",
                               status: _questStatus(threatProgress),
                               progress: threatProgress,
-                              progressText: "${state.threatChecks}/1 checked",
+                              progressText:
+                                  "${state.dailyThreatChecks}/1 checked today",
                               onTap: () => _openThreatChecker(context),
                             ),
                           ],
