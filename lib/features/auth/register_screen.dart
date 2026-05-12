@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../main_navigation.dart';
+import '../home/cubit/home_cubit.dart';
+import '../learning/cubit/learning_cubit.dart';
 import 'cubit/auth_cubit.dart';
 import 'cubit/auth_state.dart';
 
@@ -11,7 +13,14 @@ class RegisterScreen extends StatelessWidget {
   Future<void> _register(BuildContext context) async {
     final success = await context.read<AuthCubit>().signUp();
 
-    if (success && context.mounted) {
+    if (!context.mounted) return;
+
+    if (success) {
+      await context.read<HomeCubit>().loadUserData();
+      await context.read<LearningCubit>().loadModules();
+
+      if (!context.mounted) return;
+
       Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(builder: (_) => const MainNavigation()),
@@ -56,7 +65,9 @@ class RegisterScreen extends StatelessWidget {
                               padding: EdgeInsets.zero,
                               alignment: Alignment.centerLeft,
                             ),
+
                             const SizedBox(height: 12),
+
                             Row(
                               children: [
                                 Container(
@@ -68,7 +79,9 @@ class RegisterScreen extends StatelessWidget {
                                   ),
                                   child: const Center(child: Text("🛡️")),
                                 ),
+
                                 const SizedBox(width: 10),
+
                                 Container(
                                   padding: const EdgeInsets.symmetric(
                                     horizontal: 10,
@@ -97,7 +110,9 @@ class RegisterScreen extends StatelessWidget {
                                 ),
                               ],
                             ),
+
                             const SizedBox(height: 24),
+
                             const Text(
                               "Create account",
                               style: TextStyle(
@@ -106,7 +121,9 @@ class RegisterScreen extends StatelessWidget {
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
+
                             const SizedBox(height: 8),
+
                             const Text(
                               "Join CyberBuddy and start tracking your cybersecurity learning progress.",
                               style: TextStyle(
@@ -133,7 +150,9 @@ class RegisterScreen extends StatelessWidget {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               const _FieldLabel("EMAIL ADDRESS"),
+
                               const SizedBox(height: 6),
+
                               TextField(
                                 keyboardType: TextInputType.emailAddress,
                                 onChanged: context
@@ -148,7 +167,9 @@ class RegisterScreen extends StatelessWidget {
                               const SizedBox(height: 16),
 
                               const _FieldLabel("PASSWORD"),
+
                               const SizedBox(height: 6),
+
                               TextField(
                                 obscureText: true,
                                 onChanged: context
@@ -176,7 +197,9 @@ class RegisterScreen extends StatelessWidget {
                                       color: Color(0xFF2563EB),
                                       size: 18,
                                     ),
+
                                     SizedBox(width: 8),
+
                                     Expanded(
                                       child: Text(
                                         "Use your active email. Your progress, XP, badges and leaderboard data will be linked to this account.",
@@ -244,6 +267,7 @@ class RegisterScreen extends StatelessWidget {
                               ),
 
                               const SizedBox(height: 20),
+
                               const Divider(),
 
                               const Row(
@@ -253,7 +277,9 @@ class RegisterScreen extends StatelessWidget {
                                     size: 8,
                                     color: Colors.green,
                                   ),
+
                                   SizedBox(width: 8),
+
                                   Text(
                                     "Account protected · Firebase Authentication",
                                     style: TextStyle(

@@ -1,0 +1,722 @@
+[
+ {
+   "lesson_id": "L001-1",
+   "module_id": "M001",
+   "section_no": 1,
+   "section_title": "What Is Phishing?",
+   "content": "Phishing is a cyberattack where attackers impersonate trusted organisations — banks, universities, government agencies — to steal your credentials, OTP codes, or personal details. In Malaysia, MyCERT reported thousands of phishing incidents in 2025 alone, with university students among the most targeted groups. Attacks arrive via email, SMS (smishing), WhatsApp, and even fake university portals designed to look identical to the real ones.",
+   "key_tip": "Phishing works because it looks real — always slow down before clicking."
+ },
+ {
+   "lesson_id": "L001-2",
+   "module_id": "M001",
+   "section_no": 2,
+   "section_title": "Common Warning Signs",
+   "content": "Key red flags to spot phishing: (1) Urgency — messages like 'Your account will be suspended in 24 hours!' are designed to panic you into acting without thinking. (2) Lookalike domains — attackers register domains like uitm-student-portal.com or maybank-secure-login.net that look real but are fake. Always check the exact domain. (3) Requests for sensitive data — no legitimate organisation will ask for your password, IC number, or OTP via email or WhatsApp. (4) Generic greetings — 'Dear Customer' instead of your actual name. (5) Spelling errors and unusual formatting in official-looking messages.",
+   "key_tip": "Hover over every link before clicking — the real URL shows in the bottom of your browser."
+ },
+ {
+   "lesson_id": "L001-3",
+   "module_id": "M001",
+   "section_no": 3,
+   "section_title": "Safe Actions to Take",
+   "content": "If you receive a suspicious message: (1) Do NOT click any link in the message. (2) Open a new browser tab and go directly to the official website by typing the URL yourself. (3) Contact the organisation using the phone number from their official website — not the number in the message. (4) If you already clicked: change your password immediately, enable 2FA, and report to MyCERT at aduan.mycert.org.my. (5) Report the phishing attempt to your university IT department and to MCMC at aduan.mcmc.gov.my or call 1-800-888-030.",
+   "key_tip": "When in doubt, go directly to the official website — never through links in messages."
+ },
+ {
+   "lesson_id": "L002-1",
+   "module_id": "M002",
+   "section_no": 1,
+   "section_title": "Why Passwords Matter",
+   "content": "Passwords are the primary key to your digital life — email, banking, university portal, and social media. A weak or reused password is the single most common cause of account takeovers. In 2024, the most common passwords globally were still '123456' and 'password'. Attackers use brute force (trying all combinations), dictionary attacks (trying common words), and credential stuffing (testing leaked passwords from one site on other sites you use).",
+   "key_tip": "Your password is only as strong as its weakest account — never reuse it."
+ },
+ {
+   "lesson_id": "L002-2",
+   "module_id": "M002",
+   "section_no": 2,
+   "section_title": "What Makes a Strong Password",
+   "content": "A strong password should be: (1) At least 12 characters long — length is the biggest factor in resisting brute force. (2) Mixed — combine uppercase letters, lowercase letters, numbers and symbols (e.g. F@rh4na!Cyber#2026). (3) Unique — never reuse passwords across accounts. If one site is breached, all accounts using that password are at risk. (4) Avoid personal information — names, birth dates, student ID and IC numbers are the first things attackers try. (5) Use a passphrase — a string of random words like 'Mango-River-Lamp-99!' is both long and memorable.",
+   "key_tip": "Use a passphrase of 4+ random words — easy to remember, hard to crack."
+ },
+ {
+   "lesson_id": "L002-3",
+   "module_id": "M002",
+   "section_no": 3,
+   "section_title": "Password Managers and Best Practices",
+   "content": "A password manager (e.g., Bitwarden, 1Password, Google Password Manager) generates and stores unique strong passwords for every account. You only need to remember one master password. Enable auto-fill so you never need to type passwords on suspicious sites. Best practices: (1) Enable 2FA on your password manager itself. (2) Change passwords immediately after any breach notification. (3) Never share passwords — not even with trusted friends for 'temporary' use. (4) If you must write one down, store it physically in a locked place — never in a plain text file or screenshot.",
+   "key_tip": "Set up Bitwarden (free) today — it takes 5 minutes and protects all your accounts."
+ },
+ {
+   "lesson_id": "L003-1",
+   "module_id": "M003",
+   "section_no": 1,
+   "section_title": "What Is Social Engineering?",
+   "content": "Social engineering attacks exploit human psychology rather than technical vulnerabilities. Over 90% of successful cyberattacks involve some form of social engineering. Attackers do not hack systems — they hack people. They study their targets on social media, LinkedIn, and university websites to craft convincing impersonations. Common personas used: IT support, bank officers, PDRM officers, university administrators, and even lecturers. The goal is always the same: gain trust, create urgency, and extract credentials, money, or access.",
+   "key_tip": "If someone creates urgency and asks for sensitive info — that is the attack."
+ },
+ {
+   "lesson_id": "L003-2",
+   "module_id": "M003",
+   "section_no": 2,
+   "section_title": "Common Social Engineering Tactics",
+   "content": "Pretexting: Creating a believable false identity and story — e.g., 'I am from the university IT team and need your portal password to fix a system error.' Phishing and Spear Phishing: Targeted emails using your real name, course, and lecturer's name to seem legitimate. Vishing: Phone calls impersonating bank officers or PDRM demanding money or OTP. Baiting: Leaving infected USB drives in public areas, or offering 'free' premium apps that contain malware. Quid pro quo: Offering tech support or gift vouchers in exchange for login credentials. The Macau Scam: A caller claims to be from PDRM or MACC saying you have a criminal case and must transfer money to a 'safe account' immediately.",
+   "key_tip": "Verify every unusual request through an official channel — independently, not via the provided contact."
+ },
+ {
+   "lesson_id": "L003-3",
+   "module_id": "M003",
+   "section_no": 3,
+   "section_title": "How to Defend Yourself",
+   "content": "Defence against social engineering: (1) Slow down — attackers always create artificial urgency. Take 10 seconds to think before responding. (2) Verify independently — if someone claims to be your bank, hang up and call the official number from the bank's official website. (3) Never share OTP, TAC, or passwords with anyone who calls or messages you — banks, PDRM, and universities will never ask for these. (4) Check requests through a second channel — if your 'lecturer' asks for something via WhatsApp, verify via the university email system. (5) Report Macau scam attempts to PDRM at 03-2266 2222.",
+   "key_tip": "Real authorities never demand payment over the phone — that is always a scam."
+ },
+ {
+   "lesson_id": "L004-1",
+   "module_id": "M004",
+   "section_no": 1,
+   "section_title": "What Is Malware?",
+   "content": "Malware is any software designed to harm your device, steal your data, or give attackers unauthorised access. Types relevant to students: (1) Ransomware — encrypts your assignment files and demands payment to unlock them. (2) Spyware — secretly records keystrokes, screenshots, and banking details. (3) Trojan — disguised as a legitimate app (e.g., a 'free' version of Microsoft Office) but installs malware in the background. (4) Adware — bombards you with ads and redirects your browser. (5) Worm — self-replicates and spreads across your network, infecting shared drives and other devices.",
+   "key_tip": "If it is free and too good to be true, it probably contains malware."
+ },
+ {
+   "lesson_id": "L004-2",
+   "module_id": "M004",
+   "section_no": 2,
+   "section_title": "How Malware Spreads",
+   "content": "The most common ways students get infected: (1) Cracked and pirated software — downloading cracked versions of AutoCAD, Adobe Suite, or Microsoft Office from Telegram groups and file-sharing sites. These are the #1 source of student malware infections. (2) Unofficial APK files — installing apps outside Google Play or App Store bypasses all security checks. (3) Email attachments — especially .exe, .docm (Word with macros), and .xlsm files from unknown senders. (4) Malicious links — clicking shortened links or banner ads that trigger drive-by downloads. (5) Infected USB drives left in public or shared in class.",
+   "key_tip": "Never install cracked software — the 'free' version costs your data and security."
+ },
+ {
+   "lesson_id": "L004-3",
+   "module_id": "M004",
+   "section_no": 3,
+   "section_title": "Protection and Response",
+   "content": "Prevention: (1) Only install apps from Google Play or Apple App Store. (2) Keep your operating system and all apps updated — updates patch known vulnerabilities attackers actively exploit. (3) Enable Google Play Protect or your phone's built-in security scanner. (4) Back up important files using the 3-2-1 rule: 3 copies, 2 different media, 1 offsite (cloud). If you suspect infection: (1) Disconnect from Wi-Fi immediately to prevent spread. (2) Run a full antivirus scan. (3) Report to your university IT department. (4) Do NOT pay ransom — it funds criminals and does not guarantee file recovery. Contact MyCERT for guidance.",
+   "key_tip": "Update everything regularly — known vulnerabilities are attackers' easiest entry point."
+ },
+ {
+   "lesson_id": "L005-1",
+   "module_id": "M005",
+   "section_no": 1,
+   "section_title": "Your Data Has Value",
+   "content": "Personal data is extremely valuable — your name, IC number, phone number, location, and browsing habits are bought and sold by data brokers and exploited by scammers. Malaysia's Personal Data Protection Act (PDPA) 2010 gives you rights over your data, but the first line of defence is your own behaviour. Every app you install, every form you fill in, and every photo you post creates a digital footprint that persists long after you think it is gone. University students are particularly exposed because of high social media activity and frequent use of third-party apps.",
+   "key_tip": "Treat your IC number like your ATM PIN — guard it carefully."
+ },
+ {
+   "lesson_id": "L005-2",
+   "module_id": "M005",
+   "section_no": 2,
+   "section_title": "App Permissions and Oversharing",
+   "content": "Excessive app permissions: Many apps request far more access than they need. A flashlight app has no legitimate need for your contacts, microphone, or location — but will request them anyway to harvest data. Rule of thumb: only grant permissions the app genuinely needs to function. Regularly review permissions in Settings > Apps. Social media oversharing risks: (1) Posting your IC number, address, or student ID publicly enables identity theft. (2) Real-time location posts reveal your routine to stalkers and burglars. (3) Photos of your student card expose your student ID and institution. (4) Old posts remain searchable years later and affect career opportunities.",
+   "key_tip": "Review your app permissions this week — revoke anything that seems excessive."
+ },
+ {
+   "lesson_id": "L005-3",
+   "module_id": "M005",
+   "section_no": 3,
+   "section_title": "Privacy Settings and Digital Footprint",
+   "content": "Improving your privacy: (1) Set social media profiles to private — on Instagram, Facebook, and TikTok, go to Settings > Privacy and restrict who can see your content. (2) Remove your phone number and home address from your public social media bio. (3) Disable location sharing in social media apps unless actively needed. (4) Regularly Google your own name to see what information is publicly visible. (5) Delete accounts you no longer use — old accounts accumulate data and may be breached without you knowing. (6) Use privacy-focused search engines like DuckDuckGo for sensitive searches. Under PDPA, you can request organisations to delete your data.",
+   "key_tip": "Google yourself — what you find is what scammers can find too."
+ },
+ {
+   "lesson_id": "L006-1",
+   "module_id": "M006",
+   "section_no": 1,
+   "section_title": "Scams Targeting Malaysian Students",
+   "content": "Malaysia recorded over 3,200 scam cases in Q1 2026. University students are prime targets due to financial pressures, active social media use, and unfamiliarity with financial fraud. Common scams targeting students: (1) Macau Scam — caller impersonates PDRM/MACC/BNM claiming you have a criminal case and must transfer money to a 'safe account'. (2) Scholarship Scam — fake MARA/JPA/Petronas notifications via WhatsApp with unofficial links requesting IC and bank details. (3) Job Offer Scam — promises RM500–1000/day for 'liking social media posts' or 'online part-time work' with an upfront registration fee. (4) Parcel Delivery Scam — SMS claiming a RM1 redelivery fee via a suspicious link that steals card details.",
+   "key_tip": "If you are pressured to act NOW — that urgency is the scam's main weapon."
+ },
+ {
+   "lesson_id": "L006-2",
+   "module_id": "M006",
+   "section_no": 2,
+   "section_title": "Universal Scam Red Flags",
+   "content": "Every scam — regardless of type — shares these warning signs: (1) Urgency — 'Deadline is tonight!', 'Account suspended in 1 hour!' creates panic and bypasses rational thinking. (2) Too-good-to-be-true offers — any job paying RM500/day for zero skills, or scholarships you never applied for. (3) Requests for upfront payment — legitimate employers, couriers, and organisations never ask for fees before providing a service. (4) Requests for OTP or TAC — banks, government agencies, and universities will NEVER ask for these codes. (5) Unofficial contact channels — scams use WhatsApp, Telegram, and unofficial email addresses, not official .gov.my or verified accounts. (6) Mule account offers — someone asking to use your bank account to 'receive and forward money' is recruiting you into an illegal mule network.",
+   "key_tip": "When in doubt, verify through official channels — never through links or numbers in the message."
+ },
+ {
+   "lesson_id": "L006-3",
+   "module_id": "M006",
+   "section_no": 3,
+   "section_title": "What to Do If You Encounter a Scam",
+   "content": "If you receive a suspicious message: (1) Do NOT click links or share personal details. (2) Block and report the sender. (3) Report to PDRM (999 or 03-2266 2222), MCMC (1-800-888-030 or aduan.mcmc.gov.my), or BNM (1-300-88-5465). If you already lost money: (1) Immediately call your bank's 24-hour hotline to freeze your account. (2) File a police report (laporan polis) — required for bank refund processes. (3) Report to BNM BNMLINK at 1-300-88-5465. Important: Do NOT attempt to recover money directly — recovery scammers target victims a second time by pretending to help retrieve lost funds.",
+   "key_tip": "Report all scams to PDRM and MCMC — your report protects other students."
+ },
+ {
+   "lesson_id": "L007-1",
+   "module_id": "M007",
+   "section_no": 1,
+   "section_title": "Your Phone Holds Your Life",
+   "content": "Your smartphone contains your banking apps, university portal, personal photos, contacts, email, and social media accounts. Losing it — or having it compromised by malware or an attacker — can expose all of this at once. Mobile threats are different from desktop threats because your phone is always on, always connected, and always with you. Physical security, app security, and network security must all be considered together.",
+   "key_tip": "Your phone security is your digital security — treat it accordingly."
+ },
+ {
+   "lesson_id": "L007-2",
+   "module_id": "M007",
+   "section_no": 2,
+   "section_title": "Essential Mobile Security Settings",
+   "content": "Basic protections every student should enable today: (1) Screen lock — use a strong PIN (at least 6 digits), pattern, or biometric (fingerprint/face). Avoid simple patterns like L-shapes that leave smudge traces. (2) Auto-lock — set your phone to lock after 30 seconds of inactivity. (3) Enable Find My Device (Android) or Find My iPhone (iOS) — allows remote locate, lock, and wipe if lost. (4) Enable encrypted storage — most modern phones do this by default, but verify in Security settings. (5) Never root (Android) or jailbreak (iOS) your phone — it bypasses built-in security protections and allows malware elevated privileges. (6) Enable Google Play Protect or equivalent to scan installed apps regularly.",
+   "key_tip": "Enable Find My Device now — it takes 30 seconds and could save everything."
+ },
+ {
+   "lesson_id": "L007-3",
+   "module_id": "M007",
+   "section_no": 3,
+   "section_title": "App Safety and What to Do If Lost",
+   "content": "Safe app practices: (1) Only install from official stores. Check reviews, permissions requested, and developer credibility before installing. (2) Delete apps you no longer use — every installed app is a potential attack surface. (3) Be suspicious of updates that suddenly request new unnecessary permissions. (4) Do not side-load APK files sent via Telegram or WhatsApp — even if from a friend, the file may have been modified. If your phone is lost or stolen: (1) Immediately use Find My Device to locate and remotely lock it. (2) Change passwords for all important accounts — banking, email, social media, university portal. (3) Contact your bank to temporarily freeze mobile banking access. (4) Report to PDRM if stolen and file a report for insurance and bank records.",
+   "key_tip": "If your phone is lost, change all passwords first — before worrying about the device itself."
+ },
+ {
+   "lesson_id": "L008-1",
+   "module_id": "M008",
+   "section_no": 1,
+   "section_title": "Why Public Wi-Fi Is Dangerous",
+   "content": "Public Wi-Fi networks — in cafes, airports, library, shopping malls, and even on-campus open networks — are fundamentally insecure. They are shared with strangers, often have no encryption, and can be easily manipulated by attackers. Three main threats: (1) Eavesdropping — on an unencrypted network, any device on the same network can capture your transmitted data using freely available tools. (2) Evil Twin Attack — an attacker sets up a rogue hotspot with the same name as the legitimate network (e.g., UiTM_Library). Devices auto-connect, routing all traffic through the attacker. (3) Man-in-the-Middle (MITM) Attack — attacker positions themselves between you and the network, intercepting and potentially modifying your communications.",
+   "key_tip": "Always verify the exact Wi-Fi network name with staff before connecting."
+ },
+ {
+   "lesson_id": "L008-2",
+   "module_id": "M008",
+   "section_no": 2,
+   "section_title": "What You Should Never Do on Public Wi-Fi",
+   "content": "Avoid these activities on untrusted networks: (1) Online banking and financial transactions — intercepted credentials can result in immediate financial loss. (2) Logging into email accounts without HTTPS — credentials transmitted in plaintext can be captured. (3) Accepting unexpected SSL certificate warnings — this is a sign of an MITM attack in progress. (4) Connecting to networks you did not specifically request — turn off Wi-Fi auto-join to prevent automatic connection to known or unknown networks. (5) Accessing sensitive university systems (e-grading, scholarship portals) that require your student credentials. (6) Leaving your phone unlocked and unattended even for a moment at a shared table.",
+   "key_tip": "Use mobile data for banking — it is far safer than any public Wi-Fi."
+ },
+ {
+   "lesson_id": "L008-3",
+   "module_id": "M008",
+   "section_no": 3,
+   "section_title": "Safe Practices and VPN Usage",
+   "content": "How to stay safer: (1) Verify the exact network name — ask staff for the correct SSID before connecting. (2) Use HTTPS — look for the padlock icon and verify the domain. HTTPS encrypts data in transit, but does not guarantee the site is legitimate. (3) Use a VPN — a Virtual Private Network encrypts all your internet traffic at the network layer, making eavesdropping virtually impossible even on compromised networks. Free options: ProtonVPN (no data limit on free tier), your university may provide a VPN. (4) Disable auto-join for all public networks in Wi-Fi settings. (5) Turn off file sharing and AirDrop when on public networks. (6) Use mobile data for any sensitive activity when in doubt.",
+   "key_tip": "Install ProtonVPN — it is free, reputable, and protects you on all public networks."
+ },
+ {
+   "lesson_id": "L009-1",
+   "module_id": "M009",
+   "section_no": 1,
+   "section_title": "What Is 2FA / MFA?",
+   "content": "Two-Factor Authentication (2FA) or Multi-Factor Authentication (MFA) adds a second verification step beyond your password. Even if an attacker steals your password — through phishing, a data breach, or shoulder surfing — they still cannot access your account without the second factor. The three categories of factors are: Something you know (password, PIN), Something you have (authenticator app code, hardware key, SMS OTP), and Something you are (fingerprint, face recognition). Enabling 2FA on your most important accounts is the single most impactful security improvement you can make, reducing account takeover risk by over 99% according to Google's internal data.",
+   "key_tip": "Enable 2FA on email and banking today — it is the highest-impact security step you can take."
+ },
+ {
+   "lesson_id": "L009-2",
+   "module_id": "M009",
+   "section_no": 2,
+   "section_title": "Types of 2FA — Ranked by Security",
+   "content": "Not all 2FA is equal. From weakest to strongest: (1) SMS OTP (weakest — still far better than nothing) — vulnerable to SIM swapping attacks where attackers convince your carrier to transfer your number. (2) Email OTP — vulnerable if your email itself is compromised. (3) Authenticator App (strongly recommended) — apps like Google Authenticator, Microsoft Authenticator, or Authy generate time-based codes locally on your device. Not transmitted over SMS, so immune to SIM swapping. (4) Push notification — app sends a prompt to your phone; convenient but can be defeated by fatigue attacks (approving a flood of spam requests). (5) Hardware security key (strongest) — physical device using FIDO2/WebAuthn. Binds authentication to the exact domain, making phishing relay attacks impossible.",
+   "key_tip": "Switch from SMS OTP to an authenticator app — it is free and far more secure."
+ },
+ {
+   "lesson_id": "L009-3",
+   "module_id": "M009",
+   "section_no": 3,
+   "section_title": "Setting Up 2FA and OTP Safety",
+   "content": "How to enable 2FA on key accounts: For Gmail: Settings > Security > 2-Step Verification > Authenticator app. For Facebook/Instagram: Settings > Security > Two-Factor Authentication. For your banking app: check Settings or call your bank's hotline. Critical OTP safety rules: (1) NEVER share your OTP or TAC with ANYONE — not even someone claiming to be from your bank, PDRM, or IT support. Legitimate organisations never ask for OTP codes. (2) An OTP request you did not initiate means someone is trying to use your password right now — change it immediately and do not approve. (3) Save your 2FA backup codes in a secure offline location when you first enable 2FA — these are needed if you lose your phone. (4) Use a different authenticator app from your primary phone where possible for critical accounts.",
+   "key_tip": "If you receive an OTP you did not request — your account is under attack. Change password NOW."
+ },
+ {
+   "lesson_id": "L010-1",
+   "module_id": "M010",
+   "section_no": 1,
+   "section_title": "Understanding Data Breaches",
+   "content": "A data breach occurs when attackers gain unauthorised access to a database containing user credentials or personal information. In 2024-2025, major breaches affected millions of Malaysians including data from telecommunications companies, e-commerce platforms, and government systems. When a breach occurs, attackers typically publish or sell the stolen data on the dark web. Other attackers then use these credentials in credential stuffing attacks — systematically trying the leaked username/password combinations on banking, email, and social media sites. If you reuse passwords, a breach on one low-security site can compromise all your accounts.",
+   "key_tip": "Check haveibeenpwned.com to see if your email has appeared in known breaches."
+ },
+ {
+   "lesson_id": "L010-2",
+   "module_id": "M010",
+   "section_no": 2,
+   "section_title": "Recognising a Breach Notification",
+   "content": "How you might discover you are affected: (1) Official email from the affected company notifying you of the breach (be careful — verify it is from the actual company domain, not a phishing email). (2) Notification from haveibeenpwned.com or your browser's built-in password monitoring. (3) Unusual account activity — login notifications from unknown locations, emails you did not send, purchases you did not make. (4) Friends telling you your account is sending spam messages. Warning: Fake breach notifications are themselves a phishing tactic. Always verify breach notifications by going directly to the company's official website, not by clicking links in the notification email.",
+   "key_tip": "Verify breach emails by going to the company website directly — not through the email link."
+ },
+ {
+   "lesson_id": "L010-3",
+   "module_id": "M010",
+   "section_no": 3,
+   "section_title": "Immediate Response Steps",
+   "content": "If your account or data is breached, act within the first hour: (1) Change the password immediately on the breached site — use a strong, unique password. (2) Change the same password everywhere else you used it — this is why reusing passwords is so dangerous. (3) Enable 2FA on all affected and related accounts. (4) Check your email for any forwarding rules or filters set up by the attacker. (5) Review active sessions and revoke all unknown devices in account settings. (6) Check linked payment methods and authorised apps — remove anything unfamiliar. (7) If banking credentials may be involved, call your bank immediately to freeze mobile banking access. (8) Monitor your accounts weekly for the next month for any unusual activity.",
+   "key_tip": "The first 60 minutes after discovering a breach are critical — act immediately."
+ },
+ {
+   "lesson_id": "L011-1",
+   "module_id": "M011",
+   "section_no": 1,
+   "section_title": "Understanding Cyberbullying",
+   "content": "Cyberbullying is the use of digital technology to deliberately harm, harass, threaten, or humiliate another person. Unlike physical bullying, cyberbullying follows victims everywhere — home, class, and even at night — and leaves a permanent digital record. Forms relevant to university students: Harassment via direct messages or group chats, Doxxing (publishing someone's private information publicly to facilitate real-world harm), Non-consensual sharing of private images, Impersonation using fake accounts, Coordinated pile-on attacks in comment sections. The Malaysia Communications and Multimedia Act (MCMA) 1998, Section 233, makes harassing or offensive online communication a criminal offence punishable by up to a RM50,000 fine or one year imprisonment.",
+   "key_tip": "Cyberbullying is a crime in Malaysia — Section 233 MCMA 1998."
+ },
+ {
+   "lesson_id": "L011-2",
+   "module_id": "M011",
+   "section_no": 2,
+   "section_title": "Digital Ethics Principles",
+   "content": "Ethical online behaviour means applying the same standards of respect and responsibility online that you would in person — and recognising that online actions have real offline consequences. Core principles: (1) Consent — never share photos, videos, or personal information about others without their explicit permission. (2) Respect — disagree respectfully and avoid language that degrades or targets individuals based on identity. (3) Truthfulness — do not spread unverified information, rumours, or manipulated content. (4) Accountability — own your online actions; the anonymity of the internet does not make harmful behaviour acceptable or legal. (5) Empathy — consider the impact of your words and actions on real people before posting.",
+   "key_tip": "Would you say it to their face? Apply that standard to everything you post online."
+ },
+ {
+   "lesson_id": "L011-3",
+   "module_id": "M011",
+   "section_no": 3,
+   "section_title": "How to Respond and Report",
+   "content": "If you witness or experience cyberbullying: (1) Do NOT retaliate — escalation rarely helps and may make you legally liable. (2) Preserve evidence — take screenshots with timestamps before blocking or reporting. (3) Report to the platform — all major platforms (Facebook, Instagram, TikTok, Twitter/X) have abuse reporting mechanisms. (4) Block the perpetrator to stop further contact. (5) Seek support — talk to a counsellor, trusted adult, or the university's student affairs department. (6) Report to PDRM if there are threats of violence, doxxing, or non-consensual image sharing (a specific offence under Section 233 MCMA and Section 509 Penal Code). (7) For MCMC complaints: aduan.mcmc.gov.my or 1-800-888-030.",
+   "key_tip": "Screenshot, report, block — in that order. Evidence is essential for any legal action."
+ },
+ {
+   "lesson_id": "L012-1",
+   "module_id": "M012",
+   "section_no": 1,
+   "section_title": "Why Banking Is the Top Target",
+   "content": "Online banking is the primary target for cybercriminals because the reward is immediate and direct. Malaysian banks recorded billions in fraud losses in 2024-2025. Students are increasingly targeted because many have just opened their first bank accounts, received PTPTN or scholarship payments, and are unfamiliar with banking fraud tactics. The most dangerous threats: (1) Phishing portals — exact replicas of Maybank2u, CIMB Clicks, or RHB Now that steal your login credentials. (2) Fake TAC/OTP calls — attackers who already have your login use social engineering to get your OTP. (3) Mule account recruitment — offering students commissions to receive and forward money, which is a serious criminal offence under AMLA 2001. (4) Juice jacking — using public USB chargers that steal data or install malware.",
+   "key_tip": "Your bank will NEVER call asking for your OTP or TAC — hang up immediately."
+ },
+ {
+   "lesson_id": "L012-2",
+   "module_id": "M012",
+   "section_no": 2,
+   "section_title": "Verifying Banking Domains and Apps",
+   "content": "How to verify you are on the real banking website: (1) Type the URL directly — never access banking via links in emails, SMS, or WhatsApp. (2) Check the exact domain — Maybank's official domains are maybank2u.com.my and maybank.com. Any variation is fake. (3) Look for the padlock icon AND verify it says the bank's name in the certificate (click the padlock to check). (4) For mobile banking, only download from the official Google Play Store or Apple App Store, verify the developer name matches the bank. (5) Enable transaction notifications so every transaction sends you an immediate alert. Warning signs your banking app is fake: requests your full password during a routine launch, has a different UI from what you remember, asks for permissions it never asked for before.",
+   "key_tip": "Type bank URLs manually every time — never use links from messages or search results."
+ },
+ {
+   "lesson_id": "L012-3",
+   "module_id": "M012",
+   "section_no": 3,
+   "section_title": "Safe Banking Practices",
+   "content": "Daily safe banking habits: (1) Never share your TAC, OTP, or transaction PIN with anyone — these codes are single-use and only valid for your current transaction. (2) Set daily transfer limits to the minimum you actually need in your banking app settings. (3) Enable biometric login and device binding so only your registered device can access the app. (4) Regularly review your transaction history — at least once a week. (5) Never use public Wi-Fi for banking — use mobile data. (6) Do not allow your browser to save your banking password. Emergency actions: If you suspect fraud, call your bank's 24-hour hotline immediately — Maybank: 1-300-88-6688, CIMB: 1-300-880-900, BNM BNMLINK: 1-300-88-5465. Every minute of delay can cost more money. If you become a mule account — even without knowing — you face criminal charges under AMLA 2001. Report immediately to PDRM and your bank.",
+   "key_tip": "Set your daily transfer limit to RM0 when not transacting — change it only when needed."
+ },
+ {
+   "lesson_id": "L013-1",
+   "module_id": "M013",
+   "section_no": 1,
+   "section_title": "Introduction to Email Security Basics",
+   "content": "Email Security Basics focuses on practical cybersecurity awareness for university students. This module explains the main risks, common attacker tricks, and why the topic matters in daily digital life. Students should connect the topic with real situations such as email, social media, mobile apps, online learning platforms, and financial transactions.",
+   "key_tip": "Start by checking whether the situation asks for sensitive data, urgent action, or unsafe downloads."
+ },
+ {
+   "lesson_id": "L013-2",
+   "module_id": "M013",
+   "section_no": 2,
+   "section_title": "Common Warning Signs",
+   "content": "Warning signs include unusual links, unexpected attachments, requests for passwords or OTP codes, suspicious sender identities, offers that sound too good to be true, and pressure to act quickly. Attackers often copy trusted logos and use friendly language to make the message look normal. A careful user should pause, verify the source, and avoid giving information too quickly.",
+   "key_tip": "Urgency plus sensitive information request is a major red flag."
+ },
+ {
+   "lesson_id": "L013-3",
+   "module_id": "M013",
+   "section_no": 3,
+   "section_title": "Safe Actions and Best Practices",
+   "content": "Safe actions include verifying through official channels, using strong authentication, updating software, limiting app permissions, keeping backups, and reporting suspicious activity with evidence. Students should use official websites instead of links in messages and should not share private information in chats, forms, or unknown platforms. Building a regular cyber hygiene routine reduces risk over time.",
+   "key_tip": "When unsure, stop, verify, and report before taking action."
+ },
+ {
+   "lesson_id": "L014-1",
+   "module_id": "M014",
+   "section_no": 1,
+   "section_title": "Introduction to Secure Social Media Use",
+   "content": "Secure Social Media Use focuses on practical cybersecurity awareness for university students. This module explains the main risks, common attacker tricks, and why the topic matters in daily digital life. Students should connect the topic with real situations such as email, social media, mobile apps, online learning platforms, and financial transactions.",
+   "key_tip": "Start by checking whether the situation asks for sensitive data, urgent action, or unsafe downloads."
+ },
+ {
+   "lesson_id": "L014-2",
+   "module_id": "M014",
+   "section_no": 2,
+   "section_title": "Common Warning Signs",
+   "content": "Warning signs include unusual links, unexpected attachments, requests for passwords or OTP codes, suspicious sender identities, offers that sound too good to be true, and pressure to act quickly. Attackers often copy trusted logos and use friendly language to make the message look normal. A careful user should pause, verify the source, and avoid giving information too quickly.",
+   "key_tip": "Urgency plus sensitive information request is a major red flag."
+ },
+ {
+   "lesson_id": "L014-3",
+   "module_id": "M014",
+   "section_no": 3,
+   "section_title": "Safe Actions and Best Practices",
+   "content": "Safe actions include verifying through official channels, using strong authentication, updating software, limiting app permissions, keeping backups, and reporting suspicious activity with evidence. Students should use official websites instead of links in messages and should not share private information in chats, forms, or unknown platforms. Building a regular cyber hygiene routine reduces risk over time.",
+   "key_tip": "When unsure, stop, verify, and report before taking action."
+ },
+ {
+   "lesson_id": "L015-1",
+   "module_id": "M015",
+   "section_no": 1,
+   "section_title": "Introduction to Cloud Storage Safety",
+   "content": "Cloud Storage Safety focuses on practical cybersecurity awareness for university students. This module explains the main risks, common attacker tricks, and why the topic matters in daily digital life. Students should connect the topic with real situations such as email, social media, mobile apps, online learning platforms, and financial transactions.",
+   "key_tip": "Start by checking whether the situation asks for sensitive data, urgent action, or unsafe downloads."
+ },
+ {
+   "lesson_id": "L015-2",
+   "module_id": "M015",
+   "section_no": 2,
+   "section_title": "Common Warning Signs",
+   "content": "Warning signs include unusual links, unexpected attachments, requests for passwords or OTP codes, suspicious sender identities, offers that sound too good to be true, and pressure to act quickly. Attackers often copy trusted logos and use friendly language to make the message look normal. A careful user should pause, verify the source, and avoid giving information too quickly.",
+   "key_tip": "Urgency plus sensitive information request is a major red flag."
+ },
+ {
+   "lesson_id": "L015-3",
+   "module_id": "M015",
+   "section_no": 3,
+   "section_title": "Safe Actions and Best Practices",
+   "content": "Safe actions include verifying through official channels, using strong authentication, updating software, limiting app permissions, keeping backups, and reporting suspicious activity with evidence. Students should use official websites instead of links in messages and should not share private information in chats, forms, or unknown platforms. Building a regular cyber hygiene routine reduces risk over time.",
+   "key_tip": "When unsure, stop, verify, and report before taking action."
+ },
+ {
+   "lesson_id": "L016-1",
+   "module_id": "M016",
+   "section_no": 1,
+   "section_title": "Introduction to QR Code Safety",
+   "content": "QR Code Safety focuses on practical cybersecurity awareness for university students. This module explains the main risks, common attacker tricks, and why the topic matters in daily digital life. Students should connect the topic with real situations such as email, social media, mobile apps, online learning platforms, and financial transactions.",
+   "key_tip": "Start by checking whether the situation asks for sensitive data, urgent action, or unsafe downloads."
+ },
+ {
+   "lesson_id": "L016-2",
+   "module_id": "M016",
+   "section_no": 2,
+   "section_title": "Common Warning Signs",
+   "content": "Warning signs include unusual links, unexpected attachments, requests for passwords or OTP codes, suspicious sender identities, offers that sound too good to be true, and pressure to act quickly. Attackers often copy trusted logos and use friendly language to make the message look normal. A careful user should pause, verify the source, and avoid giving information too quickly.",
+   "key_tip": "Urgency plus sensitive information request is a major red flag."
+ },
+ {
+   "lesson_id": "L016-3",
+   "module_id": "M016",
+   "section_no": 3,
+   "section_title": "Safe Actions and Best Practices",
+   "content": "Safe actions include verifying through official channels, using strong authentication, updating software, limiting app permissions, keeping backups, and reporting suspicious activity with evidence. Students should use official websites instead of links in messages and should not share private information in chats, forms, or unknown platforms. Building a regular cyber hygiene routine reduces risk over time.",
+   "key_tip": "When unsure, stop, verify, and report before taking action."
+ },
+ {
+   "lesson_id": "L017-1",
+   "module_id": "M017",
+   "section_no": 1,
+   "section_title": "Introduction to Online Shopping Safety",
+   "content": "Online Shopping Safety focuses on practical cybersecurity awareness for university students. This module explains the main risks, common attacker tricks, and why the topic matters in daily digital life. Students should connect the topic with real situations such as email, social media, mobile apps, online learning platforms, and financial transactions.",
+   "key_tip": "Start by checking whether the situation asks for sensitive data, urgent action, or unsafe downloads."
+ },
+ {
+   "lesson_id": "L017-2",
+   "module_id": "M017",
+   "section_no": 2,
+   "section_title": "Common Warning Signs",
+   "content": "Warning signs include unusual links, unexpected attachments, requests for passwords or OTP codes, suspicious sender identities, offers that sound too good to be true, and pressure to act quickly. Attackers often copy trusted logos and use friendly language to make the message look normal. A careful user should pause, verify the source, and avoid giving information too quickly.",
+   "key_tip": "Urgency plus sensitive information request is a major red flag."
+ },
+ {
+   "lesson_id": "L017-3",
+   "module_id": "M017",
+   "section_no": 3,
+   "section_title": "Safe Actions and Best Practices",
+   "content": "Safe actions include verifying through official channels, using strong authentication, updating software, limiting app permissions, keeping backups, and reporting suspicious activity with evidence. Students should use official websites instead of links in messages and should not share private information in chats, forms, or unknown platforms. Building a regular cyber hygiene routine reduces risk over time.",
+   "key_tip": "When unsure, stop, verify, and report before taking action."
+ },
+ {
+   "lesson_id": "L018-1",
+   "module_id": "M018",
+   "section_no": 1,
+   "section_title": "Introduction to Cyber Hygiene Routine",
+   "content": "Cyber Hygiene Routine focuses on practical cybersecurity awareness for university students. This module explains the main risks, common attacker tricks, and why the topic matters in daily digital life. Students should connect the topic with real situations such as email, social media, mobile apps, online learning platforms, and financial transactions.",
+   "key_tip": "Start by checking whether the situation asks for sensitive data, urgent action, or unsafe downloads."
+ },
+ {
+   "lesson_id": "L018-2",
+   "module_id": "M018",
+   "section_no": 2,
+   "section_title": "Common Warning Signs",
+   "content": "Warning signs include unusual links, unexpected attachments, requests for passwords or OTP codes, suspicious sender identities, offers that sound too good to be true, and pressure to act quickly. Attackers often copy trusted logos and use friendly language to make the message look normal. A careful user should pause, verify the source, and avoid giving information too quickly.",
+   "key_tip": "Urgency plus sensitive information request is a major red flag."
+ },
+ {
+   "lesson_id": "L018-3",
+   "module_id": "M018",
+   "section_no": 3,
+   "section_title": "Safe Actions and Best Practices",
+   "content": "Safe actions include verifying through official channels, using strong authentication, updating software, limiting app permissions, keeping backups, and reporting suspicious activity with evidence. Students should use official websites instead of links in messages and should not share private information in chats, forms, or unknown platforms. Building a regular cyber hygiene routine reduces risk over time.",
+   "key_tip": "When unsure, stop, verify, and report before taking action."
+ },
+ {
+   "lesson_id": "L019-1",
+   "module_id": "M019",
+   "section_no": 1,
+   "section_title": "Introduction to Software Update & Patch Safety",
+   "content": "Software Update & Patch Safety focuses on practical cybersecurity awareness for university students. This module explains the main risks, common attacker tricks, and why the topic matters in daily digital life. Students should connect the topic with real situations such as email, social media, mobile apps, online learning platforms, and financial transactions.",
+   "key_tip": "Start by checking whether the situation asks for sensitive data, urgent action, or unsafe downloads."
+ },
+ {
+   "lesson_id": "L019-2",
+   "module_id": "M019",
+   "section_no": 2,
+   "section_title": "Common Warning Signs",
+   "content": "Warning signs include unusual links, unexpected attachments, requests for passwords or OTP codes, suspicious sender identities, offers that sound too good to be true, and pressure to act quickly. Attackers often copy trusted logos and use friendly language to make the message look normal. A careful user should pause, verify the source, and avoid giving information too quickly.",
+   "key_tip": "Urgency plus sensitive information request is a major red flag."
+ },
+ {
+   "lesson_id": "L019-3",
+   "module_id": "M019",
+   "section_no": 3,
+   "section_title": "Safe Actions and Best Practices",
+   "content": "Safe actions include verifying through official channels, using strong authentication, updating software, limiting app permissions, keeping backups, and reporting suspicious activity with evidence. Students should use official websites instead of links in messages and should not share private information in chats, forms, or unknown platforms. Building a regular cyber hygiene routine reduces risk over time.",
+   "key_tip": "When unsure, stop, verify, and report before taking action."
+ },
+ {
+   "lesson_id": "L020-1",
+   "module_id": "M020",
+   "section_no": 1,
+   "section_title": "Introduction to Ransomware Awareness",
+   "content": "Ransomware Awareness focuses on practical cybersecurity awareness for university students. This module explains the main risks, common attacker tricks, and why the topic matters in daily digital life. Students should connect the topic with real situations such as email, social media, mobile apps, online learning platforms, and financial transactions.",
+   "key_tip": "Start by checking whether the situation asks for sensitive data, urgent action, or unsafe downloads."
+ },
+ {
+   "lesson_id": "L020-2",
+   "module_id": "M020",
+   "section_no": 2,
+   "section_title": "Common Warning Signs",
+   "content": "Warning signs include unusual links, unexpected attachments, requests for passwords or OTP codes, suspicious sender identities, offers that sound too good to be true, and pressure to act quickly. Attackers often copy trusted logos and use friendly language to make the message look normal. A careful user should pause, verify the source, and avoid giving information too quickly.",
+   "key_tip": "Urgency plus sensitive information request is a major red flag."
+ },
+ {
+   "lesson_id": "L020-3",
+   "module_id": "M020",
+   "section_no": 3,
+   "section_title": "Safe Actions and Best Practices",
+   "content": "Safe actions include verifying through official channels, using strong authentication, updating software, limiting app permissions, keeping backups, and reporting suspicious activity with evidence. Students should use official websites instead of links in messages and should not share private information in chats, forms, or unknown platforms. Building a regular cyber hygiene routine reduces risk over time.",
+   "key_tip": "When unsure, stop, verify, and report before taking action."
+ },
+ {
+   "lesson_id": "L021-1",
+   "module_id": "M021",
+   "section_no": 1,
+   "section_title": "Introduction to Identity Theft Protection",
+   "content": "Identity Theft Protection focuses on practical cybersecurity awareness for university students. This module explains the main risks, common attacker tricks, and why the topic matters in daily digital life. Students should connect the topic with real situations such as email, social media, mobile apps, online learning platforms, and financial transactions.",
+   "key_tip": "Start by checking whether the situation asks for sensitive data, urgent action, or unsafe downloads."
+ },
+ {
+   "lesson_id": "L021-2",
+   "module_id": "M021",
+   "section_no": 2,
+   "section_title": "Common Warning Signs",
+   "content": "Warning signs include unusual links, unexpected attachments, requests for passwords or OTP codes, suspicious sender identities, offers that sound too good to be true, and pressure to act quickly. Attackers often copy trusted logos and use friendly language to make the message look normal. A careful user should pause, verify the source, and avoid giving information too quickly.",
+   "key_tip": "Urgency plus sensitive information request is a major red flag."
+ },
+ {
+   "lesson_id": "L021-3",
+   "module_id": "M021",
+   "section_no": 3,
+   "section_title": "Safe Actions and Best Practices",
+   "content": "Safe actions include verifying through official channels, using strong authentication, updating software, limiting app permissions, keeping backups, and reporting suspicious activity with evidence. Students should use official websites instead of links in messages and should not share private information in chats, forms, or unknown platforms. Building a regular cyber hygiene routine reduces risk over time.",
+   "key_tip": "When unsure, stop, verify, and report before taking action."
+ },
+ {
+   "lesson_id": "L022-1",
+   "module_id": "M022",
+   "section_no": 1,
+   "section_title": "Introduction to Safe Use of AI Tools",
+   "content": "Safe Use of AI Tools focuses on practical cybersecurity awareness for university students. This module explains the main risks, common attacker tricks, and why the topic matters in daily digital life. Students should connect the topic with real situations such as email, social media, mobile apps, online learning platforms, and financial transactions.",
+   "key_tip": "Start by checking whether the situation asks for sensitive data, urgent action, or unsafe downloads."
+ },
+ {
+   "lesson_id": "L022-2",
+   "module_id": "M022",
+   "section_no": 2,
+   "section_title": "Common Warning Signs",
+   "content": "Warning signs include unusual links, unexpected attachments, requests for passwords or OTP codes, suspicious sender identities, offers that sound too good to be true, and pressure to act quickly. Attackers often copy trusted logos and use friendly language to make the message look normal. A careful user should pause, verify the source, and avoid giving information too quickly.",
+   "key_tip": "Urgency plus sensitive information request is a major red flag."
+ },
+ {
+   "lesson_id": "L022-3",
+   "module_id": "M022",
+   "section_no": 3,
+   "section_title": "Safe Actions and Best Practices",
+   "content": "Safe actions include verifying through official channels, using strong authentication, updating software, limiting app permissions, keeping backups, and reporting suspicious activity with evidence. Students should use official websites instead of links in messages and should not share private information in chats, forms, or unknown platforms. Building a regular cyber hygiene routine reduces risk over time.",
+   "key_tip": "When unsure, stop, verify, and report before taking action."
+ },
+ {
+   "lesson_id": "L023-1",
+   "module_id": "M023",
+   "section_no": 1,
+   "section_title": "Introduction to Digital Footprint Management",
+   "content": "Digital Footprint Management focuses on practical cybersecurity awareness for university students. This module explains the main risks, common attacker tricks, and why the topic matters in daily digital life. Students should connect the topic with real situations such as email, social media, mobile apps, online learning platforms, and financial transactions.",
+   "key_tip": "Start by checking whether the situation asks for sensitive data, urgent action, or unsafe downloads."
+ },
+ {
+   "lesson_id": "L023-2",
+   "module_id": "M023",
+   "section_no": 2,
+   "section_title": "Common Warning Signs",
+   "content": "Warning signs include unusual links, unexpected attachments, requests for passwords or OTP codes, suspicious sender identities, offers that sound too good to be true, and pressure to act quickly. Attackers often copy trusted logos and use friendly language to make the message look normal. A careful user should pause, verify the source, and avoid giving information too quickly.",
+   "key_tip": "Urgency plus sensitive information request is a major red flag."
+ },
+ {
+   "lesson_id": "L023-3",
+   "module_id": "M023",
+   "section_no": 3,
+   "section_title": "Safe Actions and Best Practices",
+   "content": "Safe actions include verifying through official channels, using strong authentication, updating software, limiting app permissions, keeping backups, and reporting suspicious activity with evidence. Students should use official websites instead of links in messages and should not share private information in chats, forms, or unknown platforms. Building a regular cyber hygiene routine reduces risk over time.",
+   "key_tip": "When unsure, stop, verify, and report before taking action."
+ },
+ {
+   "lesson_id": "L024-1",
+   "module_id": "M024",
+   "section_no": 1,
+   "section_title": "Introduction to Secure Messaging Apps",
+   "content": "Secure Messaging Apps focuses on practical cybersecurity awareness for university students. This module explains the main risks, common attacker tricks, and why the topic matters in daily digital life. Students should connect the topic with real situations such as email, social media, mobile apps, online learning platforms, and financial transactions.",
+   "key_tip": "Start by checking whether the situation asks for sensitive data, urgent action, or unsafe downloads."
+ },
+ {
+   "lesson_id": "L024-2",
+   "module_id": "M024",
+   "section_no": 2,
+   "section_title": "Common Warning Signs",
+   "content": "Warning signs include unusual links, unexpected attachments, requests for passwords or OTP codes, suspicious sender identities, offers that sound too good to be true, and pressure to act quickly. Attackers often copy trusted logos and use friendly language to make the message look normal. A careful user should pause, verify the source, and avoid giving information too quickly.",
+   "key_tip": "Urgency plus sensitive information request is a major red flag."
+ },
+ {
+   "lesson_id": "L024-3",
+   "module_id": "M024",
+   "section_no": 3,
+   "section_title": "Safe Actions and Best Practices",
+   "content": "Safe actions include verifying through official channels, using strong authentication, updating software, limiting app permissions, keeping backups, and reporting suspicious activity with evidence. Students should use official websites instead of links in messages and should not share private information in chats, forms, or unknown platforms. Building a regular cyber hygiene routine reduces risk over time.",
+   "key_tip": "When unsure, stop, verify, and report before taking action."
+ },
+ {
+   "lesson_id": "L025-1",
+   "module_id": "M025",
+   "section_no": 1,
+   "section_title": "Introduction to Browser & Web Safety",
+   "content": "Browser & Web Safety focuses on practical cybersecurity awareness for university students. This module explains the main risks, common attacker tricks, and why the topic matters in daily digital life. Students should connect the topic with real situations such as email, social media, mobile apps, online learning platforms, and financial transactions.",
+   "key_tip": "Start by checking whether the situation asks for sensitive data, urgent action, or unsafe downloads."
+ },
+ {
+   "lesson_id": "L025-2",
+   "module_id": "M025",
+   "section_no": 2,
+   "section_title": "Common Warning Signs",
+   "content": "Warning signs include unusual links, unexpected attachments, requests for passwords or OTP codes, suspicious sender identities, offers that sound too good to be true, and pressure to act quickly. Attackers often copy trusted logos and use friendly language to make the message look normal. A careful user should pause, verify the source, and avoid giving information too quickly.",
+   "key_tip": "Urgency plus sensitive information request is a major red flag."
+ },
+ {
+   "lesson_id": "L025-3",
+   "module_id": "M025",
+   "section_no": 3,
+   "section_title": "Safe Actions and Best Practices",
+   "content": "Safe actions include verifying through official channels, using strong authentication, updating software, limiting app permissions, keeping backups, and reporting suspicious activity with evidence. Students should use official websites instead of links in messages and should not share private information in chats, forms, or unknown platforms. Building a regular cyber hygiene routine reduces risk over time.",
+   "key_tip": "When unsure, stop, verify, and report before taking action."
+ },
+ {
+   "lesson_id": "L026-1",
+   "module_id": "M026",
+   "section_no": 1,
+   "section_title": "Introduction to USB & Removable Media Safety",
+   "content": "USB & Removable Media Safety focuses on practical cybersecurity awareness for university students. This module explains the main risks, common attacker tricks, and why the topic matters in daily digital life. Students should connect the topic with real situations such as email, social media, mobile apps, online learning platforms, and financial transactions.",
+   "key_tip": "Start by checking whether the situation asks for sensitive data, urgent action, or unsafe downloads."
+ },
+ {
+   "lesson_id": "L026-2",
+   "module_id": "M026",
+   "section_no": 2,
+   "section_title": "Common Warning Signs",
+   "content": "Warning signs include unusual links, unexpected attachments, requests for passwords or OTP codes, suspicious sender identities, offers that sound too good to be true, and pressure to act quickly. Attackers often copy trusted logos and use friendly language to make the message look normal. A careful user should pause, verify the source, and avoid giving information too quickly.",
+   "key_tip": "Urgency plus sensitive information request is a major red flag."
+ },
+ {
+   "lesson_id": "L026-3",
+   "module_id": "M026",
+   "section_no": 3,
+   "section_title": "Safe Actions and Best Practices",
+   "content": "Safe actions include verifying through official channels, using strong authentication, updating software, limiting app permissions, keeping backups, and reporting suspicious activity with evidence. Students should use official websites instead of links in messages and should not share private information in chats, forms, or unknown platforms. Building a regular cyber hygiene routine reduces risk over time.",
+   "key_tip": "When unsure, stop, verify, and report before taking action."
+ },
+ {
+   "lesson_id": "L027-1",
+   "module_id": "M027",
+   "section_no": 1,
+   "section_title": "Introduction to Cyber Incident Reporting",
+   "content": "Cyber Incident Reporting focuses on practical cybersecurity awareness for university students. This module explains the main risks, common attacker tricks, and why the topic matters in daily digital life. Students should connect the topic with real situations such as email, social media, mobile apps, online learning platforms, and financial transactions.",
+   "key_tip": "Start by checking whether the situation asks for sensitive data, urgent action, or unsafe downloads."
+ },
+ {
+   "lesson_id": "L027-2",
+   "module_id": "M027",
+   "section_no": 2,
+   "section_title": "Common Warning Signs",
+   "content": "Warning signs include unusual links, unexpected attachments, requests for passwords or OTP codes, suspicious sender identities, offers that sound too good to be true, and pressure to act quickly. Attackers often copy trusted logos and use friendly language to make the message look normal. A careful user should pause, verify the source, and avoid giving information too quickly.",
+   "key_tip": "Urgency plus sensitive information request is a major red flag."
+ },
+ {
+   "lesson_id": "L027-3",
+   "module_id": "M027",
+   "section_no": 3,
+   "section_title": "Safe Actions and Best Practices",
+   "content": "Safe actions include verifying through official channels, using strong authentication, updating software, limiting app permissions, keeping backups, and reporting suspicious activity with evidence. Students should use official websites instead of links in messages and should not share private information in chats, forms, or unknown platforms. Building a regular cyber hygiene routine reduces risk over time.",
+   "key_tip": "When unsure, stop, verify, and report before taking action."
+ },
+ {
+   "lesson_id": "L028-1",
+   "module_id": "M028",
+   "section_no": 1,
+   "section_title": "Introduction to Basic Network Security",
+   "content": "Basic Network Security focuses on practical cybersecurity awareness for university students. This module explains the main risks, common attacker tricks, and why the topic matters in daily digital life. Students should connect the topic with real situations such as email, social media, mobile apps, online learning platforms, and financial transactions.",
+   "key_tip": "Start by checking whether the situation asks for sensitive data, urgent action, or unsafe downloads."
+ },
+ {
+   "lesson_id": "L028-2",
+   "module_id": "M028",
+   "section_no": 2,
+   "section_title": "Common Warning Signs",
+   "content": "Warning signs include unusual links, unexpected attachments, requests for passwords or OTP codes, suspicious sender identities, offers that sound too good to be true, and pressure to act quickly. Attackers often copy trusted logos and use friendly language to make the message look normal. A careful user should pause, verify the source, and avoid giving information too quickly.",
+   "key_tip": "Urgency plus sensitive information request is a major red flag."
+ },
+ {
+   "lesson_id": "L028-3",
+   "module_id": "M028",
+   "section_no": 3,
+   "section_title": "Safe Actions and Best Practices",
+   "content": "Safe actions include verifying through official channels, using strong authentication, updating software, limiting app permissions, keeping backups, and reporting suspicious activity with evidence. Students should use official websites instead of links in messages and should not share private information in chats, forms, or unknown platforms. Building a regular cyber hygiene routine reduces risk over time.",
+   "key_tip": "When unsure, stop, verify, and report before taking action."
+ },
+ {
+   "lesson_id": "L029-1",
+   "module_id": "M029",
+   "section_no": 1,
+   "section_title": "Introduction to Cyber Laws & PDPA Awareness",
+   "content": "Cyber Laws & PDPA Awareness focuses on practical cybersecurity awareness for university students. This module explains the main risks, common attacker tricks, and why the topic matters in daily digital life. Students should connect the topic with real situations such as email, social media, mobile apps, online learning platforms, and financial transactions.",
+   "key_tip": "Start by checking whether the situation asks for sensitive data, urgent action, or unsafe downloads."
+ },
+ {
+   "lesson_id": "L029-2",
+   "module_id": "M029",
+   "section_no": 2,
+   "section_title": "Common Warning Signs",
+   "content": "Warning signs include unusual links, unexpected attachments, requests for passwords or OTP codes, suspicious sender identities, offers that sound too good to be true, and pressure to act quickly. Attackers often copy trusted logos and use friendly language to make the message look normal. A careful user should pause, verify the source, and avoid giving information too quickly.",
+   "key_tip": "Urgency plus sensitive information request is a major red flag."
+ },
+ {
+   "lesson_id": "L029-3",
+   "module_id": "M029",
+   "section_no": 3,
+   "section_title": "Safe Actions and Best Practices",
+   "content": "Safe actions include verifying through official channels, using strong authentication, updating software, limiting app permissions, keeping backups, and reporting suspicious activity with evidence. Students should use official websites instead of links in messages and should not share private information in chats, forms, or unknown platforms. Building a regular cyber hygiene routine reduces risk over time.",
+   "key_tip": "When unsure, stop, verify, and report before taking action."
+ },
+ {
+   "lesson_id": "L030-1",
+   "module_id": "M030",
+   "section_no": 1,
+   "section_title": "Introduction to Capstone Cyber Safety Challenge",
+   "content": "Capstone Cyber Safety Challenge focuses on practical cybersecurity awareness for university students. This module explains the main risks, common attacker tricks, and why the topic matters in daily digital life. Students should connect the topic with real situations such as email, social media, mobile apps, online learning platforms, and financial transactions.",
+   "key_tip": "Start by checking whether the situation asks for sensitive data, urgent action, or unsafe downloads."
+ },
+ {
+   "lesson_id": "L030-2",
+   "module_id": "M030",
+   "section_no": 2,
+   "section_title": "Common Warning Signs",
+   "content": "Warning signs include unusual links, unexpected attachments, requests for passwords or OTP codes, suspicious sender identities, offers that sound too good to be true, and pressure to act quickly. Attackers often copy trusted logos and use friendly language to make the message look normal. A careful user should pause, verify the source, and avoid giving information too quickly.",
+   "key_tip": "Urgency plus sensitive information request is a major red flag."
+ },
+ {
+   "lesson_id": "L030-3",
+   "module_id": "M030",
+   "section_no": 3,
+   "section_title": "Safe Actions and Best Practices",
+   "content": "Safe actions include verifying through official channels, using strong authentication, updating software, limiting app permissions, keeping backups, and reporting suspicious activity with evidence. Students should use official websites instead of links in messages and should not share private information in chats, forms, or unknown platforms. Building a regular cyber hygiene routine reduces risk over time.",
+   "key_tip": "When unsure, stop, verify, and report before taking action."
+ }
+]

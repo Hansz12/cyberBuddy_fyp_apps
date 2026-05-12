@@ -81,6 +81,7 @@ flutter:
   assets:
     - assets/data/modules.json
     - assets/data/quiz_questions.json
+    - assets/data/lesson_content.json
     - assets/app_icon.png
 
   # An image asset can refer to one or more resolution-specific "variants", see
