@@ -18,9 +18,11 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
   @override
   void initState() {
     super.initState();
-Future.microtask(() {
-  context.read<LeaderboardCubit>().loadLeaderboard();
-});  }
+
+    Future.microtask(() {
+      context.read<LeaderboardCubit>().listenLeaderboard();
+    });
+  }
 
   Color _avatarColor(int index) {
     final colors = [
@@ -43,7 +45,9 @@ Future.microtask(() {
     Navigator.push(
       context,
       MaterialPageRoute(builder: (_) => const QuizScreen()),
-    );
+    ).then((_) {
+      context.read<LeaderboardCubit>().refreshLeaderboard();
+    });
   }
 
   @override
@@ -53,15 +57,19 @@ Future.microtask(() {
       body: SafeArea(
         child: BlocBuilder<LeaderboardCubit, LeaderboardState>(
           builder: (context, state) {
-            if (state.isLoading) {
+            if (state.isLoading && state.users.isEmpty) {
               return const Center(child: CircularProgressIndicator());
             }
 
-            if (state.errorMessage.isNotEmpty) {
+            if (state.errorMessage.isNotEmpty && state.users.isEmpty) {
               return Center(
-                child: Text(
-                  state.errorMessage,
-                  style: const TextStyle(color: Colors.red),
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Text(
+                    state.errorMessage,
+                    style: const TextStyle(color: Colors.red),
+                    textAlign: TextAlign.center,
+                  ),
                 ),
               );
             }
@@ -69,48 +77,66 @@ Future.microtask(() {
             final users = state.users;
 
             if (users.isEmpty) {
-              return const Center(
-                child: Text(
-                  "No leaderboard data yet.",
-                  style: TextStyle(color: Colors.grey),
+              return RefreshIndicator(
+                onRefresh: () =>
+                    context.read<LeaderboardCubit>().refreshLeaderboard(),
+                child: ListView(
+                  children: const [
+                    SizedBox(height: 250),
+                    Center(
+                      child: Text(
+                        "No leaderboard data yet.",
+                        style: TextStyle(color: Colors.grey),
+                      ),
+                    ),
+                  ],
                 ),
               );
             }
 
             final topUsers = users.take(3).toList();
             final restUsers = users.skip(3).toList();
+
             final currentIndex = users.indexWhere((u) => u.isCurrentUser);
             final currentRank = currentIndex >= 0 ? currentIndex + 1 : 0;
+            final currentUser = currentIndex >= 0 ? users[currentIndex] : null;
 
-            return ListView(
-              padding: EdgeInsets.zero,
-              children: [
-                const _Header(),
-                _Podium(users: topUsers),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(14, 14, 14, 110),
-                  child: Column(
-                    children: [
-                      ...restUsers.asMap().entries.map((entry) {
-                        final index = entry.key + 3;
-                        final user = entry.value;
+            final currentXp =
+                currentUser?.xp ?? context.read<HomeCubit>().state.xp;
 
-                        return _RankTile(
-                          rank: index + 1,
-                          user: user,
-                          avatarColor: _avatarColor(index),
-                        );
-                      }),
-                      const SizedBox(height: 12),
-                      _ChallengeCard(
-                        currentRank: currentRank,
-                        currentXp: context.read<HomeCubit>().state.xp,
-                        onStartQuiz: () => _startQuiz(context),
-                      ),
-                    ],
+            return RefreshIndicator(
+              onRefresh: () =>
+                  context.read<LeaderboardCubit>().refreshLeaderboard(),
+              child: ListView(
+                padding: EdgeInsets.zero,
+                children: [
+                  const _Header(),
+                  _Podium(users: topUsers),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(14, 14, 14, 110),
+                    child: Column(
+                      children: [
+                        ...restUsers.asMap().entries.map((entry) {
+                          final index = entry.key + 3;
+                          final user = entry.value;
+
+                          return _RankTile(
+                            rank: index + 1,
+                            user: user,
+                            avatarColor: _avatarColor(index),
+                          );
+                        }),
+                        const SizedBox(height: 12),
+                        _ChallengeCard(
+                          currentRank: currentRank,
+                          currentXp: currentXp,
+                          onStartQuiz: () => _startQuiz(context),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             );
           },
         ),
@@ -146,7 +172,7 @@ class _Header extends StatelessWidget {
           ),
           SizedBox(height: 4),
           Text(
-            "Top CyberBuddy learners ranked by XP, streak and badges",
+            "Top CyberBuddy learners ranked by leaderboard score",
             style: TextStyle(
               color: Colors.white70,
               fontSize: 13,
@@ -237,18 +263,24 @@ class _PodiumUser extends StatelessWidget {
   });
 
   String _initials(String name) {
-    final parts = name.trim().split(" ");
+    final clean = name.trim();
+
+    if (clean.isEmpty) return "?";
+
+    final parts = clean.split(RegExp(r'\s+'));
 
     if (parts.length >= 2) {
       return "${parts[0][0]}${parts[1][0]}".toUpperCase();
     }
 
-    return name.isNotEmpty ? name[0].toUpperCase() : "?";
+    return clean[0].toUpperCase();
   }
 
   String _shortName(String name) {
     final clean = name.trim();
+
     if (clean.length <= 9) return clean;
+
     return clean.substring(0, 9);
   }
 
@@ -321,13 +353,17 @@ class _RankTile extends StatelessWidget {
   });
 
   String _initials(String name) {
-    final parts = name.trim().split(" ");
+    final clean = name.trim();
+
+    if (clean.isEmpty) return "?";
+
+    final parts = clean.split(RegExp(r'\s+'));
 
     if (parts.length >= 2) {
       return "${parts[0][0]}${parts[1][0]}".toUpperCase();
     }
 
-    return name.isNotEmpty ? name[0].toUpperCase() : "?";
+    return clean[0].toUpperCase();
   }
 
   @override
@@ -412,7 +448,7 @@ class _RankTile extends StatelessWidget {
                   ],
                 ),
                 Text(
-                  user.faculty,
+                  "${user.faculty} • ${user.streak} streak • ${user.badgesCount} badges",
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     color: Color(0xFF94A3B8),
@@ -424,7 +460,7 @@ class _RankTile extends StatelessWidget {
             ),
           ),
           Text(
-            "${user.xp}",
+            "${user.xp} XP",
             style: const TextStyle(
               color: Color(0xFF0F172A),
               fontSize: 14,

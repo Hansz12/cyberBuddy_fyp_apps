@@ -1,20 +1,40 @@
 import 'package:equatable/equatable.dart';
 
 class LeaderboardUser extends Equatable {
+  final String userId;
   final String name;
   final String faculty;
   final int xp;
+  final int level;
+  final int streak;
+  final int badgesCount;
+  final int leaderboardScore;
   final bool isCurrentUser;
 
   const LeaderboardUser({
+    required this.userId,
     required this.name,
     required this.faculty,
     required this.xp,
+    required this.level,
+    required this.streak,
+    required this.badgesCount,
+    required this.leaderboardScore,
     this.isCurrentUser = false,
   });
 
   @override
-  List<Object> get props => [name, faculty, xp, isCurrentUser];
+  List<Object?> get props => [
+    userId,
+    name,
+    faculty,
+    xp,
+    level,
+    streak,
+    badgesCount,
+    leaderboardScore,
+    isCurrentUser,
+  ];
 }
 
 class LeaderboardState extends Equatable {
@@ -45,5 +65,5 @@ class LeaderboardState extends Equatable {
   }
 
   @override
-  List<Object> get props => [users, isLoading, errorMessage, loaded];
+  List<Object?> get props => [users, isLoading, errorMessage, loaded];
 }
