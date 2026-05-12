@@ -30,6 +30,11 @@ class HomeCubit extends Cubit<HomeState> {
     return a.year == b.year && a.month == b.month && a.day == b.day;
   }
 
+  DateTime? _parseDate(dynamic value) {
+    if (value == null) return null;
+    return DateTime.tryParse(value.toString());
+  }
+
   final Map<String, List<double>> moduleVectors = {
     "Phishing Awareness": [1, 0, 0],
     "Password Security": [0, 1, 0],
@@ -99,15 +104,14 @@ class HomeCubit extends Cubit<HomeState> {
             dailyTopicsTried: cloudData['dailyTopicsTried'] ?? 0,
             dailyThreatChecks: cloudData['dailyThreatChecks'] ?? 0,
             dailyBestQuizScore: cloudData['dailyBestQuizScore'] ?? 0,
-            dailyQuestDate: cloudData['dailyQuestDate'] == null
-                ? null
-                : DateTime.tryParse(cloudData['dailyQuestDate']),
+            dailyQuestDate: _parseDate(cloudData['dailyQuestDate']),
+            claimedDailyQuests: List<String>.from(
+              cloudData['claimedDailyQuests'] ?? [],
+            ),
             notifications: List<String>.from(cloudData['notifications'] ?? []),
             hasUnreadNotifications:
                 cloudData['hasUnreadNotifications'] ?? false,
-            lastActiveDate: cloudData['lastActiveDate'] == null
-                ? null
-                : DateTime.tryParse(cloudData['lastActiveDate']),
+            lastActiveDate: _parseDate(cloudData['lastActiveDate']),
           ),
         );
 
@@ -124,7 +128,6 @@ class HomeCubit extends Cubit<HomeState> {
       emit(const HomeState());
       _resetDailyQuestIfNeeded();
       await _saveAllProgress();
-      return;
     } catch (_) {
       if (_activeUid == uid) {
         await _loadLocalProgress();
@@ -144,6 +147,7 @@ class HomeCubit extends Cubit<HomeState> {
         dailyTopicsTried: 0,
         dailyThreatChecks: 0,
         dailyBestQuizScore: 0,
+        claimedDailyQuests: const [],
         dailyQuestDate: today,
       ),
     );
@@ -156,7 +160,7 @@ class HomeCubit extends Cubit<HomeState> {
     final defaults = Map<String, double>.from(fallback);
 
     data.forEach((key, value) {
-      defaults[key] = (value as num).toDouble();
+      defaults[key] = value is num ? value.toDouble() : 0.0;
     });
 
     return defaults;
@@ -177,7 +181,6 @@ class HomeCubit extends Cubit<HomeState> {
 
   Future<void> _loadLocalProgress() async {
     final prefs = await SharedPreferences.getInstance();
-
     final uid = _uid;
 
     if (uid == null || _activeUid != uid) {
@@ -218,6 +221,8 @@ class HomeCubit extends Cubit<HomeState> {
         dailyTopicsTried: prefs.getInt(_key('dailyTopicsTried')) ?? 0,
         dailyThreatChecks: prefs.getInt(_key('dailyThreatChecks')) ?? 0,
         dailyBestQuizScore: prefs.getInt(_key('dailyBestQuizScore')) ?? 0,
+        claimedDailyQuests:
+            prefs.getStringList(_key('claimedDailyQuests')) ?? [],
         dailyQuestDate: prefs.getString(_key('dailyQuestDate')) == null
             ? null
             : DateTime.tryParse(prefs.getString(_key('dailyQuestDate'))!),
@@ -245,7 +250,7 @@ class HomeCubit extends Cubit<HomeState> {
     final defaults = Map<String, double>.from(fallback);
 
     decoded.forEach((key, value) {
-      defaults[key] = (value as num).toDouble();
+      defaults[key] = value is num ? value.toDouble() : 0.0;
     });
 
     return defaults;
@@ -288,7 +293,9 @@ class HomeCubit extends Cubit<HomeState> {
   Future<void> recordQuizAnswer(String topic, bool correct) async {
     _resetDailyQuestIfNeeded();
 
-    final key = topic.toLowerCase();
+    final key = topic.toLowerCase().trim().isEmpty
+        ? 'general'
+        : topic.toLowerCase().trim();
 
     final topicAnswered = Map<String, int>.from(state.topicAnswered);
     final topicCorrect = Map<String, int>.from(state.topicCorrect);
@@ -328,6 +335,7 @@ class HomeCubit extends Cubit<HomeState> {
     _resetDailyQuestIfNeeded();
 
     final isPerfect = totalQuestions > 0 && totalQuestions == correctAnswers;
+
     final quizScore = totalQuestions == 0
         ? 0
         : ((correctAnswers / totalQuestions) * 100).round();
@@ -342,6 +350,7 @@ class HomeCubit extends Cubit<HomeState> {
     );
 
     _checkBadges();
+
     await _saveAllProgress();
   }
 
@@ -356,6 +365,7 @@ class HomeCubit extends Cubit<HomeState> {
     );
 
     _checkBadges();
+
     await gainXP(10);
   }
 
@@ -376,6 +386,40 @@ class HomeCubit extends Cubit<HomeState> {
       state.copyWith(
         xp: newXP,
         level: newLevel,
+        notifications: updatedNotifications,
+        hasUnreadNotifications: true,
+      ),
+    );
+
+    updateStreak();
+    _checkBadges();
+    _generateRecommendation();
+
+    await _saveAllProgress();
+  }
+
+  Future<void> claimDailyQuest({
+    required String questId,
+    required int xpReward,
+  }) async {
+    _resetDailyQuestIfNeeded();
+
+    if (state.claimedDailyQuests.contains(questId)) return;
+
+    final updatedClaimed = List<String>.from(state.claimedDailyQuests)
+      ..add(questId);
+
+    final newXP = state.xp + xpReward;
+    final newLevel = (newXP ~/ 100) + 1;
+
+    final updatedNotifications = List<String>.from(state.notifications)
+      ..insert(0, "Daily quest claimed: +$xpReward XP.");
+
+    emit(
+      state.copyWith(
+        xp: newXP,
+        level: newLevel,
+        claimedDailyQuests: updatedClaimed,
         notifications: updatedNotifications,
         hasUnreadNotifications: true,
       ),
@@ -416,7 +460,9 @@ class HomeCubit extends Cubit<HomeState> {
     }
 
     final lastDate = state.lastActiveDate!;
+
     final lastOnlyDate = DateTime(lastDate.year, lastDate.month, lastDate.day);
+
     final todayOnlyDate = DateTime(today.year, today.month, today.day);
 
     final difference = todayOnlyDate.difference(lastOnlyDate).inDays;
@@ -433,6 +479,7 @@ class HomeCubit extends Cubit<HomeState> {
   void _checkBadges() {
     final updatedBadges = List<String>.from(state.badges);
     final updatedNotifications = List<String>.from(state.notifications);
+
     bool hasNewNotification = false;
 
     void unlockBadge(String badgeName) {
@@ -475,7 +522,9 @@ class HomeCubit extends Cubit<HomeState> {
       unlockBadge("Privacy Guardian");
     }
 
-    if (state.threatChecks >= 5) unlockBadge("Threat Spotter");
+    if (state.threatChecks >= 5) {
+      unlockBadge("Threat Spotter");
+    }
 
     emit(
       state.copyWith(
@@ -513,6 +562,7 @@ class HomeCubit extends Cubit<HomeState> {
       'dailyThreatChecks',
       'dailyBestQuizScore',
       'dailyQuestDate',
+      'claimedDailyQuests',
       'lastActiveDate',
     ];
 
@@ -555,8 +605,8 @@ class HomeCubit extends Cubit<HomeState> {
 
     moduleVectors.forEach((module, vector) {
       final similarityScore = _cosineSimilarity(userVector, vector);
-      scores[module] = similarityScore;
 
+      scores[module] = similarityScore;
       reasons[module] =
           "Recommended because your $weakestTopic performance is lower, so this module can help strengthen that topic.";
     });
@@ -608,34 +658,19 @@ class HomeCubit extends Cubit<HomeState> {
         quizzesCompleted: state.quizzesCompleted,
         perfectQuizzes: state.perfectQuizzes,
         threatChecks: state.threatChecks,
+        dailyModulesCompleted: state.dailyModulesCompleted,
+        dailyQuizAttempts: state.dailyQuizAttempts,
+        dailyTopicsTried: state.dailyTopicsTried,
+        dailyThreatChecks: state.dailyThreatChecks,
+        dailyBestQuizScore: state.dailyBestQuizScore,
+        dailyQuestDate: state.dailyQuestDate,
+        claimedDailyQuests: state.claimedDailyQuests,
         lastActiveDate: state.lastActiveDate,
         notifications: state.notifications,
         hasUnreadNotifications: state.hasUnreadNotifications,
       );
     } catch (_) {}
-    await _progressRepository.saveProgress(
-      xp: state.xp,
-      level: state.level,
-      streak: state.streak,
-      badges: state.badges,
-      topicScores: state.topicScores,
-      topicAnswered: state.topicAnswered,
-      topicCorrect: state.topicCorrect,
-      totalQuestionsAnswered: state.totalQuestionsAnswered,
-      totalCorrectAnswers: state.totalCorrectAnswers,
-      quizzesCompleted: state.quizzesCompleted,
-      perfectQuizzes: state.perfectQuizzes,
-      threatChecks: state.threatChecks,
-      dailyModulesCompleted: state.dailyModulesCompleted,
-      dailyQuizAttempts: state.dailyQuizAttempts,
-      dailyTopicsTried: state.dailyTopicsTried,
-      dailyThreatChecks: state.dailyThreatChecks,
-      dailyBestQuizScore: state.dailyBestQuizScore,
-      dailyQuestDate: state.dailyQuestDate,
-      lastActiveDate: state.lastActiveDate,
-      notifications: state.notifications,
-      hasUnreadNotifications: state.hasUnreadNotifications,
-    );
+
     await _saveLeaderboard();
   }
 
@@ -666,9 +701,15 @@ class HomeCubit extends Cubit<HomeState> {
     await prefs.setInt(_key('xp'), state.xp);
     await prefs.setInt(_key('level'), state.level);
     await prefs.setInt(_key('streak'), state.streak);
+
     await prefs.setStringList(_key('badges'), state.badges);
     await prefs.setStringList(_key('completedModules'), state.completedModules);
     await prefs.setStringList(_key('notifications'), state.notifications);
+    await prefs.setStringList(
+      _key('claimedDailyQuests'),
+      state.claimedDailyQuests,
+    );
+
     await prefs.setBool(
       _key('hasUnreadNotifications'),
       state.hasUnreadNotifications,

@@ -45,24 +45,23 @@ class UserProgressRepository {
     required int streak,
     required List<String> badges,
     required Map<String, double> topicScores,
+    required Map<String, int> topicAnswered,
+    required Map<String, int> topicCorrect,
+    required int totalQuestionsAnswered,
+    required int totalCorrectAnswers,
+    required int quizzesCompleted,
+    required int perfectQuizzes,
+    required int threatChecks,
+    required int dailyModulesCompleted,
+    required int dailyQuizAttempts,
+    required int dailyTopicsTried,
+    required int dailyThreatChecks,
+    required int dailyBestQuizScore,
+    required DateTime? dailyQuestDate,
+    required List<String> claimedDailyQuests,
     required DateTime? lastActiveDate,
     required List<String> notifications,
     required bool hasUnreadNotifications,
-    Map<String, int> topicAnswered = const {},
-    Map<String, int> topicCorrect = const {},
-    int totalQuestionsAnswered = 0,
-    int totalCorrectAnswers = 0,
-    int quizzesCompleted = 0,
-    int perfectQuizzes = 0,
-    int threatChecks = 0,
-
-    // Daily quests
-    int dailyModulesCompleted = 0,
-    int dailyQuizAttempts = 0,
-    int dailyTopicsTried = 0,
-    int dailyThreatChecks = 0,
-    int dailyBestQuizScore = 0,
-    DateTime? dailyQuestDate,
   }) async {
     final uid = userId;
     if (uid == null) return;
@@ -91,13 +90,13 @@ class UserProgressRepository {
       'perfectQuizzes': perfectQuizzes,
       'threatChecks': threatChecks,
 
-      // Daily quest progress
       'dailyModulesCompleted': dailyModulesCompleted,
       'dailyQuizAttempts': dailyQuizAttempts,
       'dailyTopicsTried': dailyTopicsTried,
       'dailyThreatChecks': dailyThreatChecks,
       'dailyBestQuizScore': dailyBestQuizScore,
       'dailyQuestDate': dailyQuestDate?.toIso8601String(),
+      'claimedDailyQuests': claimedDailyQuests,
 
       'leaderboardScore': leaderboardScore,
       'lastActiveDate': lastActiveDate?.toIso8601String(),

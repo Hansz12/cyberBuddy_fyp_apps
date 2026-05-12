@@ -4,13 +4,12 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../data/services/news_service.dart';
-import '../learning/learning_screen.dart';
 import '../learning/cubit/learning_cubit.dart';
+import '../learning/learning_screen.dart';
 import '../news/news_screen.dart';
 import '../quiz/cubit/quiz_cubit.dart';
 import '../quiz/quiz_screen.dart';
 import '../threat_checker/threat_checker_screen.dart';
-
 import 'cubit/home_cubit.dart';
 import 'cubit/home_state.dart';
 
@@ -49,7 +48,6 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     final notCompleted = learningState.modules.where((m) => !m.completed);
-
     final module = notCompleted.isNotEmpty
         ? notCompleted.first
         : learningState.modules.first;
@@ -117,6 +115,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   double _score80Quest(HomeState state) {
     if (state.dailyQuizAttempts == 0) return 0.0;
+
     return _safeProgress(state.dailyBestQuizScore / 80);
   }
 
@@ -130,6 +129,23 @@ class _HomeScreenState extends State<HomeScreen> {
 
   String _questStatus(double progress) {
     return progress >= 1.0 ? "DONE" : "IN PROGRESS";
+  }
+
+  Future<void> _claimQuest(
+    BuildContext context, {
+    required String questId,
+    required int xpReward,
+  }) async {
+    await context.read<HomeCubit>().claimDailyQuest(
+      questId: questId,
+      xpReward: xpReward,
+    );
+
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("Daily quest claimed: +$xpReward XP")),
+    );
   }
 
   @override
@@ -155,6 +171,7 @@ class _HomeScreenState extends State<HomeScreen> {
               child: ListView(
                 children: [
                   _HomeHeader(state: state, totalModules: totalModules),
+
                   Padding(
                     padding: const EdgeInsets.all(16),
                     child: Column(
@@ -164,8 +181,11 @@ class _HomeScreenState extends State<HomeScreen> {
                           actionText: "",
                           onTap: null,
                         ),
+
                         const SizedBox(height: 8),
+
                         _WeeklyStreakRow(streak: state.streak),
+
                         const SizedBox(height: 18),
 
                         _SectionHeader(
@@ -173,6 +193,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           actionText: "View all",
                           onTap: () => _openLearning(context),
                         ),
+
                         const SizedBox(height: 8),
 
                         GridView.count(
@@ -184,15 +205,24 @@ class _HomeScreenState extends State<HomeScreen> {
                           childAspectRatio: 1.25,
                           children: [
                             _QuestCard(
-                              icon: "📖",
+                              icon: "📘",
                               title: "Complete 1\nmodule",
                               xp: "+10 XP",
                               status: _questStatus(completeModuleProgress),
                               progress: completeModuleProgress,
                               progressText:
                                   "${state.dailyModulesCompleted}/1 completed",
+                              claimed: state.claimedDailyQuests.contains(
+                                "complete_module",
+                              ),
+                              onClaim: () => _claimQuest(
+                                context,
+                                questId: "complete_module",
+                                xpReward: 10,
+                              ),
                               onTap: () => _openLearning(context),
                             ),
+
                             _QuestCard(
                               icon: "🎯",
                               title: "Score 80%+\nquiz",
@@ -202,8 +232,17 @@ class _HomeScreenState extends State<HomeScreen> {
                               progressText: state.dailyQuizAttempts == 0
                                   ? "No quiz today"
                                   : "${state.dailyBestQuizScore}% / 80%",
+                              claimed: state.claimedDailyQuests.contains(
+                                "score_80_quiz",
+                              ),
+                              onClaim: () => _claimQuest(
+                                context,
+                                questId: "score_80_quiz",
+                                xpReward: 20,
+                              ),
                               onTap: () => _openQuiz(context),
                             ),
+
                             _QuestCard(
                               icon: "⚡",
                               title: "Try 1 new\ntopic",
@@ -212,16 +251,33 @@ class _HomeScreenState extends State<HomeScreen> {
                               progress: newTopicProgress,
                               progressText:
                                   "${state.dailyTopicsTried}/1 topic today",
+                              claimed: state.claimedDailyQuests.contains(
+                                "try_new_topic",
+                              ),
+                              onClaim: () => _claimQuest(
+                                context,
+                                questId: "try_new_topic",
+                                xpReward: 15,
+                              ),
                               onTap: () => _openLearning(context),
                             ),
+
                             _QuestCard(
-                              icon: "🔍",
+                              icon: "🛡️",
                               title: "Use threat\nchecker",
                               xp: "+25 XP",
                               status: _questStatus(threatProgress),
                               progress: threatProgress,
                               progressText:
                                   "${state.dailyThreatChecks}/1 checked today",
+                              claimed: state.claimedDailyQuests.contains(
+                                "threat_checker",
+                              ),
+                              onClaim: () => _claimQuest(
+                                context,
+                                questId: "threat_checker",
+                                xpReward: 25,
+                              ),
                               onTap: () => _openThreatChecker(context),
                             ),
                           ],
@@ -234,6 +290,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           actionText: "More",
                           onTap: () => _openLearning(context),
                         ),
+
                         const SizedBox(height: 8),
 
                         if (state.recommendedModules.isEmpty)
@@ -263,6 +320,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           onAllNews: () => _openNews(context),
                           onRefresh: _refreshHomeNews,
                         ),
+
                         const SizedBox(height: 8),
 
                         FutureBuilder<List<Map<String, dynamic>>>(
@@ -332,6 +390,7 @@ class _HomeHeader extends StatelessWidget {
     if (hour >= 5 && hour < 12) return "Good morning,";
     if (hour >= 12 && hour < 18) return "Good afternoon,";
     if (hour >= 18 && hour < 22) return "Good evening,";
+
     return "Good night,";
   }
 
@@ -346,7 +405,9 @@ class _HomeHeader extends StatelessWidget {
 
     if (email.contains("@")) {
       final name = email.split("@").first;
+
       if (name.isEmpty) return "User";
+
       return name[0].toUpperCase() + name.substring(1);
     }
 
@@ -385,6 +446,7 @@ class _HomeHeader extends StatelessWidget {
                     borderRadius: BorderRadius.circular(20),
                   ),
                 ),
+
                 const Text(
                   "Notifications 🔔",
                   style: TextStyle(
@@ -393,7 +455,9 @@ class _HomeHeader extends StatelessWidget {
                     fontWeight: FontWeight.w900,
                   ),
                 ),
+
                 const SizedBox(height: 14),
+
                 if (notifications.isEmpty)
                   const _EmptyCard(text: "No notifications yet.")
                 else
@@ -416,6 +480,7 @@ class _HomeHeader extends StatelessWidget {
                       ),
                     );
                   }),
+
                 const SizedBox(height: 24),
               ],
             );
@@ -431,6 +496,7 @@ class _HomeHeader extends StatelessWidget {
     final currentLevelStart = (state.level - 1) * 100;
     final currentProgress = state.xp - currentLevelStart;
     final neededProgress = nextLevelXp - currentLevelStart;
+
     final progressValue = neededProgress == 0
         ? 0.0
         : (currentProgress / neededProgress).clamp(0.0, 1.0);
@@ -461,6 +527,7 @@ class _HomeHeader extends StatelessWidget {
                         fontSize: 13,
                       ),
                     ),
+
                     Text(
                       "$userName 👋",
                       maxLines: 1,
@@ -474,6 +541,7 @@ class _HomeHeader extends StatelessWidget {
                   ],
                 ),
               ),
+
               GestureDetector(
                 onTap: () => _showNotifications(context),
                 child: Container(
@@ -488,6 +556,7 @@ class _HomeHeader extends StatelessWidget {
                       const Center(
                         child: Text("🔔", style: TextStyle(fontSize: 22)),
                       ),
+
                       if (state.hasUnreadNotifications)
                         Positioned(
                           right: 8,
@@ -507,7 +576,9 @@ class _HomeHeader extends StatelessWidget {
               ),
             ],
           ),
+
           const SizedBox(height: 18),
+
           Row(
             children: [
               Container(
@@ -532,7 +603,9 @@ class _HomeHeader extends StatelessWidget {
                   ),
                 ),
               ),
+
               const Spacer(),
+
               Text(
                 "${state.xp} / $nextLevelXp XP",
                 style: const TextStyle(
@@ -543,7 +616,9 @@ class _HomeHeader extends StatelessWidget {
               ),
             ],
           ),
+
           const SizedBox(height: 8),
+
           LinearProgressIndicator(
             value: progressValue,
             minHeight: 8,
@@ -551,7 +626,9 @@ class _HomeHeader extends StatelessWidget {
             color: const Color(0xFF38BDF8),
             borderRadius: BorderRadius.circular(20),
           ),
+
           const SizedBox(height: 16),
+
           Row(
             children: [
               _HeaderStatCard(value: "🔥 ${state.streak}", label: "Day Streak"),
@@ -575,7 +652,6 @@ class _WeeklyStreakRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final days = ["M", "T", "W", "T", "F", "S", "S"];
-
     final todayIndex = DateTime.now().weekday - 1;
     final safeStreak = streak.clamp(0, 7);
 
@@ -584,6 +660,7 @@ class _WeeklyStreakRow extends StatelessWidget {
 
       for (int i = 0; i < safeStreak; i++) {
         final streakIndex = (todayIndex - i) % 7;
+
         if (index == streakIndex) return true;
       }
 
@@ -642,6 +719,8 @@ class _QuestCard extends StatelessWidget {
   final String status;
   final double progress;
   final String progressText;
+  final bool claimed;
+  final VoidCallback onClaim;
   final VoidCallback onTap;
 
   const _QuestCard({
@@ -651,6 +730,8 @@ class _QuestCard extends StatelessWidget {
     required this.status,
     required this.progress,
     required this.progressText,
+    required this.claimed,
+    required this.onClaim,
     required this.onTap,
   });
 
@@ -658,20 +739,33 @@ class _QuestCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final safeProgress = progress.clamp(0.0, 1.0);
     final completed = safeProgress >= 1.0;
+    final canClaim = completed && !claimed;
 
     return InkWell(
       borderRadius: BorderRadius.circular(16),
-      onTap: onTap,
+      onTap: canClaim ? onClaim : onTap,
       child: Container(
         padding: const EdgeInsets.all(13),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: completed
+            color: claimed
+                ? const Color(0xFFE2E8F0)
+                : completed
                 ? const Color(0xFFBBF7D0)
                 : const Color(0xFFE2E8F0),
+            width: canClaim ? 1.5 : 1,
           ),
+          boxShadow: canClaim
+              ? [
+                  BoxShadow(
+                    color: const Color(0xFF10B981).withOpacity(0.12),
+                    blurRadius: 14,
+                    offset: const Offset(0, 6),
+                  ),
+                ]
+              : [],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -682,27 +776,53 @@ class _QuestCard extends StatelessWidget {
                   width: 38,
                   height: 38,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF1F5F9),
+                    color: canClaim
+                        ? const Color(0xFFDCFCE7)
+                        : const Color(0xFFF1F5F9),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Center(
                     child: Text(icon, style: const TextStyle(fontSize: 18)),
                   ),
                 ),
+
                 const Spacer(),
-                Text(
-                  completed ? status : xp,
-                  style: TextStyle(
-                    color: completed
-                        ? const Color(0xFF10B981)
-                        : const Color(0xFF2563EB),
-                    fontSize: 10,
-                    fontWeight: FontWeight.w900,
+
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 7,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: claimed
+                        ? const Color(0xFFF1F5F9)
+                        : canClaim
+                        ? const Color(0xFFDCFCE7)
+                        : const Color(0xFFEFF6FF),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    claimed
+                        ? "CLAIMED"
+                        : canClaim
+                        ? "CLAIM"
+                        : xp,
+                    style: TextStyle(
+                      color: claimed
+                          ? const Color(0xFF64748B)
+                          : canClaim
+                          ? const Color(0xFF10B981)
+                          : const Color(0xFF2563EB),
+                      fontSize: 9,
+                      fontWeight: FontWeight.w900,
+                    ),
                   ),
                 ),
               ],
             ),
+
             const Spacer(),
+
             Text(
               title,
               style: const TextStyle(
@@ -712,9 +832,11 @@ class _QuestCard extends StatelessWidget {
                 height: 1.05,
               ),
             ),
+
             const SizedBox(height: 4),
+
             Text(
-              progressText,
+              claimed ? "Reward claimed" : progressText,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(
@@ -723,12 +845,16 @@ class _QuestCard extends StatelessWidget {
                 fontWeight: FontWeight.w600,
               ),
             ),
+
             const SizedBox(height: 8),
+
             LinearProgressIndicator(
               value: safeProgress,
               minHeight: 5,
               backgroundColor: const Color(0xFFE2E8F0),
-              color: completed
+              color: claimed
+                  ? const Color(0xFF94A3B8)
+                  : completed
                   ? const Color(0xFF10B981)
                   : const Color(0xFF2563EB),
               borderRadius: BorderRadius.circular(20),
@@ -759,7 +885,7 @@ class _RecommendedCard extends StatelessWidget {
       onTap: onTap,
       child: Row(
         children: [
-          const _IconBox(icon: "🛡️", bg: Color(0xFFECFDF5)),
+          const _IconBox(icon: "🧠", bg: Color(0xFFECFDF5)),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
@@ -836,12 +962,15 @@ class _NewsSectionHeader extends StatelessWidget {
             fontWeight: FontWeight.w900,
           ),
         ),
+
         const Spacer(),
+
         IconButton(
           onPressed: onRefresh,
           icon: const Icon(Icons.refresh),
           color: const Color(0xFF2563EB),
         ),
+
         GestureDetector(
           onTap: onAllNews,
           child: const Text(
@@ -884,7 +1013,9 @@ class _HeaderStatCard extends StatelessWidget {
                 fontWeight: FontWeight.w900,
               ),
             ),
+
             const SizedBox(height: 3),
+
             Text(
               label,
               style: const TextStyle(color: Colors.white70, fontSize: 11),
@@ -919,7 +1050,9 @@ class _SectionHeader extends StatelessWidget {
             fontWeight: FontWeight.w900,
           ),
         ),
+
         const Spacer(),
+
         if (actionText.isNotEmpty)
           GestureDetector(
             onTap: onTap,
