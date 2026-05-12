@@ -5,8 +5,17 @@ import '../home/cubit/home_cubit.dart';
 import 'cubit/threat_checker_cubit.dart';
 import 'cubit/threat_checker_state.dart';
 
-class ThreatCheckerScreen extends StatelessWidget {
+class ThreatCheckerScreen extends StatefulWidget {
   const ThreatCheckerScreen({super.key});
+
+  @override
+  State<ThreatCheckerScreen> createState() => _ThreatCheckerScreenState();
+}
+
+class _ThreatCheckerScreenState extends State<ThreatCheckerScreen> {
+  final TextEditingController _controller = TextEditingController();
+
+  String _lastRewardedInput = '';
 
   Color _riskColor(int score) {
     if (score >= 70) return const Color(0xFFEF4444);
@@ -18,6 +27,44 @@ class ThreatCheckerScreen extends StatelessWidget {
     if (score >= 70) return "Do NOT click or share this link";
     if (score >= 40) return "Verify first before clicking";
     return "No strong phishing pattern found";
+  }
+
+  Future<void> _analyse(BuildContext context, ThreatCheckerState state) async {
+    final input = state.input.trim();
+
+    if (input.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Please paste suspicious content first.")),
+      );
+      return;
+    }
+
+    context.read<ThreatCheckerCubit>().analyseThreat();
+
+    if (_lastRewardedInput != input) {
+      _lastRewardedInput = input;
+      await context.read<HomeCubit>().recordThreatCheck();
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("+10 XP earned for using Threat Checker")),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            "This content was already analysed. No extra XP added.",
+          ),
+        ),
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
   }
 
   @override
@@ -43,7 +90,7 @@ class ThreatCheckerScreen extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        "🔍 Threat Checker",
+                        "🛡️ Threat Checker",
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 25,
@@ -86,14 +133,18 @@ class ThreatCheckerScreen extends StatelessWidget {
                                 letterSpacing: 0.7,
                               ),
                             ),
+
                             const SizedBox(height: 10),
 
                             TextField(
+                              controller: _controller,
                               minLines: 4,
                               maxLines: 6,
-                              onChanged: context
-                                  .read<ThreatCheckerCubit>()
-                                  .updateInput,
+                              onChanged: (value) {
+                                context.read<ThreatCheckerCubit>().updateInput(
+                                  value,
+                                );
+                              },
                               style: const TextStyle(
                                 fontFamily: "monospace",
                                 fontSize: 14,
@@ -118,15 +169,7 @@ class ThreatCheckerScreen extends StatelessWidget {
                             SizedBox(
                               width: double.infinity,
                               child: ElevatedButton(
-                                onPressed: () {
-                                  context
-                                      .read<ThreatCheckerCubit>()
-                                      .analyseThreat();
-
-                                  if (state.input.trim().isNotEmpty) {
-                                    context.read<HomeCubit>().gainXP(10);
-                                  }
-                                },
+                                onPressed: () => _analyse(context, state),
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: const Color(0xFFDC2626),
                                   foregroundColor: Colors.white,
@@ -138,7 +181,7 @@ class ThreatCheckerScreen extends StatelessWidget {
                                   ),
                                 ),
                                 child: const Text(
-                                  "🔍 Analyse now",
+                                  "Analyse now",
                                   style: TextStyle(
                                     fontWeight: FontWeight.w900,
                                     fontSize: 15,
@@ -283,7 +326,7 @@ class _ResultCard extends StatelessWidget {
           const SizedBox(height: 10),
 
           if (flags.isEmpty)
-            _FlagTile(
+            const _FlagTile(
               icon: "✅",
               text: "No major phishing indicators were detected.",
             )
@@ -312,7 +355,7 @@ class _ResultCard extends StatelessWidget {
               borderRadius: BorderRadius.circular(14),
             ),
             child: const Text(
-              "Safety tip: Never enter passwords, OTP, or banking details through links received in messages. Always open the official app or website manually.",
+              "Safety tip: Never enter passwords, OTP, or banking details through links received in messages.\nAlways open the official app or website manually.",
               style: TextStyle(
                 color: Color(0xFF1E3A8A),
                 fontSize: 12,

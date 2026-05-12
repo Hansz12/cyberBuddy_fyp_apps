@@ -15,6 +15,7 @@ class UserProgressRepository {
     }
 
     final email = user?.email ?? "User";
+
     if (email.contains("@")) {
       final name = email.split("@").first;
       return name.isEmpty ? "User" : name;
@@ -29,7 +30,6 @@ class UserProgressRepository {
 
   Future<Map<String, dynamic>?> loadProgress() async {
     final uid = userId;
-
     if (uid == null) return null;
 
     final doc = await _firestore.collection('user_progress').doc(uid).get();
@@ -55,9 +55,16 @@ class UserProgressRepository {
     int quizzesCompleted = 0,
     int perfectQuizzes = 0,
     int threatChecks = 0,
+
+    // Daily quests
+    int dailyModulesCompleted = 0,
+    int dailyQuizAttempts = 0,
+    int dailyTopicsTried = 0,
+    int dailyThreatChecks = 0,
+    int dailyBestQuizScore = 0,
+    DateTime? dailyQuestDate,
   }) async {
     final uid = userId;
-
     if (uid == null) return;
 
     final leaderboardScore = xp + (streak * 10) + (badges.length * 25);
@@ -84,6 +91,14 @@ class UserProgressRepository {
       'perfectQuizzes': perfectQuizzes,
       'threatChecks': threatChecks,
 
+      // Daily quest progress
+      'dailyModulesCompleted': dailyModulesCompleted,
+      'dailyQuizAttempts': dailyQuizAttempts,
+      'dailyTopicsTried': dailyTopicsTried,
+      'dailyThreatChecks': dailyThreatChecks,
+      'dailyBestQuizScore': dailyBestQuizScore,
+      'dailyQuestDate': dailyQuestDate?.toIso8601String(),
+
       'leaderboardScore': leaderboardScore,
       'lastActiveDate': lastActiveDate?.toIso8601String(),
       'notifications': notifications,
@@ -94,7 +109,6 @@ class UserProgressRepository {
 
   Future<void> resetProgress() async {
     final uid = userId;
-
     if (uid == null) return;
 
     await _firestore.collection('user_progress').doc(uid).delete();

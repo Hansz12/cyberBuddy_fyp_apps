@@ -5,6 +5,8 @@ class QuizState extends Equatable {
   final int currentIndex;
   final int? selectedIndex;
   final int score;
+  final int earnedXp;
+  final List<bool> answerResults;
   final bool isLoading;
   final bool isFinished;
   final bool isAnswered;
@@ -14,6 +16,8 @@ class QuizState extends Equatable {
     this.currentIndex = 0,
     this.selectedIndex,
     this.score = 0,
+    this.earnedXp = 0,
+    this.answerResults = const [],
     this.isLoading = false,
     this.isFinished = false,
     this.isAnswered = false,
@@ -32,6 +36,8 @@ class QuizState extends Equatable {
     int? selectedIndex,
     bool clearSelectedIndex = false,
     int? score,
+    int? earnedXp,
+    List<bool>? answerResults,
     bool? isLoading,
     bool? isFinished,
     bool? isAnswered,
@@ -43,6 +49,8 @@ class QuizState extends Equatable {
           ? null
           : selectedIndex ?? this.selectedIndex,
       score: score ?? this.score,
+      earnedXp: earnedXp ?? this.earnedXp,
+      answerResults: answerResults ?? this.answerResults,
       isLoading: isLoading ?? this.isLoading,
       isFinished: isFinished ?? this.isFinished,
       isAnswered: isAnswered ?? this.isAnswered,
@@ -55,6 +63,8 @@ class QuizState extends Equatable {
     currentIndex,
     selectedIndex,
     score,
+    earnedXp,
+    answerResults,
     isLoading,
     isFinished,
     isAnswered,

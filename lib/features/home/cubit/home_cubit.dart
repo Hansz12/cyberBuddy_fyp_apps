@@ -613,7 +613,29 @@ class HomeCubit extends Cubit<HomeState> {
         hasUnreadNotifications: state.hasUnreadNotifications,
       );
     } catch (_) {}
-
+    await _progressRepository.saveProgress(
+      xp: state.xp,
+      level: state.level,
+      streak: state.streak,
+      badges: state.badges,
+      topicScores: state.topicScores,
+      topicAnswered: state.topicAnswered,
+      topicCorrect: state.topicCorrect,
+      totalQuestionsAnswered: state.totalQuestionsAnswered,
+      totalCorrectAnswers: state.totalCorrectAnswers,
+      quizzesCompleted: state.quizzesCompleted,
+      perfectQuizzes: state.perfectQuizzes,
+      threatChecks: state.threatChecks,
+      dailyModulesCompleted: state.dailyModulesCompleted,
+      dailyQuizAttempts: state.dailyQuizAttempts,
+      dailyTopicsTried: state.dailyTopicsTried,
+      dailyThreatChecks: state.dailyThreatChecks,
+      dailyBestQuizScore: state.dailyBestQuizScore,
+      dailyQuestDate: state.dailyQuestDate,
+      lastActiveDate: state.lastActiveDate,
+      notifications: state.notifications,
+      hasUnreadNotifications: state.hasUnreadNotifications,
+    );
     await _saveLeaderboard();
   }
 

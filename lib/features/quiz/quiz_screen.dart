@@ -502,25 +502,10 @@ class _QuizResultScreen extends StatelessWidget {
 
   const _QuizResultScreen({required this.state});
 
-  int _earnedXp() {
-    int total = 0;
-
-    for (int i = 0; i < state.questions.length; i++) {
-      final question = state.questions[i];
-      final xp = question['xpReward'] ?? 0;
-
-      if (i < state.score) {
-        total += xp is int ? xp : int.tryParse(xp.toString()) ?? 0;
-      }
-    }
-
-    return total;
-  }
-
   @override
   Widget build(BuildContext context) {
     final percentage = ((state.score / state.questions.length) * 100).round();
-    final earnedXp = _earnedXp();
+    final earnedXp = state.earnedXp;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF1F5F9),
@@ -530,6 +515,7 @@ class _QuizResultScreen extends StatelessWidget {
           child: Column(
             children: [
               const Spacer(),
+
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(22),
@@ -572,12 +558,16 @@ class _QuizResultScreen extends StatelessWidget {
                   ],
                 ),
               ),
+
               const SizedBox(height: 20),
+
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
                   onPressed: () async {
-                    await context.read<HomeCubit>().gainXP(earnedXp);
+                    if (earnedXp > 0) {
+                      await context.read<HomeCubit>().gainXP(earnedXp);
+                    }
 
                     await context.read<HomeCubit>().recordQuizCompleted(
                       totalQuestions: state.questions.length,
@@ -593,6 +583,7 @@ class _QuizResultScreen extends StatelessWidget {
                   child: const Text("Back to Learning"),
                 ),
               ),
+
               const Spacer(),
             ],
           ),

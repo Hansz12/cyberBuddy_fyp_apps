@@ -17,7 +17,8 @@ class QuizCubit extends Cubit<QuizState> {
       final filtered = data
           .where((q) {
             final active =
-                q['active'] == true || q['active'].toString() == 'true';
+                q['active'] == true ||
+                q['active'].toString().toLowerCase() == 'true';
 
             final qModuleId =
                 q['module_id']?.toString() ?? q['moduleId']?.toString() ?? '';
@@ -37,6 +38,8 @@ class QuizCubit extends Cubit<QuizState> {
           currentIndex: 0,
           clearSelectedIndex: true,
           score: 0,
+          earnedXp: 0,
+          answerResults: const [],
           isLoading: false,
           isFinished: false,
           isAnswered: false,
@@ -50,6 +53,9 @@ class QuizCubit extends Cubit<QuizState> {
           isFinished: false,
           isAnswered: false,
           clearSelectedIndex: true,
+          score: 0,
+          earnedXp: 0,
+          answerResults: const [],
         ),
       );
     }
@@ -111,12 +117,20 @@ class QuizCubit extends Cubit<QuizState> {
 
     final currentQuestion = state.questions[state.currentIndex];
     final correctIndex = currentQuestion['correctIndex'] ?? 0;
-
     final isCorrect = state.selectedIndex == correctIndex;
+
+    final xpValue = currentQuestion['xpReward'];
+    final xpReward = xpValue is int
+        ? xpValue
+        : int.tryParse(xpValue.toString()) ?? 0;
+
+    final updatedResults = List<bool>.from(state.answerResults)..add(isCorrect);
 
     emit(
       state.copyWith(
         score: isCorrect ? state.score + 1 : state.score,
+        earnedXp: isCorrect ? state.earnedXp + xpReward : state.earnedXp,
+        answerResults: updatedResults,
         isAnswered: true,
       ),
     );
