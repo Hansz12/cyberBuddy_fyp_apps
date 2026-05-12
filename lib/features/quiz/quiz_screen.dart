@@ -22,11 +22,17 @@ class QuizScreen extends StatelessWidget {
 
   String _topic(QuizState state) => _q(state)['topic'] ?? 'cyber';
 
+  String _moduleId(QuizState state) => _q(state)['moduleId'] ?? 'general';
+
   String _difficulty(QuizState state) => _q(state)['difficulty'] ?? 'beginner';
 
-  int _xp(QuizState state) => _q(state)['xpReward'] ?? 0;
+  int _xp(QuizState state) {
+    final value = _q(state)['xpReward'];
+    if (value is int) return value;
+    return int.tryParse(value.toString()) ?? 0;
+  }
 
-  String _getTopicKey(String topic) {
+  String _getTopicKey(String topic, String moduleId) {
     final lower = topic.toLowerCase();
 
     if (lower.contains("phishing")) return "phishing";
@@ -40,7 +46,7 @@ class QuizScreen extends StatelessWidget {
     if (lower.contains("ethics")) return "ethics";
     if (lower.contains("banking")) return "banking";
 
-    return "phishing";
+    return moduleId.trim().isEmpty ? "general" : moduleId;
   }
 
   @override
@@ -64,7 +70,7 @@ class QuizScreen extends StatelessWidget {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Text("😕", style: TextStyle(fontSize: 46)),
+                      const Text("📭", style: TextStyle(fontSize: 46)),
                       const SizedBox(height: 12),
                       const Text(
                         "No quiz questions found",
@@ -160,7 +166,7 @@ class QuizScreen extends StatelessWidget {
                       ),
                       const SizedBox(height: 16),
                       Text(
-                        "🎧 ${_topic(state).toUpperCase()} · ${_difficulty(state).toUpperCase()}",
+                        " ${_topic(state).toUpperCase()} · ${_difficulty(state).toUpperCase()}",
                         style: const TextStyle(
                           color: Color(0xFF38BDF8),
                           fontSize: 11,
@@ -181,6 +187,7 @@ class QuizScreen extends StatelessWidget {
                     ],
                   ),
                 ),
+
                 Expanded(
                   child: ListView(
                     padding: const EdgeInsets.fromLTRB(18, 16, 18, 100),
@@ -213,6 +220,7 @@ class QuizScreen extends StatelessWidget {
                         ),
                         const SizedBox(height: 18),
                       ],
+
                       ...List.generate(options.length, (index) {
                         return _OptionCard(
                           letter: String.fromCharCode(65 + index),
@@ -222,11 +230,11 @@ class QuizScreen extends StatelessWidget {
                           correctIndex: correctIndex,
                           isAnswered: state.isAnswered,
                           onTap: () {
-                            if (state.isAnswered) return;
                             context.read<QuizCubit>().selectAnswer(index);
                           },
                         );
                       }),
+
                       if (state.isAnswered) ...[
                         const SizedBox(height: 14),
                         _ExplanationBox(
@@ -239,6 +247,7 @@ class QuizScreen extends StatelessWidget {
                     ],
                   ),
                 ),
+
                 Container(
                   padding: const EdgeInsets.fromLTRB(18, 10, 18, 16),
                   decoration: const BoxDecoration(
@@ -250,16 +259,8 @@ class QuizScreen extends StatelessWidget {
                     child: ElevatedButton(
                       onPressed: state.selectedIndex == null
                           ? null
-                          : () async {
+                          : () {
                               if (!state.isAnswered) {
-                                final topicKey = _getTopicKey(_topic(state));
-                                final correct =
-                                    state.selectedIndex == correctIndex;
-
-                                await context
-                                    .read<HomeCubit>()
-                                    .recordQuizAnswer(topicKey, correct);
-
                                 context.read<QuizCubit>().submitAnswer();
                               } else {
                                 context.read<QuizCubit>().nextQuestion();
@@ -474,7 +475,7 @@ class _XpBox extends StatelessWidget {
         children: [
           Expanded(
             child: Text(
-              isCorrect ? "🏆 Question answered correctly" : "💡 Keep learning",
+              isCorrect ? " Question answered correctly" : " Keep learning",
               style: const TextStyle(
                 color: Colors.white,
                 fontWeight: FontWeight.w800,
@@ -501,6 +502,24 @@ class _QuizResultScreen extends StatelessWidget {
   final QuizState state;
 
   const _QuizResultScreen({required this.state});
+
+  String _getTopicKey(Map<String, dynamic> question) {
+    final topic = (question['topic'] ?? '').toString().toLowerCase();
+    final moduleId = (question['moduleId'] ?? 'general').toString();
+
+    if (topic.contains("phishing")) return "phishing";
+    if (topic.contains("password")) return "password";
+    if (topic.contains("social")) return "social";
+    if (topic.contains("malware")) return "malware";
+    if (topic.contains("privacy")) return "privacy";
+    if (topic.contains("scam")) return "scam";
+    if (topic.contains("mobile")) return "mobile";
+    if (topic.contains("network")) return "network";
+    if (topic.contains("ethics")) return "ethics";
+    if (topic.contains("banking")) return "banking";
+
+    return moduleId.trim().isEmpty ? "general" : moduleId;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -567,6 +586,18 @@ class _QuizResultScreen extends StatelessWidget {
                   onPressed: () async {
                     if (earnedXp > 0) {
                       await context.read<HomeCubit>().gainXP(earnedXp);
+                    }
+
+                    for (int i = 0; i < state.questions.length; i++) {
+                      final question = state.questions[i];
+                      final isCorrect = i < state.answerResults.length
+                          ? state.answerResults[i]
+                          : false;
+
+                      await context.read<HomeCubit>().recordQuizAnswer(
+                        _getTopicKey(question),
+                        isCorrect,
+                      );
                     }
 
                     await context.read<HomeCubit>().recordQuizCompleted(
