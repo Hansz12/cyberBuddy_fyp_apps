@@ -59,6 +59,7 @@ class UserProgressRepository {
     required int dailyBestQuizScore,
     required DateTime? dailyQuestDate,
     required List<String> claimedDailyQuests,
+    required List<String> rewardedNewsUrls,
     required DateTime? lastActiveDate,
     required List<String> notifications,
     required bool hasUnreadNotifications,
@@ -97,6 +98,8 @@ class UserProgressRepository {
       'dailyBestQuizScore': dailyBestQuizScore,
       'dailyQuestDate': dailyQuestDate?.toIso8601String(),
       'claimedDailyQuests': claimedDailyQuests,
+
+      'rewardedNewsUrls': rewardedNewsUrls,
 
       'leaderboardScore': leaderboardScore,
       'lastActiveDate': lastActiveDate?.toIso8601String(),

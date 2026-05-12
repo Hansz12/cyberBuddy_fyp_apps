@@ -108,6 +108,9 @@ class HomeCubit extends Cubit<HomeState> {
             claimedDailyQuests: List<String>.from(
               cloudData['claimedDailyQuests'] ?? [],
             ),
+            rewardedNewsUrls: List<String>.from(
+              cloudData['rewardedNewsUrls'] ?? [],
+            ),
             notifications: List<String>.from(cloudData['notifications'] ?? []),
             hasUnreadNotifications:
                 cloudData['hasUnreadNotifications'] ?? false,
@@ -223,6 +226,7 @@ class HomeCubit extends Cubit<HomeState> {
         dailyBestQuizScore: prefs.getInt(_key('dailyBestQuizScore')) ?? 0,
         claimedDailyQuests:
             prefs.getStringList(_key('claimedDailyQuests')) ?? [],
+        rewardedNewsUrls: prefs.getStringList(_key('rewardedNewsUrls')) ?? [],
         dailyQuestDate: prefs.getString(_key('dailyQuestDate')) == null
             ? null
             : DateTime.tryParse(prefs.getString(_key('dailyQuestDate'))!),
@@ -432,6 +436,43 @@ class HomeCubit extends Cubit<HomeState> {
     await _saveAllProgress();
   }
 
+  Future<bool> rewardNewsRead(String url) async {
+    final cleanUrl = url.trim();
+
+    if (cleanUrl.isEmpty) return false;
+
+    if (state.rewardedNewsUrls.contains(cleanUrl)) {
+      return false;
+    }
+
+    final updatedRewardedUrls = List<String>.from(state.rewardedNewsUrls)
+      ..add(cleanUrl);
+
+    final newXP = state.xp + 5;
+    final newLevel = (newXP ~/ 100) + 1;
+
+    final updatedNotifications = List<String>.from(state.notifications)
+      ..insert(0, "You earned +5 XP for reading cybersecurity news.");
+
+    emit(
+      state.copyWith(
+        xp: newXP,
+        level: newLevel,
+        rewardedNewsUrls: updatedRewardedUrls,
+        notifications: updatedNotifications,
+        hasUnreadNotifications: true,
+      ),
+    );
+
+    updateStreak();
+    _checkBadges();
+    _generateRecommendation();
+
+    await _saveAllProgress();
+
+    return true;
+  }
+
   Future<void> addNotification(String message) async {
     final updatedNotifications = List<String>.from(state.notifications)
       ..insert(0, message);
@@ -563,6 +604,7 @@ class HomeCubit extends Cubit<HomeState> {
       'dailyBestQuizScore',
       'dailyQuestDate',
       'claimedDailyQuests',
+      'rewardedNewsUrls',
       'lastActiveDate',
     ];
 
@@ -665,6 +707,7 @@ class HomeCubit extends Cubit<HomeState> {
         dailyBestQuizScore: state.dailyBestQuizScore,
         dailyQuestDate: state.dailyQuestDate,
         claimedDailyQuests: state.claimedDailyQuests,
+        rewardedNewsUrls: state.rewardedNewsUrls,
         lastActiveDate: state.lastActiveDate,
         notifications: state.notifications,
         hasUnreadNotifications: state.hasUnreadNotifications,
@@ -705,10 +748,13 @@ class HomeCubit extends Cubit<HomeState> {
     await prefs.setStringList(_key('badges'), state.badges);
     await prefs.setStringList(_key('completedModules'), state.completedModules);
     await prefs.setStringList(_key('notifications'), state.notifications);
+
     await prefs.setStringList(
       _key('claimedDailyQuests'),
       state.claimedDailyQuests,
     );
+
+    await prefs.setStringList(_key('rewardedNewsUrls'), state.rewardedNewsUrls);
 
     await prefs.setBool(
       _key('hasUnreadNotifications'),
@@ -716,16 +762,19 @@ class HomeCubit extends Cubit<HomeState> {
     );
 
     await prefs.setString(_key('topicScores'), jsonEncode(state.topicScores));
+
     await prefs.setString(
       _key('topicAnswered'),
       jsonEncode(state.topicAnswered),
     );
+
     await prefs.setString(_key('topicCorrect'), jsonEncode(state.topicCorrect));
 
     await prefs.setInt(
       _key('totalQuestionsAnswered'),
       state.totalQuestionsAnswered,
     );
+
     await prefs.setInt(_key('totalCorrectAnswers'), state.totalCorrectAnswers);
     await prefs.setInt(_key('quizzesCompleted'), state.quizzesCompleted);
     await prefs.setInt(_key('perfectQuizzes'), state.perfectQuizzes);
@@ -735,6 +784,7 @@ class HomeCubit extends Cubit<HomeState> {
       _key('dailyModulesCompleted'),
       state.dailyModulesCompleted,
     );
+
     await prefs.setInt(_key('dailyQuizAttempts'), state.dailyQuizAttempts);
     await prefs.setInt(_key('dailyTopicsTried'), state.dailyTopicsTried);
     await prefs.setInt(_key('dailyThreatChecks'), state.dailyThreatChecks);

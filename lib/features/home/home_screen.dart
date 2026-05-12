@@ -84,14 +84,27 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _openNewsUrl(BuildContext context, String url) async {
     final uri = Uri.tryParse(url);
 
-    if (uri == null || url.isEmpty) {
+    if (uri == null || url.trim().isEmpty) {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text("Invalid news link.")));
       return;
     }
 
-    await context.read<HomeCubit>().gainXP(5);
+    final rewarded = await context.read<HomeCubit>().rewardNewsRead(url);
+
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          rewarded
+              ? "+5 XP earned for reading cybersecurity news"
+              : "You already earned XP for this news.",
+        ),
+      ),
+    );
+
     await launchUrl(uri, mode: LaunchMode.externalApplication);
   }
 

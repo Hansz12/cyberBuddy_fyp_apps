@@ -29,6 +29,7 @@ class HomeState extends Equatable {
   final DateTime? dailyQuestDate;
 
   final List<String> claimedDailyQuests;
+  final List<String> rewardedNewsUrls;
 
   final Map<String, double> moduleScores;
   final Map<String, String> moduleReasons;
@@ -92,6 +93,7 @@ class HomeState extends Equatable {
     this.dailyBestQuizScore = 0,
     this.dailyQuestDate,
     this.claimedDailyQuests = const [],
+    this.rewardedNewsUrls = const [],
     this.moduleScores = const {},
     this.moduleReasons = const {},
     this.lastActiveDate,
@@ -175,6 +177,7 @@ class HomeState extends Equatable {
     DateTime? dailyQuestDate,
     bool clearDailyQuestDate = false,
     List<String>? claimedDailyQuests,
+    List<String>? rewardedNewsUrls,
     Map<String, double>? moduleScores,
     Map<String, String>? moduleReasons,
     DateTime? lastActiveDate,
@@ -209,6 +212,7 @@ class HomeState extends Equatable {
           ? null
           : dailyQuestDate ?? this.dailyQuestDate,
       claimedDailyQuests: claimedDailyQuests ?? this.claimedDailyQuests,
+      rewardedNewsUrls: rewardedNewsUrls ?? this.rewardedNewsUrls,
       moduleScores: moduleScores ?? this.moduleScores,
       moduleReasons: moduleReasons ?? this.moduleReasons,
       lastActiveDate: clearLastActiveDate
@@ -242,6 +246,7 @@ class HomeState extends Equatable {
     dailyBestQuizScore,
     dailyQuestDate,
     claimedDailyQuests,
+    rewardedNewsUrls,
     moduleScores,
     moduleReasons,
     lastActiveDate,
