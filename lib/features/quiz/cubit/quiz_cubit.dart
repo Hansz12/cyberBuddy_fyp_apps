@@ -32,9 +32,11 @@ class QuizCubit extends Cubit<QuizState> {
       final shuffledQuestions = List<Map<String, dynamic>>.from(filtered)
         ..shuffle();
 
+      final selectedQuestions = shuffledQuestions.take(5).toList();
+
       emit(
         state.copyWith(
-          questions: shuffledQuestions,
+          questions: selectedQuestions,
           currentIndex: 0,
           clearSelectedIndex: true,
           score: 0,
