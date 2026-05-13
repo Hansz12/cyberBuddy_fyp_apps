@@ -22,31 +22,12 @@ class QuizScreen extends StatelessWidget {
 
   String _topic(QuizState state) => _q(state)['topic'] ?? 'cyber';
 
-  String _moduleId(QuizState state) => _q(state)['moduleId'] ?? 'general';
-
   String _difficulty(QuizState state) => _q(state)['difficulty'] ?? 'beginner';
 
   int _xp(QuizState state) {
     final value = _q(state)['xpReward'];
     if (value is int) return value;
     return int.tryParse(value.toString()) ?? 0;
-  }
-
-  String _getTopicKey(String topic, String moduleId) {
-    final lower = topic.toLowerCase();
-
-    if (lower.contains("phishing")) return "phishing";
-    if (lower.contains("password")) return "password";
-    if (lower.contains("social")) return "social";
-    if (lower.contains("malware")) return "malware";
-    if (lower.contains("privacy")) return "privacy";
-    if (lower.contains("scam")) return "scam";
-    if (lower.contains("mobile")) return "mobile";
-    if (lower.contains("network")) return "network";
-    if (lower.contains("ethics")) return "ethics";
-    if (lower.contains("banking")) return "banking";
-
-    return moduleId.trim().isEmpty ? "general" : moduleId;
   }
 
   @override
@@ -134,7 +115,9 @@ class QuizScreen extends StatelessWidget {
                         padding: EdgeInsets.zero,
                         alignment: Alignment.centerLeft,
                       ),
+
                       const SizedBox(height: 2),
+
                       Row(
                         children: [
                           ...List.generate(state.questions.length, (index) {
@@ -153,7 +136,9 @@ class QuizScreen extends StatelessWidget {
                               ),
                             );
                           }),
+
                           const SizedBox(width: 8),
+
                           Text(
                             "${state.currentIndex + 1}/${state.questions.length}",
                             style: const TextStyle(
@@ -164,7 +149,9 @@ class QuizScreen extends StatelessWidget {
                           ),
                         ],
                       ),
+
                       const SizedBox(height: 16),
+
                       Text(
                         " ${_topic(state).toUpperCase()} · ${_difficulty(state).toUpperCase()}",
                         style: const TextStyle(
@@ -174,7 +161,9 @@ class QuizScreen extends StatelessWidget {
                           letterSpacing: 1.1,
                         ),
                       ),
+
                       const SizedBox(height: 10),
+
                       Text(
                         _question(state),
                         style: const TextStyle(
@@ -394,7 +383,9 @@ class _OptionCard extends StatelessWidget {
                 ),
               ),
             ),
+
             const SizedBox(width: 14),
+
             Expanded(
               child: Text(
                 text,
@@ -440,7 +431,9 @@ class _ExplanationBox extends StatelessWidget {
               fontSize: 14,
             ),
           ),
+
           const SizedBox(height: 8),
+
           Text(
             explanation.isEmpty
                 ? "Review the scenario carefully and choose the safest cybersecurity action."
@@ -482,6 +475,7 @@ class _XpBox extends StatelessWidget {
               ),
             ),
           ),
+
           Text(
             isCorrect ? "+$xp\nXP" : "+0\nXP",
             textAlign: TextAlign.center,
@@ -498,31 +492,45 @@ class _XpBox extends StatelessWidget {
   }
 }
 
-class _QuizResultScreen extends StatelessWidget {
+class _QuizResultScreen extends StatefulWidget {
   final QuizState state;
 
   const _QuizResultScreen({required this.state});
 
-  String _getTopicKey(Map<String, dynamic> question) {
-    final topic = (question['topic'] ?? '').toString().toLowerCase();
-    final moduleId = (question['moduleId'] ?? 'general').toString();
+  @override
+  State<_QuizResultScreen> createState() => _QuizResultScreenState();
+}
 
-    if (topic.contains("phishing")) return "phishing";
-    if (topic.contains("password")) return "password";
-    if (topic.contains("social")) return "social";
-    if (topic.contains("malware")) return "malware";
-    if (topic.contains("privacy")) return "privacy";
-    if (topic.contains("scam")) return "scam";
-    if (topic.contains("mobile")) return "mobile";
-    if (topic.contains("network")) return "network";
-    if (topic.contains("ethics")) return "ethics";
-    if (topic.contains("banking")) return "banking";
+class _QuizResultScreenState extends State<_QuizResultScreen> {
+  bool _isSaving = false;
 
-    return moduleId.trim().isEmpty ? "general" : moduleId;
+  Future<void> _backToLearning(BuildContext context) async {
+    if (_isSaving) return;
+
+    setState(() {
+      _isSaving = true;
+    });
+
+    final state = widget.state;
+
+    await context.read<HomeCubit>().recordFullQuizResult(
+      earnedXp: state.earnedXp,
+      questions: state.questions,
+      answerResults: state.answerResults,
+      totalQuestions: state.questions.length,
+      correctAnswers: state.score,
+    );
+
+    if (!mounted) return;
+
+    context.read<QuizCubit>().resetQuiz();
+
+    Navigator.pop(context);
   }
 
   @override
   Widget build(BuildContext context) {
+    final state = widget.state;
     final percentage = ((state.score / state.questions.length) * 100).round();
     final earnedXp = state.earnedXp;
 
@@ -547,7 +555,9 @@ class _QuizResultScreen extends StatelessWidget {
                 child: Column(
                   children: [
                     const Text("🎉", style: TextStyle(fontSize: 52)),
+
                     const SizedBox(height: 12),
+
                     const Text(
                       "Quiz Completed",
                       style: TextStyle(
@@ -556,7 +566,9 @@ class _QuizResultScreen extends StatelessWidget {
                         fontWeight: FontWeight.w900,
                       ),
                     ),
+
                     const SizedBox(height: 8),
+
                     Text(
                       "Score: ${state.score}/${state.questions.length} · $percentage%",
                       style: const TextStyle(
@@ -565,7 +577,9 @@ class _QuizResultScreen extends StatelessWidget {
                         fontWeight: FontWeight.bold,
                       ),
                     ),
+
                     const SizedBox(height: 10),
+
                     Text(
                       "+$earnedXp XP earned",
                       style: const TextStyle(
@@ -583,35 +597,14 @@ class _QuizResultScreen extends StatelessWidget {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: () async {
-                    if (earnedXp > 0) {
-                      await context.read<HomeCubit>().gainXP(earnedXp);
-                    }
-
-                    for (int i = 0; i < state.questions.length; i++) {
-                      final question = state.questions[i];
-                      final isCorrect = i < state.answerResults.length
-                          ? state.answerResults[i]
-                          : false;
-
-                      await context.read<HomeCubit>().recordQuizAnswer(
-                        _getTopicKey(question),
-                        isCorrect,
-                      );
-                    }
-
-                    await context.read<HomeCubit>().recordQuizCompleted(
-                      totalQuestions: state.questions.length,
-                      correctAnswers: state.score,
-                    );
-
-                    context.read<QuizCubit>().resetQuiz();
-
-                    if (context.mounted) {
-                      Navigator.pop(context);
-                    }
-                  },
-                  child: const Text("Back to Learning"),
+                  onPressed: _isSaving ? null : () => _backToLearning(context),
+                  child: _isSaving
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Text("Back to Learning"),
                 ),
               ),
 

@@ -683,6 +683,94 @@ class HomeCubit extends Cubit<HomeState> {
     return dotProduct / denominator;
   }
 
+  Future<void> recordFullQuizResult({
+    required int earnedXp,
+    required List<Map<String, dynamic>> questions,
+    required List<bool> answerResults,
+    required int totalQuestions,
+    required int correctAnswers,
+  }) async {
+    _resetDailyQuestIfNeeded();
+
+    final topicAnswered = Map<String, int>.from(state.topicAnswered);
+    final topicCorrect = Map<String, int>.from(state.topicCorrect);
+    final topicScores = Map<String, double>.from(state.topicScores);
+
+    int totalAnsweredAdd = 0;
+    int totalCorrectAdd = 0;
+    final newTopicsTodaySet = <String>{};
+
+    for (int i = 0; i < questions.length; i++) {
+      final question = questions[i];
+
+      final rawTopic = (question['topic'] ?? question['moduleId'] ?? 'general')
+          .toString()
+          .toLowerCase()
+          .trim();
+
+      final topic = rawTopic.isEmpty ? 'general' : rawTopic;
+
+      final isCorrect = i < answerResults.length ? answerResults[i] : false;
+
+      if ((topicAnswered[topic] ?? 0) == 0) {
+        newTopicsTodaySet.add(topic);
+      }
+
+      topicAnswered[topic] = (topicAnswered[topic] ?? 0) + 1;
+      topicCorrect[topic] = (topicCorrect[topic] ?? 0) + (isCorrect ? 1 : 0);
+
+      final answered = topicAnswered[topic] ?? 0;
+      final correct = topicCorrect[topic] ?? 0;
+
+      topicScores[topic] = answered == 0 ? 0.0 : correct / answered;
+
+      totalAnsweredAdd++;
+      if (isCorrect) totalCorrectAdd++;
+    }
+
+    final quizScore = totalQuestions == 0
+        ? 0
+        : ((correctAnswers / totalQuestions) * 100).round();
+
+    final isPerfect = totalQuestions > 0 && totalQuestions == correctAnswers;
+
+    final newXP = state.xp + earnedXp;
+    final newLevel = (newXP ~/ 100) + 1;
+
+    final updatedNotifications = List<String>.from(state.notifications);
+
+    if (earnedXp > 0) {
+      updatedNotifications.insert(0, "You gained +$earnedXp XP.");
+    }
+
+    emit(
+      state.copyWith(
+        xp: newXP,
+        level: newLevel,
+        topicAnswered: topicAnswered,
+        topicCorrect: topicCorrect,
+        topicScores: topicScores,
+        totalQuestionsAnswered: state.totalQuestionsAnswered + totalAnsweredAdd,
+        totalCorrectAnswers: state.totalCorrectAnswers + totalCorrectAdd,
+        quizzesCompleted: state.quizzesCompleted + 1,
+        perfectQuizzes: state.perfectQuizzes + (isPerfect ? 1 : 0),
+        dailyQuizAttempts: state.dailyQuizAttempts + 1,
+        dailyBestQuizScore: max(state.dailyBestQuizScore, quizScore),
+        dailyTopicsTried: state.dailyTopicsTried + newTopicsTodaySet.length,
+        notifications: updatedNotifications,
+        hasUnreadNotifications: earnedXp > 0
+            ? true
+            : state.hasUnreadNotifications,
+      ),
+    );
+
+    updateStreak();
+    _checkBadges();
+    _generateRecommendation();
+
+    await _saveAllProgress();
+  }
+
   Future<void> _saveAllProgress() async {
     await _saveLocalProgress();
 
