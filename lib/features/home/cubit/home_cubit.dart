@@ -35,21 +35,6 @@ class HomeCubit extends Cubit<HomeState> {
     return DateTime.tryParse(value.toString());
   }
 
-  final Map<String, List<double>> moduleVectors = {
-    "Phishing Awareness": [1, 0, 0],
-    "Password Security": [0, 1, 0],
-    "Social Engineering": [0, 0, 1],
-    "Malware & Safe Downloads": [0.4, 0.2, 0.8],
-    "Privacy Protection": [0.2, 0.7, 0.4],
-    "Online Scam Awareness": [0.8, 0.1, 0.9],
-    "Mobile Device Security": [0.3, 0.4, 0.6],
-    "Public Wi-Fi Safety": [0.6, 0.2, 0.5],
-    "Two-Factor Authentication": [0.2, 1, 0.2],
-    "Data Breach Response": [0.4, 0.7, 0.5],
-    "Cyberbullying & Digital Ethics": [0.1, 0.2, 0.9],
-    "Safe Online Banking": [0.9, 0.4, 0.7],
-  };
-
   void clearSession() {
     _activeUid = null;
     emit(const HomeState());
@@ -503,7 +488,6 @@ class HomeCubit extends Cubit<HomeState> {
     final lastDate = state.lastActiveDate!;
 
     final lastOnlyDate = DateTime(lastDate.year, lastDate.month, lastDate.day);
-
     final todayOnlyDate = DateTime(today.year, today.month, today.day);
 
     final difference = todayOnlyDate.difference(lastOnlyDate).inDays;
@@ -634,53 +618,64 @@ class HomeCubit extends Cubit<HomeState> {
       return;
     }
 
-    final phishingWeakness = 1 - state.topicProgress("phishing");
-    final passwordWeakness = 1 - state.topicProgress("password");
-    final socialWeakness = 1 - state.topicProgress("social");
+    final weakestTopic = state.weakestTopic.toLowerCase().trim();
 
-    final userVector = [phishingWeakness, passwordWeakness, socialWeakness];
+    final allModules = [
+      {"title": "Phishing Awareness", "topic": "phishing"},
+      {"title": "Password Security", "topic": "password"},
+      {"title": "Social Engineering", "topic": "social"},
+      {"title": "Malware & Safe Downloads", "topic": "malware"},
+      {"title": "Privacy Protection", "topic": "privacy"},
+      {"title": "Online Scam Awareness", "topic": "scam"},
+      {"title": "Mobile Device Security", "topic": "mobile"},
+      {"title": "Public Wi-Fi Safety", "topic": "network"},
+      {"title": "Two-Factor Authentication", "topic": "password"},
+      {"title": "Data Breach Response", "topic": "privacy"},
+      {"title": "Cyberbullying & Digital Ethics", "topic": "ethics"},
+      {"title": "Safe Online Banking", "topic": "banking"},
+    ];
 
-    final weakestTopic = state.weakestTopic;
+    final matchedModules = allModules.where((module) {
+      final topic = module["topic"]!.toLowerCase().trim();
 
-    final scores = <String, double>{};
-    final reasons = <String, String>{};
+      return topic.contains(weakestTopic) || weakestTopic.contains(topic);
+    }).toList();
 
-    moduleVectors.forEach((module, vector) {
-      final similarityScore = _cosineSimilarity(userVector, vector);
+    final fallbackModules = allModules.where((module) {
+      final title = module["title"]!;
+      return !matchedModules.any((matched) => matched["title"] == title);
+    }).toList();
 
-      scores[module] = similarityScore;
-      reasons[module] =
-          "Recommended because your $weakestTopic performance is lower, so this module can help strengthen that topic.";
-    });
+    final recommended = [
+      ...matchedModules,
+      ...fallbackModules,
+    ].take(3).toList();
 
-    final sortedModules = scores.entries.toList()
-      ..sort((a, b) => b.value.compareTo(a.value));
+    final moduleReasons = <String, String>{};
+    final moduleScores = <String, double>{};
+
+    for (final module in recommended) {
+      final title = module["title"]!;
+      final topic = module["topic"]!;
+
+      if (topic.contains(weakestTopic) || weakestTopic.contains(topic)) {
+        moduleReasons[title] =
+            "Recommended because your $weakestTopic quiz performance is lower.";
+      } else {
+        moduleReasons[title] =
+            "Recommended to strengthen your overall cybersecurity awareness.";
+      }
+
+      moduleScores[title] = state.topicProgress(weakestTopic);
+    }
 
     emit(
       state.copyWith(
-        recommendedModules: sortedModules.map((e) => e.key).take(3).toList(),
-        moduleScores: scores,
-        moduleReasons: reasons,
+        recommendedModules: recommended.map((e) => e["title"]!).toList(),
+        moduleScores: moduleScores,
+        moduleReasons: moduleReasons,
       ),
     );
-  }
-
-  double _cosineSimilarity(List<double> a, List<double> b) {
-    double dotProduct = 0;
-    double magnitudeA = 0;
-    double magnitudeB = 0;
-
-    for (int i = 0; i < a.length; i++) {
-      dotProduct += a[i] * b[i];
-      magnitudeA += pow(a[i], 2);
-      magnitudeB += pow(b[i], 2);
-    }
-
-    final denominator = sqrt(magnitudeA) * sqrt(magnitudeB);
-
-    if (denominator == 0) return 0;
-
-    return dotProduct / denominator;
   }
 
   Future<void> recordFullQuizResult({
@@ -709,7 +704,6 @@ class HomeCubit extends Cubit<HomeState> {
           .trim();
 
       final topic = rawTopic.isEmpty ? 'general' : rawTopic;
-
       final isCorrect = i < answerResults.length ? answerResults[i] : false;
 
       if ((topicAnswered[topic] ?? 0) == 0) {

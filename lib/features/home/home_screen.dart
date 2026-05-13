@@ -902,7 +902,7 @@ class _RecommendedCard extends StatelessWidget {
           const SizedBox(width: 12),
           Expanded(
             child: Text(
-              "$title\nSimilarity ${score.toStringAsFixed(2)} · $reason",
+              "$title\nreason · $reason",
               maxLines: 3,
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(
