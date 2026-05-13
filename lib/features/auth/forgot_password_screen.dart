@@ -148,7 +148,7 @@ class ForgotPasswordScreen extends StatelessWidget {
                                     .updateEmail,
                                 decoration: const InputDecoration(
                                   prefixIcon: Icon(Icons.email),
-                                  hintText: "farhana@uitm.edu.my",
+                                  hintText: "user@gmail.com.my",
                                 ),
                               ),
 

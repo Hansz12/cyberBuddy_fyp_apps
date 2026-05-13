@@ -160,7 +160,7 @@ class RegisterScreen extends StatelessWidget {
                                     .updateEmail,
                                 decoration: const InputDecoration(
                                   prefixIcon: Icon(Icons.email),
-                                  hintText: "student@uitm.edu.my",
+                                  hintText: "user@gmail.com.my",
                                 ),
                               ),
 
