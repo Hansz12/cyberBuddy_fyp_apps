@@ -9,7 +9,6 @@ import '../learning/learning_screen.dart';
 import '../news/news_screen.dart';
 import '../quiz/cubit/quiz_cubit.dart';
 import '../quiz/quiz_screen.dart';
-import '../threat_checker/threat_checker_screen.dart';
 import 'cubit/home_cubit.dart';
 import 'cubit/home_state.dart';
 
@@ -67,13 +66,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  void _openThreatChecker(BuildContext context) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => const ThreatCheckerScreen()),
-    );
-  }
-
   void _openNews(BuildContext context) {
     Navigator.push(
       context,
@@ -128,7 +120,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
   double _score80Quest(HomeState state) {
     if (state.dailyQuizAttempts == 0) return 0.0;
-
     return _safeProgress(state.dailyBestQuizScore / 80);
   }
 
@@ -136,8 +127,8 @@ class _HomeScreenState extends State<HomeScreen> {
     return _safeProgress(state.dailyTopicsTried / 1);
   }
 
-  double _threatCheckerQuest(HomeState state) {
-    return _safeProgress(state.dailyThreatChecks / 1);
+  double _completeQuizQuest(HomeState state) {
+    return _safeProgress(state.dailyQuizAttempts / 1);
   }
 
   String _questStatus(double progress) {
@@ -157,7 +148,7 @@ class _HomeScreenState extends State<HomeScreen> {
     if (!mounted) return;
 
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("Daily quest claimed: +$xpReward XP")),
+      SnackBar(content: Text("Mission reward claimed: +$xpReward XP")),
     );
   }
 
@@ -177,20 +168,20 @@ class _HomeScreenState extends State<HomeScreen> {
             final completeModuleProgress = _completeModuleQuest(state);
             final score80Progress = _score80Quest(state);
             final newTopicProgress = _newTopicQuest(state);
-            final threatProgress = _threatCheckerQuest(state);
+            final quizProgress = _completeQuizQuest(state);
 
             return RefreshIndicator(
               onRefresh: _refreshHomeNews,
               child: ListView(
                 children: [
-                  _HomeHeader(state: state, totalModules: totalModules),
+                  _AnimatedHomeHeader(state: state, totalModules: totalModules),
 
                   Padding(
                     padding: const EdgeInsets.all(16),
                     child: Column(
                       children: [
                         const _SectionHeader(
-                          title: "WEEKLY STREAK",
+                          title: "STREAK CHALLENGE",
                           actionText: "",
                           onTap: null,
                         ),
@@ -202,8 +193,8 @@ class _HomeScreenState extends State<HomeScreen> {
                         const SizedBox(height: 18),
 
                         _SectionHeader(
-                          title: "DAILY QUESTS",
-                          actionText: "View all",
+                          title: "DAILY MISSIONS",
+                          actionText: "Train",
                           onTap: () => _openLearning(context),
                         ),
 
@@ -276,22 +267,22 @@ class _HomeScreenState extends State<HomeScreen> {
                             ),
 
                             _QuestCard(
-                              icon: "🛡️",
-                              title: "Use threat\nchecker",
-                              xp: "+25 XP",
-                              status: _questStatus(threatProgress),
-                              progress: threatProgress,
+                              icon: "🏆",
+                              title: "Complete 1\nquiz",
+                              xp: "+15 XP",
+                              status: _questStatus(quizProgress),
+                              progress: quizProgress,
                               progressText:
-                                  "${state.dailyThreatChecks}/1 checked today",
+                                  "${state.dailyQuizAttempts}/1 quiz today",
                               claimed: state.claimedDailyQuests.contains(
-                                "threat_checker",
+                                "complete_quiz",
                               ),
                               onClaim: () => _claimQuest(
                                 context,
-                                questId: "threat_checker",
-                                xpReward: 25,
+                                questId: "complete_quiz",
+                                xpReward: 15,
                               ),
-                              onTap: () => _openThreatChecker(context),
+                              onTap: () => _openQuiz(context),
                             ),
                           ],
                         ),
@@ -299,7 +290,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         const SizedBox(height: 22),
 
                         _SectionHeader(
-                          title: "RECOMMENDED FOR YOU",
+                          title: "NEXT TRAINING PATH",
                           actionText: "More",
                           onTap: () => _openLearning(context),
                         ),
@@ -309,19 +300,17 @@ class _HomeScreenState extends State<HomeScreen> {
                         if (state.recommendedModules.isEmpty)
                           _EmptyCard(
                             text:
-                                "Complete quizzes first to get personalised module recommendations.",
+                                "Complete quizzes first to unlock personalised training path.",
                             onTap: () => _openQuiz(context),
                           )
                         else
                           ...state.recommendedModules.map((module) {
-                            final score = state.moduleScores[module] ?? 0;
                             final reason =
                                 state.moduleReasons[module] ??
                                 "Recommended based on your learning progress.";
 
                             return _RecommendedCard(
                               title: module,
-                              score: score,
                               reason: reason,
                               onTap: () => _openLearning(context),
                             );
@@ -391,11 +380,41 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-class _HomeHeader extends StatelessWidget {
+class _AnimatedHomeHeader extends StatefulWidget {
   final HomeState state;
   final int totalModules;
 
-  const _HomeHeader({required this.state, required this.totalModules});
+  const _AnimatedHomeHeader({required this.state, required this.totalModules});
+
+  @override
+  State<_AnimatedHomeHeader> createState() => _AnimatedHomeHeaderState();
+}
+
+class _AnimatedHomeHeaderState extends State<_AnimatedHomeHeader>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _glow;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1600),
+    )..repeat(reverse: true);
+
+    _glow = Tween<double>(
+      begin: 0.18,
+      end: 0.55,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
 
   String _getGreeting() {
     final hour = DateTime.now().hour;
@@ -438,7 +457,7 @@ class _HomeHeader extends StatelessWidget {
         borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
       ),
       builder: (_) {
-        final notifications = state.notifications;
+        final notifications = widget.state.notifications;
 
         return DraggableScrollableSheet(
           expand: false,
@@ -461,7 +480,7 @@ class _HomeHeader extends StatelessWidget {
                 ),
 
                 const Text(
-                  "Notifications 🔔",
+                  "Mission Log 🔔",
                   style: TextStyle(
                     color: Color(0xFF0F172A),
                     fontSize: 20,
@@ -505,6 +524,8 @@ class _HomeHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final state = widget.state;
+
     final nextLevelXp = state.level * 100;
     final currentLevelStart = (state.level - 1) * 100;
     final currentProgress = state.xp - currentLevelStart;
@@ -516,143 +537,204 @@ class _HomeHeader extends StatelessWidget {
 
     final userName = _getUserName();
 
-    return Container(
-      padding: const EdgeInsets.fromLTRB(18, 30, 18, 28),
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Color(0xFF0D1B3E), Color(0xFF1E3A8A)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-      ),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      _getGreeting(),
-                      style: const TextStyle(
-                        color: Colors.white70,
-                        fontSize: 13,
-                      ),
-                    ),
-
-                    Text(
-                      "$userName 👋",
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 22,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                  ],
-                ),
+    return AnimatedBuilder(
+      animation: _glow,
+      builder: (context, _) {
+        return Container(
+          padding: const EdgeInsets.fromLTRB(18, 30, 18, 28),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Color(0xFF071123), Color(0xFF1E3A8A)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF38BDF8).withOpacity(_glow.value),
+                blurRadius: 24,
+                offset: const Offset(0, 8),
               ),
-
-              GestureDetector(
-                onTap: () => _showNotifications(context),
-                child: Container(
-                  width: 46,
-                  height: 46,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.12),
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: Stack(
-                    children: [
-                      const Center(
-                        child: Text("🔔", style: TextStyle(fontSize: 22)),
+            ],
+          ),
+          child: Column(
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 52,
+                    height: 52,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF38BDF8).withOpacity(0.14),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: const Color(0xFF38BDF8).withOpacity(0.45),
                       ),
+                    ),
+                    child: const Center(
+                      child: Text("🎮", style: TextStyle(fontSize: 24)),
+                    ),
+                  ),
 
-                      if (state.hasUnreadNotifications)
-                        Positioned(
-                          right: 8,
-                          top: 8,
-                          child: Container(
-                            width: 8,
-                            height: 8,
-                            decoration: const BoxDecoration(
-                              color: Colors.red,
-                              shape: BoxShape.circle,
-                            ),
+                  const SizedBox(width: 12),
+
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          _getGreeting(),
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 13,
                           ),
                         ),
-                    ],
+
+                        Text(
+                          "$userName 👋",
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 22,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
+
+                  GestureDetector(
+                    onTap: () => _showNotifications(context),
+                    child: Container(
+                      width: 46,
+                      height: 46,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.12),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: Colors.white12),
+                      ),
+                      child: Stack(
+                        children: [
+                          const Center(
+                            child: Text("🔔", style: TextStyle(fontSize: 22)),
+                          ),
+
+                          if (state.hasUnreadNotifications)
+                            Positioned(
+                              right: 8,
+                              top: 8,
+                              child: Container(
+                                width: 8,
+                                height: 8,
+                                decoration: const BoxDecoration(
+                                  color: Colors.red,
+                                  shape: BoxShape.circle,
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 20),
+
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 5,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF38BDF8).withOpacity(0.18),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: const Color(0xFF38BDF8).withOpacity(0.45),
+                      ),
+                    ),
+                    child: Text(
+                      "LV ${state.level} · CYBER TRAINEE",
+                      style: const TextStyle(
+                        color: Color(0xFF38BDF8),
+                        fontSize: 11,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 0.7,
+                      ),
+                    ),
+                  ),
+
+                  const Spacer(),
+
+                  Text(
+                    "${state.xp} / $nextLevelXp XP",
+                    style: const TextStyle(
+                      color: Colors.white70,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 10),
+
+              Stack(
+                children: [
+                  LinearProgressIndicator(
+                    value: progressValue,
+                    minHeight: 10,
+                    backgroundColor: Colors.white24,
+                    color: const Color(0xFF38BDF8),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  Positioned.fill(
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: FractionallySizedBox(
+                        widthFactor: progressValue,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(20),
+                            boxShadow: [
+                              BoxShadow(
+                                color: const Color(
+                                  0xFF38BDF8,
+                                ).withOpacity(0.75),
+                                blurRadius: 14,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 16),
+
+              Row(
+                children: [
+                  _HeaderStatCard(value: "🔥 ${state.streak}", label: "Streak"),
+                  const SizedBox(width: 10),
+                  _HeaderStatCard(
+                    value: "${widget.totalModules}",
+                    label: "Modules",
+                  ),
+                  const SizedBox(width: 10),
+                  _HeaderStatCard(
+                    value: "${state.avgScore}%",
+                    label: "Accuracy",
+                  ),
+                ],
               ),
             ],
           ),
-
-          const SizedBox(height: 18),
-
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 5,
-                ),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF38BDF8).withOpacity(0.18),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                    color: const Color(0xFF38BDF8).withOpacity(0.4),
-                  ),
-                ),
-                child: Text(
-                  "LV ${state.level} · THREAT SPOTTER",
-                  style: const TextStyle(
-                    color: Color(0xFF38BDF8),
-                    fontSize: 11,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 0.7,
-                  ),
-                ),
-              ),
-
-              const Spacer(),
-
-              Text(
-                "${state.xp} / $nextLevelXp XP",
-                style: const TextStyle(
-                  color: Colors.white70,
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
-          ),
-
-          const SizedBox(height: 8),
-
-          LinearProgressIndicator(
-            value: progressValue,
-            minHeight: 8,
-            backgroundColor: Colors.white24,
-            color: const Color(0xFF38BDF8),
-            borderRadius: BorderRadius.circular(20),
-          ),
-
-          const SizedBox(height: 16),
-
-          Row(
-            children: [
-              _HeaderStatCard(value: "🔥 ${state.streak}", label: "Day Streak"),
-              const SizedBox(width: 10),
-              _HeaderStatCard(value: "$totalModules", label: "Modules"),
-              const SizedBox(width: 10),
-              _HeaderStatCard(value: "${state.avgScore}%", label: "Avg Score"),
-            ],
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 }
@@ -686,9 +768,10 @@ class _WeeklyStreakRow extends StatelessWidget {
         final isDone = isStreakDay(index);
 
         return Expanded(
-          child: Container(
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 350),
             margin: const EdgeInsets.symmetric(horizontal: 3),
-            height: 42,
+            height: 44,
             decoration: BoxDecoration(
               color: isToday
                   ? const Color(0xFF2563EB)
@@ -696,6 +779,15 @@ class _WeeklyStreakRow extends StatelessWidget {
                   ? const Color(0xFF0D1B3E)
                   : const Color(0xFFE2E8F0),
               borderRadius: BorderRadius.circular(12),
+              boxShadow: isToday || isDone
+                  ? [
+                      BoxShadow(
+                        color: const Color(0xFF2563EB).withOpacity(0.22),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ]
+                  : [],
             ),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -725,7 +817,7 @@ class _WeeklyStreakRow extends StatelessWidget {
   }
 }
 
-class _QuestCard extends StatelessWidget {
+class _QuestCard extends StatefulWidget {
   final String icon;
   final String title;
   final String xp;
@@ -749,130 +841,153 @@ class _QuestCard extends StatelessWidget {
   });
 
   @override
+  State<_QuestCard> createState() => _QuestCardState();
+}
+
+class _QuestCardState extends State<_QuestCard> {
+  bool _pressed = false;
+
+  @override
   Widget build(BuildContext context) {
-    final safeProgress = progress.clamp(0.0, 1.0);
+    final safeProgress = widget.progress.clamp(0.0, 1.0);
     final completed = safeProgress >= 1.0;
-    final canClaim = completed && !claimed;
+    final canClaim = completed && !widget.claimed;
 
-    return InkWell(
-      borderRadius: BorderRadius.circular(16),
-      onTap: canClaim ? onClaim : onTap,
-      child: Container(
-        padding: const EdgeInsets.all(13),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: claimed
-                ? const Color(0xFFE2E8F0)
-                : completed
-                ? const Color(0xFFBBF7D0)
-                : const Color(0xFFE2E8F0),
-            width: canClaim ? 1.5 : 1,
+    return GestureDetector(
+      onTapDown: (_) => setState(() => _pressed = true),
+      onTapCancel: () => setState(() => _pressed = false),
+      onTapUp: (_) => setState(() => _pressed = false),
+      onTap: canClaim ? widget.onClaim : widget.onTap,
+      child: AnimatedScale(
+        duration: const Duration(milliseconds: 120),
+        scale: _pressed ? 0.96 : 1.0,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 280),
+          padding: const EdgeInsets.all(13),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(
+              color: widget.claimed
+                  ? const Color(0xFFE2E8F0)
+                  : completed
+                  ? const Color(0xFF22C55E)
+                  : const Color(0xFFE2E8F0),
+              width: canClaim ? 1.7 : 1,
+            ),
+            boxShadow: canClaim
+                ? [
+                    BoxShadow(
+                      color: const Color(0xFF10B981).withOpacity(0.24),
+                      blurRadius: 18,
+                      offset: const Offset(0, 7),
+                    ),
+                  ]
+                : [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.035),
+                      blurRadius: 10,
+                      offset: const Offset(0, 5),
+                    ),
+                  ],
           ),
-          boxShadow: canClaim
-              ? [
-                  BoxShadow(
-                    color: const Color(0xFF10B981).withOpacity(0.12),
-                    blurRadius: 14,
-                    offset: const Offset(0, 6),
-                  ),
-                ]
-              : [],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  width: 38,
-                  height: 38,
-                  decoration: BoxDecoration(
-                    color: canClaim
-                        ? const Color(0xFFDCFCE7)
-                        : const Color(0xFFF1F5F9),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Center(
-                    child: Text(icon, style: const TextStyle(fontSize: 18)),
-                  ),
-                ),
-
-                const Spacer(),
-
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 7,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: claimed
-                        ? const Color(0xFFF1F5F9)
-                        : canClaim
-                        ? const Color(0xFFDCFCE7)
-                        : const Color(0xFFEFF6FF),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    claimed
-                        ? "CLAIMED"
-                        : canClaim
-                        ? "CLAIM"
-                        : xp,
-                    style: TextStyle(
-                      color: claimed
-                          ? const Color(0xFF64748B)
-                          : canClaim
-                          ? const Color(0xFF10B981)
-                          : const Color(0xFF2563EB),
-                      fontSize: 9,
-                      fontWeight: FontWeight.w900,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 38,
+                    height: 38,
+                    decoration: BoxDecoration(
+                      color: canClaim
+                          ? const Color(0xFFDCFCE7)
+                          : const Color(0xFFF1F5F9),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Center(
+                      child: Text(
+                        widget.icon,
+                        style: const TextStyle(fontSize: 18),
+                      ),
                     ),
                   ),
+
+                  const Spacer(),
+
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 7,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: widget.claimed
+                          ? const Color(0xFFF1F5F9)
+                          : canClaim
+                          ? const Color(0xFFDCFCE7)
+                          : const Color(0xFFEFF6FF),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      widget.claimed
+                          ? "CLAIMED"
+                          : canClaim
+                          ? "CLAIM"
+                          : widget.xp,
+                      style: TextStyle(
+                        color: widget.claimed
+                            ? const Color(0xFF64748B)
+                            : canClaim
+                            ? const Color(0xFF10B981)
+                            : const Color(0xFF2563EB),
+                        fontSize: 9,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+
+              const Spacer(),
+
+              Text(
+                widget.title,
+                style: const TextStyle(
+                  color: Color(0xFF0F172A),
+                  fontWeight: FontWeight.w900,
+                  fontSize: 13,
+                  height: 1.05,
                 ),
-              ],
-            ),
-
-            const Spacer(),
-
-            Text(
-              title,
-              style: const TextStyle(
-                color: Color(0xFF0F172A),
-                fontWeight: FontWeight.w900,
-                fontSize: 13,
-                height: 1.05,
               ),
-            ),
 
-            const SizedBox(height: 4),
+              const SizedBox(height: 4),
 
-            Text(
-              claimed ? "Reward claimed" : progressText,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                color: Colors.grey,
-                fontSize: 10,
-                fontWeight: FontWeight.w600,
+              Text(
+                widget.claimed ? "Reward claimed" : widget.progressText,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: Colors.grey,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
-            ),
 
-            const SizedBox(height: 8),
+              const SizedBox(height: 8),
 
-            LinearProgressIndicator(
-              value: safeProgress,
-              minHeight: 5,
-              backgroundColor: const Color(0xFFE2E8F0),
-              color: claimed
-                  ? const Color(0xFF94A3B8)
-                  : completed
-                  ? const Color(0xFF10B981)
-                  : const Color(0xFF2563EB),
-              borderRadius: BorderRadius.circular(20),
-            ),
-          ],
+              LinearProgressIndicator(
+                value: safeProgress,
+                minHeight: 5,
+                backgroundColor: const Color(0xFFE2E8F0),
+                color: widget.claimed
+                    ? const Color(0xFF94A3B8)
+                    : completed
+                    ? const Color(0xFF10B981)
+                    : const Color(0xFF2563EB),
+                borderRadius: BorderRadius.circular(20),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -881,13 +996,11 @@ class _QuestCard extends StatelessWidget {
 
 class _RecommendedCard extends StatelessWidget {
   final String title;
-  final double score;
   final String reason;
   final VoidCallback onTap;
 
   const _RecommendedCard({
     required this.title,
-    required this.score,
     required this.reason,
     required this.onTap,
   });
@@ -902,7 +1015,7 @@ class _RecommendedCard extends StatelessWidget {
           const SizedBox(width: 12),
           Expanded(
             child: Text(
-              "$title\nreason · $reason",
+              "$title\n$reason",
               maxLines: 3,
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(
@@ -1090,7 +1203,8 @@ class _SimpleCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final card = Container(
+    final card = AnimatedContainer(
+      duration: const Duration(milliseconds: 250),
       width: double.infinity,
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(14),
@@ -1098,6 +1212,13 @@ class _SimpleCard extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(color: const Color(0xFFE2E8F0)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.035),
+            blurRadius: 10,
+            offset: const Offset(0, 5),
+          ),
+        ],
       ),
       child: child,
     );

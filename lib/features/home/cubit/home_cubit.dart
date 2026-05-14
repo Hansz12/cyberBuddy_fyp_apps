@@ -87,7 +87,6 @@ class HomeCubit extends Cubit<HomeState> {
             dailyModulesCompleted: cloudData['dailyModulesCompleted'] ?? 0,
             dailyQuizAttempts: cloudData['dailyQuizAttempts'] ?? 0,
             dailyTopicsTried: cloudData['dailyTopicsTried'] ?? 0,
-            dailyThreatChecks: cloudData['dailyThreatChecks'] ?? 0,
             dailyBestQuizScore: cloudData['dailyBestQuizScore'] ?? 0,
             dailyQuestDate: _parseDate(cloudData['dailyQuestDate']),
             claimedDailyQuests: List<String>.from(
@@ -133,7 +132,6 @@ class HomeCubit extends Cubit<HomeState> {
         dailyModulesCompleted: 0,
         dailyQuizAttempts: 0,
         dailyTopicsTried: 0,
-        dailyThreatChecks: 0,
         dailyBestQuizScore: 0,
         claimedDailyQuests: const [],
         dailyQuestDate: today,
@@ -207,7 +205,6 @@ class HomeCubit extends Cubit<HomeState> {
         dailyModulesCompleted: prefs.getInt(_key('dailyModulesCompleted')) ?? 0,
         dailyQuizAttempts: prefs.getInt(_key('dailyQuizAttempts')) ?? 0,
         dailyTopicsTried: prefs.getInt(_key('dailyTopicsTried')) ?? 0,
-        dailyThreatChecks: prefs.getInt(_key('dailyThreatChecks')) ?? 0,
         dailyBestQuizScore: prefs.getInt(_key('dailyBestQuizScore')) ?? 0,
         claimedDailyQuests:
             prefs.getStringList(_key('claimedDailyQuests')) ?? [],
@@ -341,21 +338,6 @@ class HomeCubit extends Cubit<HomeState> {
     _checkBadges();
 
     await _saveAllProgress();
-  }
-
-  Future<void> recordThreatCheck() async {
-    _resetDailyQuestIfNeeded();
-
-    emit(
-      state.copyWith(
-        threatChecks: state.threatChecks + 1,
-        dailyThreatChecks: state.dailyThreatChecks + 1,
-      ),
-    );
-
-    _checkBadges();
-
-    await gainXP(10);
   }
 
   Future<void> updateTopicScore(String topic, bool correct) async {
@@ -584,7 +566,6 @@ class HomeCubit extends Cubit<HomeState> {
       'dailyModulesCompleted',
       'dailyQuizAttempts',
       'dailyTopicsTried',
-      'dailyThreatChecks',
       'dailyBestQuizScore',
       'dailyQuestDate',
       'claimedDailyQuests',
@@ -785,7 +766,6 @@ class HomeCubit extends Cubit<HomeState> {
         dailyModulesCompleted: state.dailyModulesCompleted,
         dailyQuizAttempts: state.dailyQuizAttempts,
         dailyTopicsTried: state.dailyTopicsTried,
-        dailyThreatChecks: state.dailyThreatChecks,
         dailyBestQuizScore: state.dailyBestQuizScore,
         dailyQuestDate: state.dailyQuestDate,
         claimedDailyQuests: state.claimedDailyQuests,
@@ -869,7 +849,6 @@ class HomeCubit extends Cubit<HomeState> {
 
     await prefs.setInt(_key('dailyQuizAttempts'), state.dailyQuizAttempts);
     await prefs.setInt(_key('dailyTopicsTried'), state.dailyTopicsTried);
-    await prefs.setInt(_key('dailyThreatChecks'), state.dailyThreatChecks);
     await prefs.setInt(_key('dailyBestQuizScore'), state.dailyBestQuizScore);
 
     if (state.dailyQuestDate != null) {

@@ -24,7 +24,6 @@ class HomeState extends Equatable {
   final int dailyModulesCompleted;
   final int dailyQuizAttempts;
   final int dailyTopicsTried;
-  final int dailyThreatChecks;
   final int dailyBestQuizScore;
   final DateTime? dailyQuestDate;
 
@@ -89,7 +88,6 @@ class HomeState extends Equatable {
     this.dailyModulesCompleted = 0,
     this.dailyQuizAttempts = 0,
     this.dailyTopicsTried = 0,
-    this.dailyThreatChecks = 0,
     this.dailyBestQuizScore = 0,
     this.dailyQuestDate,
     this.claimedDailyQuests = const [],
@@ -172,7 +170,6 @@ class HomeState extends Equatable {
     int? dailyModulesCompleted,
     int? dailyQuizAttempts,
     int? dailyTopicsTried,
-    int? dailyThreatChecks,
     int? dailyBestQuizScore,
     DateTime? dailyQuestDate,
     bool clearDailyQuestDate = false,
@@ -206,7 +203,6 @@ class HomeState extends Equatable {
           dailyModulesCompleted ?? this.dailyModulesCompleted,
       dailyQuizAttempts: dailyQuizAttempts ?? this.dailyQuizAttempts,
       dailyTopicsTried: dailyTopicsTried ?? this.dailyTopicsTried,
-      dailyThreatChecks: dailyThreatChecks ?? this.dailyThreatChecks,
       dailyBestQuizScore: dailyBestQuizScore ?? this.dailyBestQuizScore,
       dailyQuestDate: clearDailyQuestDate
           ? null
@@ -242,7 +238,6 @@ class HomeState extends Equatable {
     dailyModulesCompleted,
     dailyQuizAttempts,
     dailyTopicsTried,
-    dailyThreatChecks,
     dailyBestQuizScore,
     dailyQuestDate,
     claimedDailyQuests,

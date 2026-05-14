@@ -7,7 +7,6 @@ import 'features/home/home_screen.dart';
 import 'features/learning/learning_screen.dart';
 import 'features/leaderboard/leaderboard_screen.dart';
 import 'features/profile/profile_screen.dart';
-import 'features/threat_checker/threat_checker_screen.dart';
 import 'features/quiz/cubit/quiz_cubit.dart';
 import 'features/quiz/quiz_screen.dart';
 import 'features/learning/cubit/learning_cubit.dart';
@@ -25,7 +24,6 @@ class _MainNavigationState extends State<MainNavigation> {
   final List<Widget> _screens = const [
     HomeScreen(),
     LearningScreen(),
-    ThreatCheckerScreen(),
     LeaderboardScreen(),
     ProfileScreen(),
   ];
@@ -72,7 +70,6 @@ class _MainNavigationState extends State<MainNavigation> {
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
           BottomNavigationBarItem(icon: Icon(Icons.menu_book), label: "Learn"),
-          BottomNavigationBarItem(icon: Icon(Icons.search), label: "Check"),
           BottomNavigationBarItem(icon: Icon(Icons.leaderboard), label: "Rank"),
           BottomNavigationBarItem(icon: Icon(Icons.person), label: "Profile"),
         ],

@@ -11,7 +11,6 @@ import 'features/home/cubit/home_cubit.dart';
 import 'features/quiz/cubit/quiz_cubit.dart';
 import 'features/leaderboard/cubit/leaderboard_cubit.dart';
 import 'features/learning/cubit/learning_cubit.dart';
-import 'features/threat_checker/cubit/threat_checker_cubit.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -41,8 +40,6 @@ class CyberBuddyApp extends StatelessWidget {
         BlocProvider<LearningCubit>(
           create: (_) => LearningCubit()..loadModules(),
         ),
-
-        BlocProvider<ThreatCheckerCubit>(create: (_) => ThreatCheckerCubit()),
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
