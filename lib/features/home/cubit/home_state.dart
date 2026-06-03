@@ -1,5 +1,6 @@
 import 'package:equatable/equatable.dart';
 
+
 class HomeState extends Equatable {
   final int xp;
   final int level;
