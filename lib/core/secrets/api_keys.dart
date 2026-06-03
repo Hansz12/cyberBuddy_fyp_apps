@@ -1,3 +1,4 @@
 class ApiKeys {
-  static const String geminiApiKey = String.fromEnvironment('GEMINI_API_KEY');
+  static const String geminiApiKey =
+      'AQ.Ab8RN6JVDQLI9w-ilGNMCZciQjuqalz3fgauvPonadAgy8EDSw';
 }
