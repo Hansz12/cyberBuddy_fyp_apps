@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:vibration/vibration.dart';
 
 import '../home/cubit/home_cubit.dart';
 import 'cubit/quiz_cubit.dart';
@@ -36,6 +37,42 @@ class _QuizScreenState extends State<QuizScreen> {
     );
 
     Overlay.of(context).insert(_xpOverlayEntry!);
+  }
+
+  void _showWrongOverlay() {
+    _xpOverlayEntry?.remove();
+
+    _xpOverlayEntry = OverlayEntry(
+      builder: (context) => _WrongOverlayPopup(
+        onDismiss: () {
+          _xpOverlayEntry?.remove();
+          _xpOverlayEntry = null;
+        },
+      ),
+    );
+
+    Overlay.of(context).insert(_xpOverlayEntry!);
+  }
+
+  Future _vibrateCorrect() async {
+    final hasVibrator = await Vibration.hasVibrator() ?? false;
+    if (!hasVibrator) return;
+
+    Vibration.vibrate(duration: 80, amplitude: 120);
+  }
+
+  Future _vibrateWrong() async {
+    final hasVibrator = await Vibration.hasVibrator() ?? false;
+    if (!hasVibrator) return;
+
+    Vibration.vibrate(pattern: [0, 80, 80, 120], intensities: [150, 220]);
+  }
+
+  Future _vibrateTap() async {
+    final hasVibrator = await Vibration.hasVibrator() ?? false;
+    if (!hasVibrator) return;
+
+    Vibration.vibrate(duration: 35, amplitude: 60);
   }
 
   Map<String, dynamic> _q(QuizState state) => state.currentQuestion;
@@ -306,10 +343,11 @@ class _QuizScreenState extends State<QuizScreen> {
 
                               if (!state.isAnswered) {
                                 if (isCorrect) {
-                                  HapticFeedback.lightImpact();
+                                  _vibrateCorrect();
                                   _showXpOverlay(_xp(state));
                                 } else {
-                                  HapticFeedback.heavyImpact();
+                                  _vibrateWrong();
+                                  _showWrongOverlay();
                                 }
                                 context.read<QuizCubit>().submitAnswer();
                               } else {
@@ -342,6 +380,113 @@ class _QuizScreenState extends State<QuizScreen> {
           ),
         );
       },
+    );
+  }
+}
+
+class _WrongOverlayPopup extends StatefulWidget {
+  final VoidCallback onDismiss;
+
+  const _WrongOverlayPopup({required this.onDismiss});
+
+  @override
+  State<_WrongOverlayPopup> createState() => _WrongOverlayPopupState();
+}
+
+class _WrongOverlayPopupState extends State<_WrongOverlayPopup> {
+  double _opacity = 0.0;
+  double _scale = 0.85;
+
+  @override
+  void initState() {
+    super.initState();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      setState(() {
+        _opacity = 1.0;
+        _scale = 1.0;
+      });
+
+      Future.delayed(const Duration(milliseconds: 1100), () {
+        if (!mounted) return;
+
+        setState(() {
+          _opacity = 0.0;
+          _scale = 0.85;
+        });
+
+        Future.delayed(const Duration(milliseconds: 260), () {
+          if (mounted) widget.onDismiss();
+        });
+      });
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Positioned(
+      top: 80,
+      left: 0,
+      right: 0,
+      child: IgnorePointer(
+        child: AnimatedOpacity(
+          opacity: _opacity,
+          duration: const Duration(milliseconds: 250),
+          child: AnimatedScale(
+            scale: _scale,
+            duration: const Duration(milliseconds: 250),
+            curve: Curves.easeOutBack,
+            child: Center(
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 22,
+                  vertical: 14,
+                ),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF7F1D1D).withOpacity(0.94),
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.red.withOpacity(0.25),
+                      blurRadius: 18,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text('⚠️', style: TextStyle(fontSize: 22)),
+                    SizedBox(width: 10),
+                    Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Not quite!',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                        SizedBox(height: 4),
+                        Text(
+                          'Check the explanation below',
+                          style: TextStyle(
+                            color: Color(0xFFFECACA),
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
@@ -430,12 +575,7 @@ class _OptionCardState extends State<_OptionCard> {
       duration: const Duration(milliseconds: 180),
       curve: Curves.easeOut,
       child: InkWell(
-        onTap: widget.isAnswered
-            ? null
-            : () {
-                HapticFeedback.selectionClick();
-                widget.onTap();
-              },
+        onTap: widget.isAnswered ? null : widget.onTap,
         borderRadius: BorderRadius.circular(18),
         child: Container(
           margin: const EdgeInsets.only(bottom: 12),
@@ -713,6 +853,12 @@ class _QuizResultScreen extends StatefulWidget {
 
 class _QuizResultScreenState extends State<_QuizResultScreen> {
   bool _isSaving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    HapticFeedback.mediumImpact();
+  }
 
   Future<void> _backToLearning(BuildContext context) async {
     if (_isSaving) return;
