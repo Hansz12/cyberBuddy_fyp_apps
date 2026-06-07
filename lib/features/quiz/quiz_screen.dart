@@ -1,12 +1,42 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../home/cubit/home_cubit.dart';
 import 'cubit/quiz_cubit.dart';
 import 'cubit/quiz_state.dart';
 
-class QuizScreen extends StatelessWidget {
+class QuizScreen extends StatefulWidget {
   const QuizScreen({super.key});
+
+  @override
+  State<QuizScreen> createState() => _QuizScreenState();
+}
+
+class _QuizScreenState extends State<QuizScreen> {
+  OverlayEntry? _xpOverlayEntry;
+
+  @override
+  void dispose() {
+    _xpOverlayEntry?.remove();
+    super.dispose();
+  }
+
+  void _showXpOverlay(int xp) {
+    _xpOverlayEntry?.remove();
+
+    _xpOverlayEntry = OverlayEntry(
+      builder: (context) => _XpOverlayPopup(
+        xp: xp,
+        onDismiss: () {
+          _xpOverlayEntry?.remove();
+          _xpOverlayEntry = null;
+        },
+      ),
+    );
+
+    Overlay.of(context).insert(_xpOverlayEntry!);
+  }
 
   Map<String, dynamic> _q(QuizState state) => state.currentQuestion;
 
@@ -124,9 +154,11 @@ class QuizScreen extends StatelessWidget {
                             final active = index <= state.currentIndex;
 
                             return Expanded(
-                              child: Container(
+                              child: AnimatedContainer(
+                                duration: const Duration(milliseconds: 400),
+                                curve: Curves.easeOut,
                                 margin: const EdgeInsets.only(right: 5),
-                                height: 5,
+                                height: 6,
                                 decoration: BoxDecoration(
                                   color: active
                                       ? const Color(0xFF38BDF8)
@@ -187,13 +219,33 @@ class QuizScreen extends StatelessWidget {
                           decoration: BoxDecoration(
                             color: const Color(0xFFEFF6FF),
                             borderRadius: BorderRadius.circular(18),
+                            border: Border.all(color: const Color(0xFFBFDBFE)),
                           ),
-                          child: Row(
+                          child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text("💬", style: TextStyle(fontSize: 24)),
-                              const SizedBox(width: 14),
-                              Expanded(
+                              Row(
+                                children: const [
+                                  Text(
+                                    "Incoming Message",
+                                    style: TextStyle(
+                                      color: Color(0xFF1E40AF),
+                                      fontWeight: FontWeight.w900,
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                  SizedBox(width: 6),
+                                  Text("📩"),
+                                ],
+                              ),
+                              const SizedBox(height: 10),
+                              Container(
+                                width: double.infinity,
+                                padding: const EdgeInsets.all(14),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(14),
+                                ),
                                 child: Text(
                                   '"${_scenario(state)}"',
                                   style: const TextStyle(
@@ -249,7 +301,16 @@ class QuizScreen extends StatelessWidget {
                       onPressed: state.selectedIndex == null
                           ? null
                           : () {
+                              final isCorrect =
+                                  state.selectedIndex == correctIndex;
+
                               if (!state.isAnswered) {
+                                if (isCorrect) {
+                                  HapticFeedback.lightImpact();
+                                  _showXpOverlay(_xp(state));
+                                } else {
+                                  HapticFeedback.heavyImpact();
+                                }
                                 context.read<QuizCubit>().submitAnswer();
                               } else {
                                 context.read<QuizCubit>().nextQuestion();
@@ -285,7 +346,7 @@ class QuizScreen extends StatelessWidget {
   }
 }
 
-class _OptionCard extends StatelessWidget {
+class _OptionCard extends StatefulWidget {
   final String letter;
   final String text;
   final int index;
@@ -304,100 +365,130 @@ class _OptionCard extends StatelessWidget {
     required this.onTap,
   });
 
+  @override
+  State<_OptionCard> createState() => _OptionCardState();
+}
+
+class _OptionCardState extends State<_OptionCard> {
   Color get _borderColor {
-    if (!isAnswered) {
-      return selectedIndex == index
+    if (!widget.isAnswered) {
+      return widget.selectedIndex == widget.index
           ? const Color(0xFF2563EB)
           : const Color(0xFFE2E8F0);
     }
 
-    if (index == correctIndex) return const Color(0xFF10B981);
-    if (index == selectedIndex) return const Color(0xFFEF4444);
+    if (widget.index == widget.correctIndex) return const Color(0xFF10B981);
+    if (widget.index == widget.selectedIndex) return const Color(0xFFEF4444);
 
     return const Color(0xFFE2E8F0);
   }
 
   Color get _backgroundColor {
-    if (!isAnswered) {
-      return selectedIndex == index ? const Color(0xFFEFF6FF) : Colors.white;
+    if (!widget.isAnswered) {
+      return widget.selectedIndex == widget.index
+          ? const Color(0xFFEFF6FF)
+          : Colors.white;
     }
 
-    if (index == correctIndex) return const Color(0xFFECFDF5);
-    if (index == selectedIndex) return const Color(0xFFFEF2F2);
+    if (widget.index == widget.correctIndex) return const Color(0xFFECFDF5);
+    if (widget.index == widget.selectedIndex) return const Color(0xFFFEF2F2);
 
     return Colors.white;
   }
 
   Color get _letterBgColor {
-    if (!isAnswered) {
-      return selectedIndex == index
+    if (!widget.isAnswered) {
+      return widget.selectedIndex == widget.index
           ? const Color(0xFF2563EB)
           : const Color(0xFFEFF6FF);
     }
 
-    if (index == correctIndex) return const Color(0xFF10B981);
-    if (index == selectedIndex) return const Color(0xFFEF4444);
+    if (widget.index == widget.correctIndex) return const Color(0xFF10B981);
+    if (widget.index == widget.selectedIndex) return const Color(0xFFEF4444);
 
     return const Color(0xFFEFF6FF);
   }
 
   Color get _letterTextColor {
-    if (!isAnswered) {
-      return selectedIndex == index ? Colors.white : const Color(0xFF2563EB);
+    if (!widget.isAnswered) {
+      return widget.selectedIndex == widget.index
+          ? Colors.white
+          : const Color(0xFF2563EB);
     }
 
-    if (index == correctIndex || index == selectedIndex) return Colors.white;
+    if (widget.index == widget.correctIndex ||
+        widget.index == widget.selectedIndex)
+      return Colors.white;
 
     return const Color(0xFF64748B);
   }
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: isAnswered ? null : onTap,
-      borderRadius: BorderRadius.circular(18),
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: _backgroundColor,
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: _borderColor, width: 1.4),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 34,
-              height: 34,
-              decoration: BoxDecoration(
-                color: _letterBgColor,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Center(
-                child: Text(
-                  letter,
-                  style: TextStyle(
-                    color: _letterTextColor,
-                    fontWeight: FontWeight.w900,
+    return AnimatedScale(
+      scale: widget.selectedIndex == widget.index ? 1.03 : 1.0,
+      duration: const Duration(milliseconds: 180),
+      curve: Curves.easeOut,
+      child: InkWell(
+        onTap: widget.isAnswered
+            ? null
+            : () {
+                HapticFeedback.selectionClick();
+                widget.onTap();
+              },
+        borderRadius: BorderRadius.circular(18),
+        child: Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: _backgroundColor,
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: _borderColor, width: 1.4),
+            boxShadow: widget.index == widget.correctIndex && widget.isAnswered
+                ? [
+                    BoxShadow(
+                      color: Colors.green.withOpacity(0.25),
+                      blurRadius: 15,
+                      spreadRadius: 1,
+                    ),
+                  ]
+                : [],
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 34,
+                height: 34,
+                decoration: BoxDecoration(
+                  color: _letterBgColor,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Center(
+                  child: Text(
+                    widget.letter,
+                    style: TextStyle(
+                      color: _letterTextColor,
+                      fontWeight: FontWeight.w900,
+                    ),
                   ),
                 ),
               ),
-            ),
 
-            const SizedBox(width: 14),
+              const SizedBox(width: 14),
 
-            Expanded(
-              child: Text(
-                text,
-                style: const TextStyle(
-                  color: Color(0xFF0F172A),
-                  fontWeight: FontWeight.w800,
-                  fontSize: 14,
-                  height: 1.25,
+              Expanded(
+                child: Text(
+                  widget.text,
+                  style: const TextStyle(
+                    color: Color(0xFF0F172A),
+                    fontWeight: FontWeight.w800,
+                    fontSize: 14,
+                    height: 1.25,
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -458,6 +549,12 @@ class _XpBox extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final badgeLabel = isCorrect
+        ? xp >= 30
+              ? '🔥 Streak x3'
+              : '🏆 Cyber Defender'
+        : 'Keep learning';
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -467,26 +564,139 @@ class _XpBox extends StatelessWidget {
       child: Row(
         children: [
           Expanded(
-            child: Text(
-              isCorrect ? " Question answered correctly" : " Keep learning",
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w800,
-              ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  isCorrect ? " Question answered correctly" : " Keep learning",
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  badgeLabel,
+                  style: const TextStyle(
+                    color: Color(0xFF93C5FD),
+                    fontWeight: FontWeight.w700,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
             ),
           ),
 
-          Text(
-            isCorrect ? "+$xp\nXP" : "+0\nXP",
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              color: Color(0xFF38BDF8),
-              fontSize: 18,
-              fontWeight: FontWeight.w900,
-              height: 1.05,
-            ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                isCorrect ? "+$xp XP" : "+0 XP",
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: Color(0xFF38BDF8),
+                  fontSize: 18,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 4),
+              const Text(
+                "XP earned",
+                style: TextStyle(color: Color(0xFF93C5FD), fontSize: 12),
+              ),
+            ],
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _XpOverlayPopup extends StatefulWidget {
+  final int xp;
+  final VoidCallback onDismiss;
+
+  const _XpOverlayPopup({required this.xp, required this.onDismiss});
+
+  @override
+  State<_XpOverlayPopup> createState() => _XpOverlayPopupState();
+}
+
+class _XpOverlayPopupState extends State<_XpOverlayPopup> {
+  double _opacity = 0.0;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      setState(() => _opacity = 1.0);
+      Future.delayed(const Duration(milliseconds: 1200), () {
+        if (!mounted) return;
+        setState(() => _opacity = 0.0);
+        Future.delayed(const Duration(milliseconds: 260), () {
+          if (mounted) widget.onDismiss();
+        });
+      });
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Positioned(
+      top: 80,
+      left: 0,
+      right: 0,
+      child: IgnorePointer(
+        child: AnimatedOpacity(
+          opacity: _opacity,
+          duration: const Duration(milliseconds: 260),
+          curve: Curves.easeOut,
+          child: Center(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 14),
+              decoration: BoxDecoration(
+                color: const Color(0xFF0D1B3E).withOpacity(0.92),
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.2),
+                    blurRadius: 18,
+                    offset: const Offset(0, 8),
+                  ),
+                ],
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text('🔥', style: TextStyle(fontSize: 22)),
+                  const SizedBox(width: 10),
+                  Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '+${widget.xp} XP',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      const Text(
+                        'Level up!',
+                        style: TextStyle(
+                          color: Color(0xFF93C5FD),
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }

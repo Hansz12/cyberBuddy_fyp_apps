@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import '../../data/services/lib/data/services/connectivity_service.dart';
+import '../../data/services/connectivity_service.dart';
 import '../../data/services/news_service.dart';
 import '../learning/cubit/learning_cubit.dart';
 import '../learning/learning_screen.dart';

@@ -432,7 +432,11 @@ class _LearningScreenState extends State<LearningScreen> {
                       ],
 
                       if (beginnerModules.isNotEmpty) ...[
-                        const _LearningSectionTitle("BEGINNER"),
+                        const _LearningLevelHeader(
+                          title: "BEGINNER",
+                          icon: Icons.school,
+                          color: Color(0xFF10B981),
+                        ),
                         const SizedBox(height: 10),
 
                         ...beginnerModules.map((module) {
@@ -455,7 +459,11 @@ class _LearningScreenState extends State<LearningScreen> {
                       ],
 
                       if (intermediateModules.isNotEmpty) ...[
-                        const _LearningSectionTitle("INTERMEDIATE"),
+                        const _LearningLevelHeader(
+                          title: "INTERMEDIATE",
+                          icon: Icons.trending_up,
+                          color: Color(0xFF2563EB),
+                        ),
                         const SizedBox(height: 10),
 
                         ...intermediateModules.map((module) {
@@ -478,7 +486,11 @@ class _LearningScreenState extends State<LearningScreen> {
                       ],
 
                       if (advancedModules.isNotEmpty) ...[
-                        const _LearningSectionTitle("ADVANCED"),
+                        const _LearningLevelHeader(
+                          title: "ADVANCED",
+                          icon: Icons.workspace_premium,
+                          color: Color(0xFFEF4444),
+                        ),
                         const SizedBox(height: 10),
 
                         ...advancedModules.map((module) {
@@ -504,6 +516,44 @@ class _LearningScreenState extends State<LearningScreen> {
             );
           },
         ),
+      ),
+    );
+  }
+}
+
+class _LearningLevelHeader extends StatelessWidget {
+  final String title;
+  final IconData icon;
+  final Color color;
+
+  const _LearningLevelHeader({
+    required this.title,
+    required this.icon,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(top: 8, bottom: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: color),
+          const SizedBox(width: 10),
+          Text(
+            title,
+            style: TextStyle(
+              color: color,
+              fontWeight: FontWeight.w900,
+              fontSize: 15,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -669,6 +719,7 @@ class _LearningCard extends StatelessWidget {
   }
 }
 
+// ignore: unused_element
 class _EmptyLearningCard extends StatelessWidget {
   const _EmptyLearningCard();
 
