@@ -1,0 +1,192 @@
+[
+  {
+    "badge_id": "B001",
+    "badge_name": "Phishing_Shield",
+    "emoji": "🛡️",
+    "related_module": "M001",
+    "unlock_condition": "Complete all Phishing modules with 70%+ quiz score",
+    "xp_bonus": 25,
+    "category": "Email Security",
+    "description": "Awarded for mastering phishing identification and safe response techniques"
+  },
+  {
+    "badge_id": "B002",
+    "badge_name": "Password_Pro",
+    "emoji": "🔑",
+    "related_module": "M002",
+    "unlock_condition": "Complete Password Security module",
+    "xp_bonus": 25,
+    "category": "Account Security",
+    "description": "Awarded for applying strong password practices and understanding password managers"
+  },
+  {
+    "badge_id": "B003",
+    "badge_name": "Social_Shield",
+    "emoji": "🧠",
+    "related_module": "M003",
+    "unlock_condition": "Complete Social Engineering module with 80%+ quiz score",
+    "xp_bonus": 30,
+    "category": "Social Engineering",
+    "description": "Awarded for recognising and resisting manipulation and impersonation tactics"
+  },
+  {
+    "badge_id": "B004",
+    "badge_name": "Malware_Hunter",
+    "emoji": "🐞",
+    "related_module": "M004",
+    "unlock_condition": "Score 80%+ on all Malware quizzes",
+    "xp_bonus": 25,
+    "category": "Device Safety",
+    "description": "Awarded for identifying malware risks and safe installation practices"
+  },
+  {
+    "badge_id": "B005",
+    "badge_name": "Privacy_Guard",
+    "emoji": "👁️",
+    "related_module": "M005",
+    "unlock_condition": "Complete all Privacy modules",
+    "xp_bonus": 25,
+    "category": "Privacy",
+    "description": "Awarded for managing app permissions and reducing oversharing risks"
+  },
+  {
+    "badge_id": "B006",
+    "badge_name": "Scam_Spotter",
+    "emoji": "💸",
+    "related_module": "M006",
+    "unlock_condition": "Complete Scam Awareness module with 80%+ score",
+    "xp_bonus": 25,
+    "category": "Financial Security",
+    "description": "Awarded for identifying scam red flags and knowing how to report them"
+  },
+  {
+    "badge_id": "B007",
+    "badge_name": "Mobile_Shield",
+    "emoji": "📱",
+    "related_module": "M007",
+    "unlock_condition": "Complete Mobile Device Security module",
+    "xp_bonus": 25,
+    "category": "Mobile Security",
+    "description": "Awarded for applying mobile security best practices on Android and iOS"
+  },
+  {
+    "badge_id": "B008",
+    "badge_name": "Network_Ninja",
+    "emoji": "📶",
+    "related_module": "M008",
+    "unlock_condition": "Complete Public Wi-Fi Safety module",
+    "xp_bonus": 25,
+    "category": "Network Security",
+    "description": "Awarded for understanding Wi-Fi risks and safe browsing habits"
+  },
+  {
+    "badge_id": "B009",
+    "badge_name": "MFA_Master",
+    "emoji": "🛡️",
+    "related_module": "M009",
+    "unlock_condition": "Complete Two-Factor Authentication module with 80%+ score",
+    "xp_bonus": 30,
+    "category": "Account Security",
+    "description": "Awarded for enabling and using 2FA safely across all accounts"
+  },
+  {
+    "badge_id": "B010",
+    "badge_name": "Breach_Defender",
+    "emoji": "🚨",
+    "related_module": "M010",
+    "unlock_condition": "Complete Data Breach Response module",
+    "xp_bonus": 25,
+    "category": "Account Security",
+    "description": "Awarded for knowing how to respond to data breaches quickly and effectively"
+  },
+  {
+    "badge_id": "B011",
+    "badge_name": "Ethics_Champion",
+    "emoji": "🤝",
+    "related_module": "M011",
+    "unlock_condition": "Complete Cyberbullying and Digital Ethics module",
+    "xp_bonus": 25,
+    "category": "Digital Ethics",
+    "description": "Awarded for demonstrating responsible and ethical online behaviour"
+  },
+  {
+    "badge_id": "B012",
+    "badge_name": "Banking_Guardian",
+    "emoji": "🏦",
+    "related_module": "M012",
+    "unlock_condition": "Complete Safe Online Banking module with 80%+ score",
+    "xp_bonus": 35,
+    "category": "Financial Security",
+    "description": "Awarded for verifying banking domains and resisting financial cyber fraud"
+  },
+  {
+    "badge_id": "B013",
+    "badge_name": "All_Rounder",
+    "emoji": "⭐",
+    "related_module": "All",
+    "unlock_condition": "Complete modules in 5 different topic categories",
+    "xp_bonus": 50,
+    "category": "All",
+    "description": "Awarded for broad cybersecurity awareness across multiple domains"
+  },
+  {
+    "badge_id": "B014",
+    "badge_name": "Quiz_Master",
+    "emoji": "🏆",
+    "related_module": "All",
+    "unlock_condition": "Score 90%+ in any 5 quiz attempts",
+    "xp_bonus": 50,
+    "category": "All",
+    "description": "Awarded for consistently high quiz performance"
+  },
+  {
+    "badge_id": "B015",
+    "badge_name": "Elite_Defender",
+    "emoji": "💎",
+    "related_module": "All",
+    "unlock_condition": "Achieve 95%+ overall average quiz score",
+    "xp_bonus": 100,
+    "category": "All",
+    "description": "Awarded for exceptional cybersecurity knowledge across all modules"
+  },
+  {
+    "badge_id": "B016",
+    "badge_name": "Cyber_Scholar",
+    "emoji": "🎓",
+    "related_module": "All",
+    "unlock_condition": "Complete all 12 modules",
+    "xp_bonus": 100,
+    "category": "All",
+    "description": "Awarded for completing the full CyberBuddy learning programme"
+  },
+  {
+    "badge_id": "B017",
+    "badge_name": "Daily_Streak_7",
+    "emoji": "🔥",
+    "related_module": "All",
+    "unlock_condition": "Log in and complete activity 7 consecutive days",
+    "xp_bonus": 30,
+    "category": "Engagement",
+    "description": "Awarded for maintaining a 7-day engagement streak"
+  },
+  {
+    "badge_id": "B018",
+    "badge_name": "Daily_Streak_30",
+    "emoji": "⚡",
+    "related_module": "All",
+    "unlock_condition": "Log in and complete activity 30 consecutive days",
+    "xp_bonus": 80,
+    "category": "Engagement",
+    "description": "Awarded for exceptional 30-day commitment to cybersecurity learning"
+  },
+  {
+    "badge_id": "B019",
+    "badge_name": "Rookie_Badge",
+    "emoji": "🌱",
+    "related_module": "All",
+    "unlock_condition": "Complete first module",
+    "xp_bonus": 0,
+    "category": "Engagement",
+    "description": "Welcome badge awarded for completing your first CyberBuddy module"
+  }
+]

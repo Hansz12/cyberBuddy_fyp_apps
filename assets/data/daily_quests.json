@@ -1,0 +1,156 @@
+[
+  {
+    "quest_id": "DQ001",
+    "quest_name": "Daily Learner",
+    "description": "Complete any 1 learning module to completion",
+    "icon_emoji": "📖",
+    "xp_reward": 10,
+    "target_count": 1,
+    "topic_filter": "any",
+    "difficulty_filter": "any",
+    "reset_period": "Daily"
+  },
+  {
+    "quest_id": "DQ002",
+    "quest_name": "Quiz Challenger",
+    "description": "Answer any 5 quiz questions",
+    "icon_emoji": "🎯",
+    "xp_reward": 15,
+    "target_count": 5,
+    "topic_filter": "any",
+    "difficulty_filter": "any",
+    "reset_period": "Daily"
+  },
+  {
+    "quest_id": "DQ003",
+    "quest_name": "Perfect Score",
+    "description": "Get 100% on any quiz attempt",
+    "icon_emoji": "⭐",
+    "xp_reward": 20,
+    "target_count": 1,
+    "topic_filter": "any",
+    "difficulty_filter": "any",
+    "reset_period": "Daily"
+  },
+  {
+    "quest_id": "DQ004",
+    "quest_name": "Topic Explorer",
+    "description": "Complete a module in a topic category you have not visited before",
+    "icon_emoji": "🗺️",
+    "xp_reward": 15,
+    "target_count": 1,
+    "topic_filter": "any",
+    "difficulty_filter": "Beginner",
+    "reset_period": "Daily"
+  },
+  {
+    "quest_id": "DQ005",
+    "quest_name": "Phishing Detective",
+    "description": "Score 80%+ on a Phishing quiz",
+    "icon_emoji": "🎣",
+    "xp_reward": 20,
+    "target_count": 1,
+    "topic_filter": "phishing",
+    "difficulty_filter": "any",
+    "reset_period": "Daily"
+  },
+  {
+    "quest_id": "DQ006",
+    "quest_name": "Malware Buster",
+    "description": "Complete a Malware module and its quiz",
+    "icon_emoji": "🐞",
+    "xp_reward": 20,
+    "target_count": 1,
+    "topic_filter": "malware",
+    "difficulty_filter": "any",
+    "reset_period": "Daily"
+  },
+  {
+    "quest_id": "DQ007",
+    "quest_name": "Scam Radar",
+    "description": "Complete the Online Scam Awareness quiz",
+    "icon_emoji": "💸",
+    "xp_reward": 15,
+    "target_count": 1,
+    "topic_filter": "scam",
+    "difficulty_filter": "any",
+    "reset_period": "Daily"
+  },
+  {
+    "quest_id": "DQ008",
+    "quest_name": "Privacy Audit",
+    "description": "Complete any Privacy Protection module",
+    "icon_emoji": "👁️",
+    "xp_reward": 15,
+    "target_count": 1,
+    "topic_filter": "privacy",
+    "difficulty_filter": "any",
+    "reset_period": "Daily"
+  },
+  {
+    "quest_id": "DQ009",
+    "quest_name": "Safe Navigator",
+    "description": "Score 80%+ in a Wi-Fi or Network quiz",
+    "icon_emoji": "📶",
+    "xp_reward": 20,
+    "target_count": 1,
+    "topic_filter": "network",
+    "difficulty_filter": "any",
+    "reset_period": "Daily"
+  },
+  {
+    "quest_id": "DQ010",
+    "quest_name": "Speed Learner",
+    "description": "Complete 3 modules in a single session",
+    "icon_emoji": "🚀",
+    "xp_reward": 30,
+    "target_count": 3,
+    "topic_filter": "any",
+    "difficulty_filter": "any",
+    "reset_period": "Daily"
+  },
+  {
+    "quest_id": "DQ011",
+    "quest_name": "Weekly Champion",
+    "description": "Complete 7 modules within one calendar week",
+    "icon_emoji": "🏆",
+    "xp_reward": 50,
+    "target_count": 7,
+    "topic_filter": "any",
+    "difficulty_filter": "any",
+    "reset_period": "Weekly"
+  },
+  {
+    "quest_id": "DQ012",
+    "quest_name": "Advanced Challenger",
+    "description": "Score 80%+ on any Advanced-difficulty quiz",
+    "icon_emoji": "💎",
+    "xp_reward": 25,
+    "target_count": 1,
+    "topic_filter": "any",
+    "difficulty_filter": "Advanced",
+    "reset_period": "Daily"
+  },
+  {
+    "quest_id": "DQ013",
+    "quest_name": "Banking Safety Check",
+    "description": "Complete the Safe Online Banking quiz",
+    "icon_emoji": "🏦",
+    "xp_reward": 25,
+    "target_count": 1,
+    "topic_filter": "banking",
+    "difficulty_filter": "any",
+    "reset_period": "Daily"
+  },
+  {
+    "quest_id": "DQ014",
+    "quest_name": "Ethics Guardian",
+    "description": "Complete the Cyberbullying and Digital Ethics module",
+    "icon_emoji": "🤝",
+    "xp_reward": 15,
+    "target_count": 1,
+    "topic_filter": "ethics",
+    "difficulty_filter": "any",
+    "reset_period": "Daily"
+  }
+]

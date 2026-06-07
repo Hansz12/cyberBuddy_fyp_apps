@@ -1,0 +1,227 @@
+[
+  {
+    "CONTENT-BASED RECOMMENDATION SYSTEM — CyberBuddy FYP": null,
+    "Unnamed: 1": null,
+    "Unnamed: 2": null,
+    "Unnamed: 3": null,
+    "Unnamed: 4": null,
+    "Unnamed: 5": null,
+    "Unnamed: 6": null
+  },
+  {
+    "CONTENT-BASED RECOMMENDATION SYSTEM — CyberBuddy FYP": "USER PROFILE FEATURE VECTORS (Input to Cosine Similarity Algorithm)",
+    "Unnamed: 1": null,
+    "Unnamed: 2": null,
+    "Unnamed: 3": null,
+    "Unnamed: 4": null,
+    "Unnamed: 5": null,
+    "Unnamed: 6": null
+  },
+  {
+    "CONTENT-BASED RECOMMENDATION SYSTEM — CyberBuddy FYP": "feature_id",
+    "Unnamed: 1": "feature_name",
+    "Unnamed: 2": "feature_type",
+    "Unnamed: 3": "data_source",
+    "Unnamed: 4": "weight",
+    "Unnamed: 5": "description",
+    "Unnamed: 6": "example_value"
+  },
+  {
+    "CONTENT-BASED RECOMMENDATION SYSTEM — CyberBuddy FYP": "F001",
+    "Unnamed: 1": "preferred_topics",
+    "Unnamed: 2": "Preference",
+    "Unnamed: 3": "User registration topic selection",
+    "Unnamed: 4": 0.3,
+    "Unnamed: 5": "Topics selected at registration or inferred from interaction",
+    "Unnamed: 6": "phishing;malware"
+  },
+  {
+    "CONTENT-BASED RECOMMENDATION SYSTEM — CyberBuddy FYP": "F002",
+    "Unnamed: 1": "quiz_score_per_topic",
+    "Unnamed: 2": "Cognitive",
+    "Unnamed: 3": "Quiz results averaged per topic",
+    "Unnamed: 4": 0.25,
+    "Unnamed: 5": "Average quiz score (0–100) per topic. Low score = recommend remedial content",
+    "Unnamed: 6": "phishing: 78, malware: 55"
+  },
+  {
+    "CONTENT-BASED RECOMMENDATION SYSTEM — CyberBuddy FYP": "F003",
+    "Unnamed: 1": "completion_rate_per_topic",
+    "Unnamed: 2": "Behavioural",
+    "Unnamed: 3": "Module completion logs",
+    "Unnamed: 4": 0.2,
+    "Unnamed: 5": "Percentage of modules completed per topic category",
+    "Unnamed: 6": "phishing: 100%, malware: 40%"
+  },
+  {
+    "CONTENT-BASED RECOMMENDATION SYSTEM — CyberBuddy FYP": "F004",
+    "Unnamed: 1": "interaction_frequency",
+    "Unnamed: 2": "Behavioural",
+    "Unnamed: 3": "App session click/open logs",
+    "Unnamed: 4": 0.15,
+    "Unnamed: 5": "Number of sessions the user engaged with each topic",
+    "Unnamed: 6": "phishing: 8 sessions"
+  },
+  {
+    "CONTENT-BASED RECOMMENDATION SYSTEM — CyberBuddy FYP": "F005",
+    "Unnamed: 1": "difficulty_preference",
+    "Unnamed: 2": "Behavioural",
+    "Unnamed: 3": "Content access patterns",
+    "Unnamed: 4": 0.1,
+    "Unnamed: 5": "Preferred difficulty inferred from module access history",
+    "Unnamed: 6": "Intermediate"
+  },
+  {
+    "CONTENT-BASED RECOMMENDATION SYSTEM — CyberBuddy FYP": null,
+    "Unnamed: 1": null,
+    "Unnamed: 2": null,
+    "Unnamed: 3": null,
+    "Unnamed: 4": null,
+    "Unnamed: 5": null,
+    "Unnamed: 6": null
+  },
+  {
+    "CONTENT-BASED RECOMMENDATION SYSTEM — CyberBuddy FYP": "CONTENT FEATURE VECTORS (Matched Against User Profile)",
+    "Unnamed: 1": null,
+    "Unnamed: 2": null,
+    "Unnamed: 3": null,
+    "Unnamed: 4": null,
+    "Unnamed: 5": null,
+    "Unnamed: 6": null
+  },
+  {
+    "CONTENT-BASED RECOMMENDATION SYSTEM — CyberBuddy FYP": "feature_id",
+    "Unnamed: 1": "feature_name",
+    "Unnamed: 2": "feature_type",
+    "Unnamed: 3": "data_source",
+    "Unnamed: 4": "weight",
+    "Unnamed: 5": "description",
+    "Unnamed: 6": "example_value"
+  },
+  {
+    "CONTENT-BASED RECOMMENDATION SYSTEM — CyberBuddy FYP": "CF001",
+    "Unnamed: 1": "topic",
+    "Unnamed: 2": "Content Attribute",
+    "Unnamed: 3": "Modules sheet — topic column",
+    "Unnamed: 4": 0.35,
+    "Unnamed: 5": "Cybersecurity topic area the module covers",
+    "Unnamed: 6": "phishing"
+  },
+  {
+    "CONTENT-BASED RECOMMENDATION SYSTEM — CyberBuddy FYP": "CF002",
+    "Unnamed: 1": "difficulty",
+    "Unnamed: 2": "Content Attribute",
+    "Unnamed: 3": "Modules sheet — difficulty column",
+    "Unnamed: 4": 0.25,
+    "Unnamed: 5": "Module difficulty: Beginner / Intermediate / Advanced",
+    "Unnamed: 6": "Intermediate"
+  },
+  {
+    "CONTENT-BASED RECOMMENDATION SYSTEM — CyberBuddy FYP": "CF003",
+    "Unnamed: 1": "tags_csv",
+    "Unnamed: 2": "Semantic",
+    "Unnamed: 3": "Modules sheet — tags_csv column",
+    "Unnamed: 4": 0.25,
+    "Unnamed: 5": "Descriptive keywords for semantic similarity matching via TF-IDF",
+    "Unnamed: 6": "phishing,email,fake link"
+  },
+  {
+    "CONTENT-BASED RECOMMENDATION SYSTEM — CyberBuddy FYP": "CF004",
+    "Unnamed: 1": "learning_objective",
+    "Unnamed: 2": "Content Attribute",
+    "Unnamed: 3": "Modules sheet — learning_objective column",
+    "Unnamed: 4": 0.15,
+    "Unnamed: 5": "The knowledge or skill outcome of the module",
+    "Unnamed: 6": "Recognize phishing indicators"
+  },
+  {
+    "CONTENT-BASED RECOMMENDATION SYSTEM — CyberBuddy FYP": null,
+    "Unnamed: 1": null,
+    "Unnamed: 2": null,
+    "Unnamed: 3": null,
+    "Unnamed: 4": null,
+    "Unnamed: 5": null,
+    "Unnamed: 6": null
+  },
+  {
+    "CONTENT-BASED RECOMMENDATION SYSTEM — CyberBuddy FYP": "RECOMMENDATION RULES (Priority Order)",
+    "Unnamed: 1": null,
+    "Unnamed: 2": null,
+    "Unnamed: 3": null,
+    "Unnamed: 4": null,
+    "Unnamed: 5": null,
+    "Unnamed: 6": null
+  },
+  {
+    "CONTENT-BASED RECOMMENDATION SYSTEM — CyberBuddy FYP": "rule_id",
+    "Unnamed: 1": "rule_name",
+    "Unnamed: 2": "condition",
+    "Unnamed: 3": "action",
+    "Unnamed: 4": "priority",
+    "Unnamed: 5": "notes",
+    "Unnamed: 6": "xp_trigger"
+  },
+  {
+    "CONTENT-BASED RECOMMENDATION SYSTEM — CyberBuddy FYP": "R001",
+    "Unnamed: 1": "Topic Match",
+    "Unnamed: 2": "User preferred_topics contains module topic",
+    "Unnamed: 3": "Recommend matching modules first",
+    "Unnamed: 4": 1,
+    "Unnamed: 5": "Primary signal — highest weight",
+    "Unnamed: 6": "Any engagement"
+  },
+  {
+    "CONTENT-BASED RECOMMENDATION SYSTEM — CyberBuddy FYP": "R002",
+    "Unnamed: 1": "Difficulty Progression",
+    "Unnamed: 2": "User quiz_score_per_topic ≥ 75% at current difficulty",
+    "Unnamed: 3": "Recommend next difficulty level for that topic",
+    "Unnamed: 4": 2,
+    "Unnamed: 5": "Encourages learning progression",
+    "Unnamed: 6": "Quiz completion"
+  },
+  {
+    "CONTENT-BASED RECOMMENDATION SYSTEM — CyberBuddy FYP": "R003",
+    "Unnamed: 1": "Low Score Remediation",
+    "Unnamed: 2": "User quiz_score_per_topic < 60% in any topic",
+    "Unnamed: 3": "Re-recommend incomplete modules in that topic",
+    "Unnamed: 4": 3,
+    "Unnamed: 5": "Closes knowledge gaps",
+    "Unnamed: 6": "Failed quiz"
+  },
+  {
+    "CONTENT-BASED RECOMMENDATION SYSTEM — CyberBuddy FYP": "R004",
+    "Unnamed: 1": "Unexplored Topics",
+    "Unnamed: 2": "User has 0 interactions with a topic category",
+    "Unnamed: 3": "Suggest one Beginner module from unexplored topic",
+    "Unnamed: 4": 4,
+    "Unnamed: 5": "Broadens awareness coverage",
+    "Unnamed: 6": "First login"
+  },
+  {
+    "CONTENT-BASED RECOMMENDATION SYSTEM — CyberBuddy FYP": "R005",
+    "Unnamed: 1": "Keyword Similarity",
+    "Unnamed: 2": "Cosine similarity between user tag vector and module tag vector > 0.5",
+    "Unnamed: 3": "Surface semantically related modules",
+    "Unnamed: 4": 5,
+    "Unnamed: 5": "Secondary semantic matching using TF-IDF vectors",
+    "Unnamed: 6": "Tag matching"
+  },
+  {
+    "CONTENT-BASED RECOMMENDATION SYSTEM — CyberBuddy FYP": "R006",
+    "Unnamed: 1": "Prerequisite Check",
+    "Unnamed: 2": "Module has prerequisite_module field set",
+    "Unnamed: 3": "Only recommend if prerequisite module is completed",
+    "Unnamed: 4": 6,
+    "Unnamed: 5": "Ensures logical learning sequence",
+    "Unnamed: 6": "Module completion"
+  },
+  {
+    "CONTENT-BASED RECOMMENDATION SYSTEM — CyberBuddy FYP": "R007",
+    "Unnamed: 1": "Streak Boost",
+    "Unnamed: 2": "User streak_days ≥ 7",
+    "Unnamed: 3": "Prioritise Advanced modules for highly engaged users",
+    "Unnamed: 4": 7,
+    "Unnamed: 5": "Rewards consistent engagement",
+    "Unnamed: 6": "Daily login"
+  }
+]
