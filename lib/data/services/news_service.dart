@@ -23,12 +23,18 @@ class NewsService {
     final data = jsonDecode(response.body);
     final newsResults = data["news_results"] as List? ?? [];
 
+    if (newsResults.isNotEmpty) {
+      print(newsResults.first);
+    }
+
     final filtered = newsResults
         .map((news) {
           return {
             "title": news["title"] ?? "Cyber news",
             "source": news["source"] ?? "Online source",
             "url": news["link"] ?? "",
+            "thumbnail": news["thumbnail"] ?? "",
+            "snippet": news["snippet"] ?? "",
           };
         })
         .where((item) => _isRelevant(item["title"].toString()))

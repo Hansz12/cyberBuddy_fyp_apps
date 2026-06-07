@@ -429,12 +429,14 @@ class _HomeScreenState extends State<HomeScreen> {
                             return Column(
                               children: newsList.take(3).map((news) {
                                 return _NewsCard(
-                                  icon: "📰",
-                                  tag: "LIVE",
                                   title:
                                       news["title"]?.toString() ??
                                       "Cybersecurity news",
                                   source: _cleanSource(news["source"]),
+                                  imageUrl:
+                                      news["thumbnail"]?.toString() ??
+                                      news["image"]?.toString() ??
+                                      "",
                                   onTap: () => _openNewsUrl(
                                     context,
                                     news["url"]?.toString() ?? "",
@@ -1110,40 +1112,135 @@ class _RecommendedCard extends StatelessWidget {
 }
 
 class _NewsCard extends StatelessWidget {
-  final String icon;
-  final String tag;
   final String title;
   final String source;
+  final String imageUrl;
   final VoidCallback onTap;
 
   const _NewsCard({
-    required this.icon,
-    required this.tag,
     required this.title,
     required this.source,
+    required this.imageUrl,
     required this.onTap,
   });
 
+  bool get _hasImage =>
+      imageUrl.trim().isNotEmpty && imageUrl.startsWith("http");
+
   @override
   Widget build(BuildContext context) {
-    return _SimpleCard(
+    return InkWell(
       onTap: onTap,
-      child: Row(
-        children: [
-          _IconBox(icon: icon, bg: const Color(0xFFFEF2F2)),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              "$tag · $title\n$source · +5 XP reading",
-              maxLines: 3,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                color: Color(0xFF0F172A),
-                fontWeight: FontWeight.w800,
+      borderRadius: BorderRadius.circular(18),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 14),
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: const Color(0xFFE2E8F0)),
+        ),
+        child: Row(
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(14),
+              child: _hasImage
+                  ? Image.network(
+                      imageUrl,
+                      width: 82,
+                      height: 82,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => const _SmallNewsFallback(),
+                    )
+                  : const _SmallNewsFallback(),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: const [
+                      _LiveBadge(),
+                      Spacer(),
+                      Text(
+                        "+5 XP",
+                        style: TextStyle(
+                          color: Color(0xFF10B981),
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    title,
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Color(0xFF0F172A),
+                      fontSize: 14,
+                      height: 1.25,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    source,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Color(0xFF94A3B8),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
               ),
             ),
-          ),
-        ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _LiveBadge extends StatelessWidget {
+  const _LiveBadge();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: const Color(0xFFEF4444),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: const Text(
+        "LIVE",
+        style: TextStyle(
+          color: Colors.white,
+          fontSize: 9,
+          fontWeight: FontWeight.w900,
+        ),
+      ),
+    );
+  }
+}
+
+class _SmallNewsFallback extends StatelessWidget {
+  const _SmallNewsFallback();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 82,
+      height: 82,
+      color: const Color(0xFFEFF6FF),
+      child: const Icon(
+        Icons.newspaper_rounded,
+        color: Color(0xFF2563EB),
+        size: 34,
       ),
     );
   }
