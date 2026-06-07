@@ -177,7 +177,7 @@ class _LearningScreenState extends State<LearningScreen> {
       return a.completed ? 1 : -1;
     });
 
-    final filtered = sortedModules.where((module) {
+    return sortedModules.where((module) {
       final topic = module.topic.toLowerCase();
       final title = module.title.toLowerCase();
       final content = module.content.toLowerCase();
@@ -197,8 +197,6 @@ class _LearningScreenState extends State<LearningScreen> {
 
       return matchesFilter && matchesSearch;
     }).toList();
-
-    return filtered;
   }
 
   List<LearningModule> _modulesByDifficulty(
@@ -212,9 +210,7 @@ class _LearningScreenState extends State<LearningScreen> {
 
   LearningModule? _continueModule(List<LearningModule> modules) {
     final notCompleted = modules.where((module) => !module.completed).toList();
-
     if (notCompleted.isNotEmpty) return notCompleted.first;
-
     return null;
   }
 
@@ -230,6 +226,220 @@ class _LearningScreenState extends State<LearningScreen> {
     Navigator.push(
       context,
       MaterialPageRoute(builder: (_) => ModuleDetailScreen(module: module)),
+    );
+  }
+
+  void _showModulePreview(BuildContext context, LearningModule module) {
+    final color = _difficultyColor(module.difficulty);
+    final icon = _topicIcon(module.topic);
+    final description = module.content.isEmpty
+        ? "Cybersecurity learning module"
+        : module.content.split(".").first;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (_) {
+        return Container(
+          padding: const EdgeInsets.fromLTRB(18, 12, 18, 24),
+          decoration: const BoxDecoration(
+            color: Color(0xFFF8FAFC),
+            borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+          ),
+          child: SafeArea(
+            top: false,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 46,
+                  height: 5,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFCBD5E1),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                ),
+                const SizedBox(height: 18),
+
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(18),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF0D1B3E), Color(0xFF1E3A8A)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(22),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 58,
+                        height: 58,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.14),
+                          borderRadius: BorderRadius.circular(18),
+                        ),
+                        child: Icon(icon, color: Colors.white, size: 30),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              module.title,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 19,
+                                fontWeight: FontWeight.w900,
+                                height: 1.15,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              "${module.topic.toUpperCase()} · ${module.difficulty.toUpperCase()}",
+                              style: const TextStyle(
+                                color: Color(0xFF93C5FD),
+                                fontSize: 11,
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: 1.1,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 16),
+
+                Row(
+                  children: [
+                    Expanded(
+                      child: _PreviewInfoBox(
+                        icon: Icons.signal_cellular_alt,
+                        title: "Level",
+                        value: module.difficulty,
+                        color: color,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: _PreviewInfoBox(
+                        icon: Icons.topic,
+                        title: "Topic",
+                        value: module.topic,
+                        color: const Color(0xFF2563EB),
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 10),
+
+                Row(
+                  children: [
+                    Expanded(
+                      child: _PreviewInfoBox(
+                        icon: module.completed
+                            ? Icons.check_circle
+                            : Icons.play_circle,
+                        title: "Status",
+                        value: module.completed ? "Completed" : "Not started",
+                        color: module.completed
+                            ? const Color(0xFF10B981)
+                            : const Color(0xFF64748B),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: _PreviewInfoBox(
+                        icon: Icons.bolt,
+                        title: "Reward",
+                        value: module.completed ? "Done" : "XP",
+                        color: const Color(0xFFF59E0B),
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 16),
+
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                  ),
+                  child: Text(
+                    description,
+                    style: const TextStyle(
+                      color: Color(0xFF475569),
+                      fontSize: 14,
+                      height: 1.45,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 18),
+
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      Navigator.pop(context);
+                      _openModule(context, module);
+                    },
+                    icon: const Icon(Icons.play_arrow_rounded),
+                    label: const Text("Start Learning"),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF2563EB),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 15),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 8),
+
+                const Text(
+                  "Tip: Long press a module card to preview it.",
+                  style: TextStyle(
+                    color: Color(0xFF94A3B8),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildLearningCard(BuildContext context, LearningModule module) {
+    return _LearningCard(
+      module: module,
+      icon: _topicIcon(module.topic),
+      iconColor: _topicColor(module.topic),
+      progressColor: _progressColor(module.topic),
+      difficultyColor: _difficultyColor(module.difficulty),
+      progress: _moduleProgress(module),
+      progressText: _progressText(module),
+      badge: _difficultyBadge(module),
+      onTap: () => _openModule(context, module),
+      onLongPress: () => _showModulePreview(context, module),
     );
   }
 
@@ -415,21 +625,11 @@ class _LearningScreenState extends State<LearningScreen> {
                           searchQuery.trim().isEmpty) ...[
                         const _LearningSectionTitle("CONTINUE LEARNING"),
                         const SizedBox(height: 10),
-                        _LearningCard(
-                          module: continueModule,
-                          icon: _topicIcon(continueModule.topic),
-                          iconColor: _topicColor(continueModule.topic),
-                          progressColor: _progressColor(continueModule.topic),
-                          difficultyColor: _difficultyColor(
-                            continueModule.difficulty,
-                          ),
-                          progress: _moduleProgress(continueModule),
-                          progressText: _progressText(continueModule),
-                          badge: _difficultyBadge(continueModule),
-                          onTap: () => _openModule(context, continueModule),
-                        ),
+                        _buildLearningCard(context, continueModule),
                         const SizedBox(height: 18),
                       ],
+
+                      if (filteredModules.isEmpty) const _EmptyLearningCard(),
 
                       if (beginnerModules.isNotEmpty) ...[
                         const _LearningLevelHeader(
@@ -438,23 +638,9 @@ class _LearningScreenState extends State<LearningScreen> {
                           color: Color(0xFF10B981),
                         ),
                         const SizedBox(height: 10),
-
-                        ...beginnerModules.map((module) {
-                          return _LearningCard(
-                            module: module,
-                            icon: _topicIcon(module.topic),
-                            iconColor: _topicColor(module.topic),
-                            progressColor: _progressColor(module.topic),
-                            difficultyColor: _difficultyColor(
-                              module.difficulty,
-                            ),
-                            progress: _moduleProgress(module),
-                            progressText: _progressText(module),
-                            badge: _difficultyBadge(module),
-                            onTap: () => _openModule(context, module),
-                          );
-                        }),
-
+                        ...beginnerModules.map(
+                          (module) => _buildLearningCard(context, module),
+                        ),
                         const SizedBox(height: 18),
                       ],
 
@@ -465,23 +651,9 @@ class _LearningScreenState extends State<LearningScreen> {
                           color: Color(0xFF2563EB),
                         ),
                         const SizedBox(height: 10),
-
-                        ...intermediateModules.map((module) {
-                          return _LearningCard(
-                            module: module,
-                            icon: _topicIcon(module.topic),
-                            iconColor: _topicColor(module.topic),
-                            progressColor: _progressColor(module.topic),
-                            difficultyColor: _difficultyColor(
-                              module.difficulty,
-                            ),
-                            progress: _moduleProgress(module),
-                            progressText: _progressText(module),
-                            badge: _difficultyBadge(module),
-                            onTap: () => _openModule(context, module),
-                          );
-                        }),
-
+                        ...intermediateModules.map(
+                          (module) => _buildLearningCard(context, module),
+                        ),
                         const SizedBox(height: 18),
                       ],
 
@@ -492,22 +664,9 @@ class _LearningScreenState extends State<LearningScreen> {
                           color: Color(0xFFEF4444),
                         ),
                         const SizedBox(height: 10),
-
-                        ...advancedModules.map((module) {
-                          return _LearningCard(
-                            module: module,
-                            icon: _topicIcon(module.topic),
-                            iconColor: _topicColor(module.topic),
-                            progressColor: _progressColor(module.topic),
-                            difficultyColor: _difficultyColor(
-                              module.difficulty,
-                            ),
-                            progress: _moduleProgress(module),
-                            progressText: _progressText(module),
-                            badge: _difficultyBadge(module),
-                            onTap: () => _openModule(context, module),
-                          );
-                        }),
+                        ...advancedModules.map(
+                          (module) => _buildLearningCard(context, module),
+                        ),
                       ],
                     ],
                   ),
@@ -516,6 +675,58 @@ class _LearningScreenState extends State<LearningScreen> {
             );
           },
         ),
+      ),
+    );
+  }
+}
+
+class _PreviewInfoBox extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String value;
+  final Color color;
+
+  const _PreviewInfoBox({
+    required this.icon,
+    required this.title,
+    required this.value,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: color, size: 22),
+          const SizedBox(height: 8),
+          Text(
+            title,
+            style: const TextStyle(
+              color: Color(0xFF94A3B8),
+              fontSize: 11,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 3),
+          Text(
+            value,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              color: Color(0xFF0F172A),
+              fontSize: 13,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -588,6 +799,7 @@ class _LearningCard extends StatelessWidget {
   final String progressText;
   final String badge;
   final VoidCallback onTap;
+  final VoidCallback onLongPress;
 
   const _LearningCard({
     required this.module,
@@ -599,6 +811,7 @@ class _LearningCard extends StatelessWidget {
     required this.progressText,
     required this.badge,
     required this.onTap,
+    required this.onLongPress,
   });
 
   @override
@@ -608,6 +821,7 @@ class _LearningCard extends StatelessWidget {
 
     return InkWell(
       onTap: onTap,
+      onLongPress: onLongPress,
       borderRadius: BorderRadius.circular(18),
       child: Container(
         margin: const EdgeInsets.only(bottom: 14),
@@ -719,7 +933,6 @@ class _LearningCard extends StatelessWidget {
   }
 }
 
-// ignore: unused_element
 class _EmptyLearningCard extends StatelessWidget {
   const _EmptyLearningCard();
 

@@ -55,24 +55,17 @@ class _QuizScreenState extends State<QuizScreen> {
   }
 
   Future _vibrateCorrect() async {
-    final hasVibrator = await Vibration.hasVibrator() ?? false;
-    if (!hasVibrator) return;
+    final hasVibrator = await Vibration.hasVibrator();
+    if (hasVibrator != true) return;
 
     Vibration.vibrate(duration: 80, amplitude: 120);
   }
 
   Future _vibrateWrong() async {
-    final hasVibrator = await Vibration.hasVibrator() ?? false;
-    if (!hasVibrator) return;
+    final hasVibrator = await Vibration.hasVibrator();
+    if (hasVibrator != true) return;
 
     Vibration.vibrate(pattern: [0, 80, 80, 120], intensities: [150, 220]);
-  }
-
-  Future _vibrateTap() async {
-    final hasVibrator = await Vibration.hasVibrator() ?? false;
-    if (!hasVibrator) return;
-
-    Vibration.vibrate(duration: 35, amplitude: 60);
   }
 
   Map<String, dynamic> _q(QuizState state) => state.currentQuestion;
@@ -443,11 +436,11 @@ class _WrongOverlayPopupState extends State<_WrongOverlayPopup> {
                   vertical: 14,
                 ),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF7F1D1D).withOpacity(0.94),
+                  color: const Color.fromRGBO(127, 29, 29, 0.94),
                   borderRadius: BorderRadius.circular(20),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.red.withOpacity(0.25),
+                      color: const Color.fromRGBO(255, 0, 0, 0.25),
                       blurRadius: 18,
                       offset: const Offset(0, 8),
                     ),
@@ -562,8 +555,9 @@ class _OptionCardState extends State<_OptionCard> {
     }
 
     if (widget.index == widget.correctIndex ||
-        widget.index == widget.selectedIndex)
+        widget.index == widget.selectedIndex) {
       return Colors.white;
+    }
 
     return const Color(0xFF64748B);
   }
@@ -587,7 +581,7 @@ class _OptionCardState extends State<_OptionCard> {
             boxShadow: widget.index == widget.correctIndex && widget.isAnswered
                 ? [
                     BoxShadow(
-                      color: Colors.green.withOpacity(0.25),
+                      color: const Color.fromRGBO(16, 185, 129, 0.25),
                       blurRadius: 15,
                       spreadRadius: 1,
                     ),
@@ -764,15 +758,22 @@ class _XpOverlayPopup extends StatefulWidget {
 
 class _XpOverlayPopupState extends State<_XpOverlayPopup> {
   double _opacity = 0.0;
+  double _scale = 0.75;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      setState(() => _opacity = 1.0);
+      setState(() {
+        _opacity = 1.0;
+        _scale = 1.0;
+      });
       Future.delayed(const Duration(milliseconds: 1200), () {
         if (!mounted) return;
-        setState(() => _opacity = 0.0);
+        setState(() {
+          _opacity = 0.0;
+          _scale = 0.75;
+        });
         Future.delayed(const Duration(milliseconds: 260), () {
           if (mounted) widget.onDismiss();
         });
@@ -791,48 +792,56 @@ class _XpOverlayPopupState extends State<_XpOverlayPopup> {
           opacity: _opacity,
           duration: const Duration(milliseconds: 260),
           curve: Curves.easeOut,
-          child: Center(
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 14),
-              decoration: BoxDecoration(
-                color: const Color(0xFF0D1B3E).withOpacity(0.92),
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.2),
-                    blurRadius: 18,
-                    offset: const Offset(0, 8),
-                  ),
-                ],
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Text('🔥', style: TextStyle(fontSize: 22)),
-                  const SizedBox(width: 10),
-                  Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        '+${widget.xp} XP',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w900,
+          child: AnimatedScale(
+            scale: _scale,
+            duration: const Duration(milliseconds: 280),
+            curve: Curves.easeOutBack,
+            child: Center(
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 22,
+                  vertical: 14,
+                ),
+                decoration: BoxDecoration(
+                  color: const Color.fromRGBO(13, 27, 62, 0.92),
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color.fromRGBO(0, 0, 0, 0.2),
+                      blurRadius: 18,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text('🔥', style: TextStyle(fontSize: 22)),
+                    const SizedBox(width: 10),
+                    Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '+${widget.xp} XP',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w900,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 4),
-                      const Text(
-                        'Level up!',
-                        style: TextStyle(
-                          color: Color(0xFF93C5FD),
-                          fontSize: 12,
+                        const SizedBox(height: 4),
+                        const Text(
+                          'Correct answer!',
+                          style: TextStyle(
+                            color: Color(0xFF93C5FD),
+                            fontSize: 12,
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
-                ],
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -868,6 +877,8 @@ class _QuizResultScreenState extends State<_QuizResultScreen> {
     });
 
     final state = widget.state;
+    final quizCubit = context.read<QuizCubit>();
+    final navigator = Navigator.of(context);
 
     await context.read<HomeCubit>().recordFullQuizResult(
       earnedXp: state.earnedXp,
@@ -879,9 +890,9 @@ class _QuizResultScreenState extends State<_QuizResultScreen> {
 
     if (!mounted) return;
 
-    context.read<QuizCubit>().resetQuiz();
+    quizCubit.resetQuiz();
 
-    Navigator.pop(context);
+    navigator.pop();
   }
 
   @override

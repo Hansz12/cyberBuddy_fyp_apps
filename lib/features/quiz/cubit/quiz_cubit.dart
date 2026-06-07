@@ -13,20 +13,28 @@ class QuizCubit extends Cubit<QuizState> {
 
     try {
       final data = await _dataService.loadQuizQuestions();
+      final moduleIdString = moduleId.toString().trim().toUpperCase();
 
       final filtered = data
           .where((q) {
-            final active =
-                q['active'] == true ||
-                q['active'].toString().toLowerCase() == 'true';
+            final qModuleId = q['module_id'] ?? q['moduleId'] ?? q['moduleID'];
 
-            final qModuleId =
-                q['module_id']?.toString() ?? q['moduleId']?.toString() ?? '';
+            final activeValue = q['is_active'] ?? q['active'] ?? true;
+            final isActive =
+                activeValue == true ||
+                activeValue.toString().toLowerCase() == 'true';
 
-            return qModuleId == moduleId && active;
+            return qModuleId.toString().trim().toUpperCase() ==
+                    moduleIdString &&
+                isActive;
           })
-          .map((q) => _formatQuestion(q))
-          .where((q) => (q['question'] ?? '').toString().trim().isNotEmpty)
+          .map((q) {
+            return _formatQuestion(q);
+          })
+          .where((q) {
+            return (q['question'] ?? '').toString().trim().isNotEmpty &&
+                (q['options'] as List).isNotEmpty;
+          })
           .toList();
 
       final shuffledQuestions = List<Map<String, dynamic>>.from(filtered)
@@ -64,32 +72,45 @@ class QuizCubit extends Cubit<QuizState> {
   }
 
   Map<String, dynamic> _formatQuestion(dynamic raw) {
-    final correctLetter =
-        raw['correct_option']?.toString().trim().toUpperCase() ?? 'A';
+    List<String> options = [];
 
-    final originalOptions =
-        [
-          {'text': raw['option_a']?.toString() ?? '', 'letter': 'A'},
-          {'text': raw['option_b']?.toString() ?? '', 'letter': 'B'},
-          {'text': raw['option_c']?.toString() ?? '', 'letter': 'C'},
-          {'text': raw['option_d']?.toString() ?? '', 'letter': 'D'},
-        ].where((option) {
-          return (option['text'] ?? '').toString().trim().isNotEmpty;
-        }).toList();
-
-    final shouldShuffle =
-        raw['shuffle_options'] == true ||
-        raw['shuffle_options'].toString().toLowerCase() == 'true';
-
-    final shuffledOptions = List<Map<String, String>>.from(originalOptions);
-
-    if (shouldShuffle) {
-      shuffledOptions.shuffle();
+    if (raw['options'] is List) {
+      options = List<String>.from(
+        (raw['options'] as List).map((option) => option.toString()),
+      );
+    } else {
+      options = [
+        raw['option_a']?.toString() ?? '',
+        raw['option_b']?.toString() ?? '',
+        raw['option_c']?.toString() ?? '',
+        raw['option_d']?.toString() ?? '',
+      ].where((option) => option.trim().isNotEmpty).toList();
     }
 
-    final correctIndex = shuffledOptions.indexWhere(
-      (option) => option['letter'] == correctLetter,
-    );
+    int correctIndex = 0;
+
+    if (raw['correctIndex'] != null) {
+      correctIndex = int.tryParse(raw['correctIndex'].toString()) ?? 0;
+    } else if (raw['correct_index'] != null) {
+      correctIndex = int.tryParse(raw['correct_index'].toString()) ?? 0;
+    } else {
+      final correctLetter =
+          raw['correct_option']?.toString().trim().toUpperCase() ?? 'A';
+
+      correctIndex = switch (correctLetter) {
+        'A' => 0,
+        'B' => 1,
+        'C' => 2,
+        'D' => 3,
+        _ => 0,
+      };
+    }
+
+    if (correctIndex < 0 || correctIndex >= options.length) {
+      correctIndex = 0;
+    }
+
+    final xpValue = raw['xpReward'] ?? raw['xp_reward'] ?? 10;
 
     return {
       'id': raw['question_id']?.toString() ?? raw['id']?.toString() ?? '',
@@ -100,16 +121,15 @@ class QuizCubit extends Cubit<QuizState> {
       'questionType': raw['question_type']?.toString() ?? 'MCQ',
       'scenario': raw['scenario']?.toString() ?? '',
       'question': raw['question']?.toString() ?? '',
-      'options': shuffledOptions.map((option) => option['text'] ?? '').toList(),
-      'correctIndex': correctIndex < 0 ? 0 : correctIndex,
+      'options': options,
+      'correctIndex': correctIndex,
       'explanation': raw['explanation']?.toString() ?? '',
-      'xpReward': int.tryParse(raw['xp_reward'].toString()) ?? 10,
+      'xpReward': int.tryParse(xpValue.toString()) ?? 10,
     };
   }
 
   void selectAnswer(int index) {
     if (state.isAnswered) return;
-
     emit(state.copyWith(selectedIndex: index));
   }
 
