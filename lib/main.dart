@@ -12,9 +12,13 @@ import 'features/quiz/cubit/quiz_cubit.dart';
 import 'features/leaderboard/cubit/leaderboard_cubit.dart';
 import 'features/learning/cubit/learning_cubit.dart';
 
+import 'data/services/notification_service.dart';
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
+  await NotificationService.init();
+  await NotificationService.scheduleDailyReminder();
 
   runApp(const CyberBuddyApp());
 }
