@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../data/services/lib/data/services/connectivity_service.dart';
 import '../../data/services/news_service.dart';
 import '../learning/cubit/learning_cubit.dart';
 import '../learning/learning_screen.dart';
@@ -200,6 +201,45 @@ class _HomeScreenState extends State<HomeScreen> {
 
                         const SizedBox(height: 18),
 
+                        FutureBuilder<bool>(
+                          future: ConnectivityService.hasInternetConnection(),
+                          builder: (context, snapshot) {
+                            final online = snapshot.data ?? true;
+
+                            if (online) return const SizedBox.shrink();
+
+                            return Container(
+                              margin: const EdgeInsets.only(bottom: 14),
+                              padding: const EdgeInsets.all(14),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFFFF7ED),
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(
+                                  color: const Color(0xFFF97316),
+                                ),
+                              ),
+                              child: const Row(
+                                children: [
+                                  Icon(
+                                    Icons.wifi_off,
+                                    color: Color(0xFFF97316),
+                                  ),
+                                  SizedBox(width: 10),
+                                  Expanded(
+                                    child: Text(
+                                      'Offline Mode Active: You can still access saved modules and quizzes.',
+                                      style: TextStyle(
+                                        color: Color(0xFF7C2D12),
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                        ),
+
                         _SectionHeader(
                           title: "DAILY MISSIONS",
                           actionText: "Train",
@@ -372,8 +412,9 @@ class _HomeScreenState extends State<HomeScreen> {
                             }
 
                             if (snapshot.hasError) {
-                              return _ErrorCard(
-                                text: "News error: ${snapshot.error}",
+                              return const _EmptyCard(
+                                text:
+                                    "⚠️ Offline Mode Active\nLive cyber news is unavailable because this feature requires internet connection.",
                               );
                             }
 
@@ -1300,6 +1341,7 @@ class _LoadingCard extends StatelessWidget {
   }
 }
 
+// ignore: unused_element
 class _ErrorCard extends StatelessWidget {
   final String text;
 

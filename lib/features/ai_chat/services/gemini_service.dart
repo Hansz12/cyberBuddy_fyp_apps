@@ -42,11 +42,8 @@ Do not ask for passwords, OTP, bank details, or private information.
       final response = await _model.generateContent([Content.text(message)]);
 
       return response.text ?? 'Sorry, I could not generate an answer.';
-    } catch (e, stackTrace) {
-      print('GEMINI ERROR: $e');
-      print('STACK: $stackTrace');
-
-      return 'ERROR: $e';
+    } catch (e) {
+      return '⚠️ Offline Mode Active\n\nCyberBuddy AI is unavailable because this feature requires an internet connection.';
     }
   }
 }

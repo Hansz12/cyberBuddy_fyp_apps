@@ -165,7 +165,23 @@ class _LearningScreenState extends State<LearningScreen> {
   List<LearningModule> _filteredModules(List<LearningModule> modules) {
     final query = searchQuery.trim().toLowerCase();
 
-    final filtered = modules.where((module) {
+    final sortedModules = [...modules];
+    sortedModules.sort((a, b) {
+      const levelOrder = {
+        'Beginner': 0,
+        'Intermediate': 1,
+        'Advanced': 2,
+      };
+
+      final levelA = levelOrder[a.difficulty] ?? 99;
+      final levelB = levelOrder[b.difficulty] ?? 99;
+
+      if (levelA != levelB) return levelA.compareTo(levelB);
+      if (a.completed == b.completed) return a.title.compareTo(b.title);
+      return a.completed ? 1 : -1;
+    });
+
+    final filtered = sortedModules.where((module) {
       final topic = module.topic.toLowerCase();
       final title = module.title.toLowerCase();
       final content = module.content.toLowerCase();
@@ -186,15 +202,18 @@ class _LearningScreenState extends State<LearningScreen> {
       return matchesFilter && matchesSearch;
     }).toList();
 
-    filtered.sort((a, b) {
-      if (a.completed == b.completed) {
-        return a.title.compareTo(b.title);
-      }
-
-      return a.completed ? 1 : -1;
-    });
-
     return filtered;
+  }
+
+  List<LearningModule> _modulesByDifficulty(
+    List<LearningModule> modules,
+    String difficulty,
+  ) {
+    return modules
+        .where(
+          (m) => m.difficulty.toLowerCase() == difficulty.toLowerCase(),
+        )
+        .toList();
   }
 
   LearningModule? _continueModule(List<LearningModule> modules) {
@@ -243,6 +262,13 @@ class _LearningScreenState extends State<LearningScreen> {
             final filteredModules = _filteredModules(state.modules);
             final continueModule = _continueModule(state.modules);
             final completedCount = _completedCount(state.modules);
+
+            final beginnerModules =
+                _modulesByDifficulty(filteredModules, "Beginner");
+            final intermediateModules =
+                _modulesByDifficulty(filteredModules, "Intermediate");
+            final advancedModules =
+                _modulesByDifficulty(filteredModules, "Advanced");
 
             return Column(
               children: [
@@ -405,31 +431,66 @@ class _LearningScreenState extends State<LearningScreen> {
                         const SizedBox(height: 18),
                       ],
 
-                      _LearningSectionTitle(
-                        selectedFilter == "All topics"
-                            ? "ALL MODULES"
-                            : "${selectedFilter.toUpperCase()} MODULES",
-                      ),
-                      const SizedBox(height: 10),
+                      if (beginnerModules.isNotEmpty) ...[
+                        const _LearningSectionTitle("BEGINNER"),
+                        const SizedBox(height: 10),
 
-                      if (filteredModules.isEmpty)
-                        const _EmptyLearningCard()
-                      else
-                        ...filteredModules.map((module) {
+                        ...beginnerModules.map((module) {
                           return _LearningCard(
                             module: module,
                             icon: _topicIcon(module.topic),
                             iconColor: _topicColor(module.topic),
                             progressColor: _progressColor(module.topic),
-                            difficultyColor: _difficultyColor(
-                              module.difficulty,
-                            ),
+                            difficultyColor: _difficultyColor(module.difficulty),
                             progress: _moduleProgress(module),
                             progressText: _progressText(module),
                             badge: _difficultyBadge(module),
                             onTap: () => _openModule(context, module),
                           );
                         }),
+
+                        const SizedBox(height: 18),
+                      ],
+
+                      if (intermediateModules.isNotEmpty) ...[
+                        const _LearningSectionTitle("INTERMEDIATE"),
+                        const SizedBox(height: 10),
+
+                        ...intermediateModules.map((module) {
+                          return _LearningCard(
+                            module: module,
+                            icon: _topicIcon(module.topic),
+                            iconColor: _topicColor(module.topic),
+                            progressColor: _progressColor(module.topic),
+                            difficultyColor: _difficultyColor(module.difficulty),
+                            progress: _moduleProgress(module),
+                            progressText: _progressText(module),
+                            badge: _difficultyBadge(module),
+                            onTap: () => _openModule(context, module),
+                          );
+                        }),
+
+                        const SizedBox(height: 18),
+                      ],
+
+                      if (advancedModules.isNotEmpty) ...[
+                        const _LearningSectionTitle("ADVANCED"),
+                        const SizedBox(height: 10),
+
+                        ...advancedModules.map((module) {
+                          return _LearningCard(
+                            module: module,
+                            icon: _topicIcon(module.topic),
+                            iconColor: _topicColor(module.topic),
+                            progressColor: _progressColor(module.topic),
+                            difficultyColor: _difficultyColor(module.difficulty),
+                            progress: _moduleProgress(module),
+                            progressText: _progressText(module),
+                            badge: _difficultyBadge(module),
+                            onTap: () => _openModule(context, module),
+                          );
+                        }),
+                      ],
                     ],
                   ),
                 ),

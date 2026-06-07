@@ -31,8 +31,21 @@ class _SplashScreenState extends State<SplashScreen> {
     final user = FirebaseAuth.instance.currentUser;
 
     if (user != null) {
-      await context.read<HomeCubit>().loadUserData();
-      await context.read<LearningCubit>().loadModules();
+      try {
+        await context.read<HomeCubit>().loadUserData().timeout(
+              const Duration(seconds: 5),
+            );
+      } catch (_) {
+        // Offline or load timeout: continue with cached/local/default data.
+      }
+
+      try {
+        await context.read<LearningCubit>().loadModules().timeout(
+              const Duration(seconds: 5),
+            );
+      } catch (_) {
+        // Continue even if module loading is slow.
+      }
 
       if (!mounted) return;
 
