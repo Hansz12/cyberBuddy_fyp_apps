@@ -167,11 +167,7 @@ class _LearningScreenState extends State<LearningScreen> {
 
     final sortedModules = [...modules];
     sortedModules.sort((a, b) {
-      const levelOrder = {
-        'Beginner': 0,
-        'Intermediate': 1,
-        'Advanced': 2,
-      };
+      const levelOrder = {'Beginner': 0, 'Intermediate': 1, 'Advanced': 2};
 
       final levelA = levelOrder[a.difficulty] ?? 99;
       final levelB = levelOrder[b.difficulty] ?? 99;
@@ -210,9 +206,7 @@ class _LearningScreenState extends State<LearningScreen> {
     String difficulty,
   ) {
     return modules
-        .where(
-          (m) => m.difficulty.toLowerCase() == difficulty.toLowerCase(),
-        )
+        .where((m) => m.difficulty.toLowerCase() == difficulty.toLowerCase())
         .toList();
   }
 
@@ -263,12 +257,18 @@ class _LearningScreenState extends State<LearningScreen> {
             final continueModule = _continueModule(state.modules);
             final completedCount = _completedCount(state.modules);
 
-            final beginnerModules =
-                _modulesByDifficulty(filteredModules, "Beginner");
-            final intermediateModules =
-                _modulesByDifficulty(filteredModules, "Intermediate");
-            final advancedModules =
-                _modulesByDifficulty(filteredModules, "Advanced");
+            final beginnerModules = _modulesByDifficulty(
+              filteredModules,
+              "Beginner",
+            );
+            final intermediateModules = _modulesByDifficulty(
+              filteredModules,
+              "Intermediate",
+            );
+            final advancedModules = _modulesByDifficulty(
+              filteredModules,
+              "Advanced",
+            );
 
             return Column(
               children: [
@@ -441,7 +441,9 @@ class _LearningScreenState extends State<LearningScreen> {
                             icon: _topicIcon(module.topic),
                             iconColor: _topicColor(module.topic),
                             progressColor: _progressColor(module.topic),
-                            difficultyColor: _difficultyColor(module.difficulty),
+                            difficultyColor: _difficultyColor(
+                              module.difficulty,
+                            ),
                             progress: _moduleProgress(module),
                             progressText: _progressText(module),
                             badge: _difficultyBadge(module),
@@ -462,7 +464,9 @@ class _LearningScreenState extends State<LearningScreen> {
                             icon: _topicIcon(module.topic),
                             iconColor: _topicColor(module.topic),
                             progressColor: _progressColor(module.topic),
-                            difficultyColor: _difficultyColor(module.difficulty),
+                            difficultyColor: _difficultyColor(
+                              module.difficulty,
+                            ),
                             progress: _moduleProgress(module),
                             progressText: _progressText(module),
                             badge: _difficultyBadge(module),
@@ -483,7 +487,9 @@ class _LearningScreenState extends State<LearningScreen> {
                             icon: _topicIcon(module.topic),
                             iconColor: _topicColor(module.topic),
                             progressColor: _progressColor(module.topic),
-                            difficultyColor: _difficultyColor(module.difficulty),
+                            difficultyColor: _difficultyColor(
+                              module.difficulty,
+                            ),
                             progress: _moduleProgress(module),
                             progressText: _progressText(module),
                             badge: _difficultyBadge(module),
