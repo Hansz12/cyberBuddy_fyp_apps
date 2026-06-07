@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../data/repositories/leaderboard_repository.dart';
 import '../../../data/repositories/user_progress_repository.dart';
+import '../../../data/services/local_data_service.dart';
 import 'home_state.dart';
 
 class HomeCubit extends Cubit<HomeState> {
@@ -14,6 +15,7 @@ class HomeCubit extends Cubit<HomeState> {
 
   final UserProgressRepository _progressRepository = UserProgressRepository();
   final LeaderboardRepository _leaderboardRepository = LeaderboardRepository();
+  final LocalDataService _dataService = LocalDataService();
 
   String? _activeUid;
 
@@ -587,7 +589,7 @@ class HomeCubit extends Cubit<HomeState> {
     await _saveLeaderboard();
   }
 
-  void _generateRecommendation() {
+  void _generateRecommendation() async {
     if (state.totalQuestionsAnswered == 0) {
       emit(
         state.copyWith(
@@ -599,64 +601,129 @@ class HomeCubit extends Cubit<HomeState> {
       return;
     }
 
-    final weakestTopic = state.weakestTopic.toLowerCase().trim();
+    try {
+      final modules = await _dataService.loadModules();
 
-    final allModules = [
-      {"title": "Phishing Awareness", "topic": "phishing"},
-      {"title": "Password Security", "topic": "password"},
-      {"title": "Social Engineering", "topic": "social"},
-      {"title": "Malware & Safe Downloads", "topic": "malware"},
-      {"title": "Privacy Protection", "topic": "privacy"},
-      {"title": "Online Scam Awareness", "topic": "scam"},
-      {"title": "Mobile Device Security", "topic": "mobile"},
-      {"title": "Public Wi-Fi Safety", "topic": "network"},
-      {"title": "Two-Factor Authentication", "topic": "password"},
-      {"title": "Data Breach Response", "topic": "privacy"},
-      {"title": "Cyberbullying & Digital Ethics", "topic": "ethics"},
-      {"title": "Safe Online Banking", "topic": "banking"},
-    ];
+      final completedIds = state.completedModules
+          .map((id) => id.toUpperCase())
+          .toSet();
 
-    final matchedModules = allModules.where((module) {
-      final topic = module["topic"]!.toLowerCase().trim();
+      final scoredModules = <Map<String, dynamic>>[];
 
-      return topic.contains(weakestTopic) || weakestTopic.contains(topic);
-    }).toList();
+      for (final module in modules) {
+        final moduleId =
+            module['module_id']?.toString() ?? module['id']?.toString() ?? '';
 
-    final fallbackModules = allModules.where((module) {
-      final title = module["title"]!;
-      return !matchedModules.any((matched) => matched["title"] == title);
-    }).toList();
+        if (moduleId.isEmpty || completedIds.contains(moduleId.toUpperCase())) {
+          continue;
+        }
 
-    final recommended = [
-      ...matchedModules,
-      ...fallbackModules,
-    ].take(3).toList();
+        final title = module['title']?.toString() ?? 'Untitled Module';
+        final topic = _normaliseTopic(module['topic']?.toString() ?? '');
+        final difficulty = module['difficulty']?.toString() ?? 'Beginner';
+        final xpReward = int.tryParse(module['xp_reward'].toString()) ?? 20;
 
-    final moduleReasons = <String, String>{};
-    final moduleScores = <String, double>{};
+        final answered = state.topicAnswered[topic] ?? 0;
+        final correct = state.topicCorrect[topic] ?? 0;
 
-    for (final module in recommended) {
-      final title = module["title"]!;
-      final topic = module["topic"]!;
+        final accuracy = answered == 0 ? 0.0 : correct / answered;
+        final weaknessScore = answered == 0 ? 0.35 : 1.0 - accuracy;
 
-      if (topic.contains(weakestTopic) || weakestTopic.contains(topic)) {
-        moduleReasons[title] =
-            "Recommended because your $weakestTopic quiz performance is lower.";
-      } else {
-        moduleReasons[title] =
-            "Recommended to strengthen your overall cybersecurity awareness.";
+        final difficultyBoost = _difficultyWeight(difficulty) * 0.05;
+        final xpBoost = xpReward / 1000;
+
+        final finalScore = weaknessScore + difficultyBoost + xpBoost;
+
+        scoredModules.add({
+          'title': title,
+          'topic': topic,
+          'difficulty': difficulty,
+          'answered': answered,
+          'accuracy': accuracy,
+          'score': finalScore,
+        });
       }
 
-      moduleScores[title] = state.topicProgress(weakestTopic);
-    }
+      scoredModules.sort(
+        (a, b) => (b['score'] as double).compareTo(a['score'] as double),
+      );
 
-    emit(
-      state.copyWith(
-        recommendedModules: recommended.map((e) => e["title"]!).toList(),
-        moduleScores: moduleScores,
-        moduleReasons: moduleReasons,
-      ),
-    );
+      final topModules = scoredModules.take(3).toList();
+
+      final recommendedModules = <String>[];
+      final moduleReasons = <String, String>{};
+      final moduleScores = <String, double>{};
+
+      for (final module in topModules) {
+        final title = module['title'].toString();
+        final topic = module['topic'].toString();
+        final answered = module['answered'] as int;
+        final accuracy = module['accuracy'] as double;
+        final percent = (accuracy * 100).round();
+
+        recommendedModules.add(title);
+        moduleScores[title] = module['score'] as double;
+
+        if (answered > 0) {
+          moduleReasons[title] =
+              'Recommended because your $topic quiz score is $percent%. This module targets your weaker area.';
+        } else {
+          moduleReasons[title] =
+              'Recommended to expand your cybersecurity coverage in $topic.';
+        }
+      }
+
+      emit(
+        state.copyWith(
+          recommendedModules: recommendedModules,
+          moduleReasons: moduleReasons,
+          moduleScores: moduleScores,
+        ),
+      );
+    } catch (_) {
+      emit(
+        state.copyWith(
+          recommendedModules: const [],
+          moduleReasons: const {},
+          moduleScores: const {},
+        ),
+      );
+    }
+  }
+
+  String _normaliseTopic(String topic) {
+    final t = topic.toLowerCase().trim();
+
+    if (t.contains('phishing')) return 'phishing';
+    if (t.contains('password') || t.contains('2fa') || t.contains('mfa')) {
+      return 'password';
+    }
+    if (t.contains('malware') || t.contains('usb')) return 'malware';
+    if (t.contains('privacy') || t.contains('breach') || t.contains('cloud')) {
+      return 'privacy';
+    }
+    if (t.contains('scam') || t.contains('banking')) return 'scam';
+    if (t.contains('mobile')) return 'mobile';
+    if (t.contains('network') || t.contains('wifi') || t.contains('wi-fi')) {
+      return 'network';
+    }
+    if (t.contains('social')) return 'social';
+    if (t.contains('ethics') || t.contains('law')) return 'ethics';
+
+    return t;
+  }
+
+  int _difficultyWeight(String difficulty) {
+    switch (difficulty.toLowerCase()) {
+      case 'beginner':
+        return 1;
+      case 'intermediate':
+        return 2;
+      case 'advanced':
+        return 3;
+      default:
+        return 1;
+    }
   }
 
   Future<void> recordFullQuizResult({

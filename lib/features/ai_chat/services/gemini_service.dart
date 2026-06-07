@@ -43,7 +43,7 @@ Do not ask for passwords, OTP, bank details, or private information.
 
       return response.text ?? 'Sorry, I could not generate an answer.';
     } catch (e) {
-      return '⚠️ Offline Mode Active\n\nCyberBuddy AI is unavailable because this feature requires an internet connection.';
+      return 'Sorry, CyberBuddy AI could not respond right now. Please try again.';
     }
   }
 }

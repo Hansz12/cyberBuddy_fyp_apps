@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../services/gemini_service.dart';
+import '../../../data/services/connectivity_service.dart';
 
 class AiChatScreen extends StatefulWidget {
   const AiChatScreen({super.key});
@@ -31,10 +32,25 @@ class _AiChatScreenState extends State<AiChatScreen> {
     );
   }
 
-  Future<void> _sendMessage() async {
+  Future _sendMessage() async {
     final text = _controller.text.trim();
 
     if (text.isEmpty || _isLoading) return;
+
+    final online = await ConnectivityService.hasInternetConnection();
+
+    if (!online) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'CyberBuddy AI needs internet connection. Please try again when online.',
+          ),
+        ),
+      );
+      return;
+    }
 
     setState(() {
       _messages.add({'role': 'user', 'text': text});
