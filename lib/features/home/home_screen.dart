@@ -165,6 +165,15 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF1F5F9),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => _openAiChat(context),
+        backgroundColor: const Color(0xFF2563EB),
+        icon: const Text("🤖", style: TextStyle(fontSize: 20)),
+        label: const Text(
+          "Ask AI",
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900),
+        ),
+      ),
       body: SafeArea(
         child: BlocBuilder<HomeCubit, HomeState>(
           builder: (context, state) {
@@ -335,36 +344,6 @@ class _HomeScreenState extends State<HomeScreen> {
                           ],
                         ),
 
-                        const SizedBox(height: 22),
-
-                        _SectionHeader(
-                          title: "CYBERBUDDY AI ASSISTANT",
-                          actionText: "Chat",
-                          onTap: () => _openAiChat(context),
-                        ),
-
-                        const SizedBox(height: 8),
-
-                        _SimpleCard(
-                          onTap: () => _openAiChat(context),
-                          child: const Row(
-                            children: [
-                              _IconBox(icon: "🤖", bg: Color(0xFFEFF6FF)),
-                              SizedBox(width: 12),
-                              Expanded(
-                                child: Text(
-                                  "Ask CyberBuddy AI\nGet instant help about phishing, scams, malware, passwords, and online safety.",
-                                  maxLines: 3,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    color: Color(0xFF0F172A),
-                                    fontWeight: FontWeight.w800,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
                         const SizedBox(height: 22),
 
                         _SectionHeader(

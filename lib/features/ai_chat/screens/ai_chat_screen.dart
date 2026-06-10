@@ -107,14 +107,32 @@ class _AiChatScreenState extends State<AiChatScreen> {
             ),
           ],
         ),
-        child: Text(
-          message['text'] ?? '',
-          style: TextStyle(
-            color: isUser ? Colors.white : const Color(0xFF0F172A),
-            fontSize: 14.5,
-            height: 1.35,
-            fontWeight: FontWeight.w600,
-          ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (!isUser)
+              const Padding(
+                padding: EdgeInsets.only(bottom: 8),
+                child: Text(
+                  '🤖 CyberBuddy AI',
+                  style: TextStyle(
+                    color: Color(0xFF2563EB),
+                    fontWeight: FontWeight.w900,
+                    fontSize: 12,
+                  ),
+                ),
+              ),
+
+            Text(
+              message['text'] ?? '',
+              style: TextStyle(
+                color: isUser ? Colors.white : const Color(0xFF0F172A),
+                fontSize: 14.5,
+                height: 1.35,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -131,12 +149,24 @@ class _AiChatScreenState extends State<AiChatScreen> {
           borderRadius: BorderRadius.circular(18),
           border: Border.all(color: const Color(0xFFE2E8F0)),
         ),
-        child: const Text(
-          'CyberBuddy AI is thinking...',
-          style: TextStyle(
-            color: Color(0xFF64748B),
-            fontWeight: FontWeight.w600,
-          ),
+        child: const Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            CircleAvatar(
+              radius: 10,
+              backgroundColor: Color(0xFF2563EB),
+              child: Text('🤖', style: TextStyle(fontSize: 10)),
+            ),
+            SizedBox(width: 10),
+
+            Text(
+              'CyberBuddy is thinking...',
+              style: TextStyle(
+                color: Color(0xFF64748B),
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -146,26 +176,53 @@ class _AiChatScreenState extends State<AiChatScreen> {
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.fromLTRB(14, 14, 14, 10),
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [Color(0xFF0F172A), Color(0xFF1E3A8A)],
+          colors: [Color(0xFF0F172A), Color(0xFF1E40AF)],
         ),
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(22),
       ),
-      child: const Row(
+      child: const Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('🤖', style: TextStyle(fontSize: 30)),
-          SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              'CyberBuddy AI Coach\nTutor · Scam Checker · Study Coach',
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w800,
-                height: 1.3,
+          Row(
+            children: [
+              Text('🤖', style: TextStyle(fontSize: 34)),
+              SizedBox(width: 10),
+
+              Expanded(
+                child: Text(
+                  'CyberBuddy AI',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 22,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
               ),
-            ),
+
+              Row(
+                children: [
+                  Icon(Icons.circle, color: Colors.green, size: 10),
+                  SizedBox(width: 5),
+                  Text(
+                    'Online',
+                    style: TextStyle(
+                      color: Colors.white70,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+
+          SizedBox(height: 12),
+
+          Text(
+            'Ask anything about cybersecurity, programming, mobile app development, assignments, or study guidance.',
+            style: TextStyle(color: Colors.white70, height: 1.4),
           ),
         ],
       ),
@@ -175,43 +232,45 @@ class _AiChatScreenState extends State<AiChatScreen> {
   Widget _buildPromptChips() {
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
-      padding: const EdgeInsets.fromLTRB(14, 0, 14, 10),
+      padding: const EdgeInsets.fromLTRB(14, 0, 14, 12),
       child: Row(
         children: [
           _PromptChip(
             icon: '🛡️',
-            text: 'Scam Checker',
+            text: 'Check Scam',
             onTap: () => _useSuggestedPrompt(
-              'Check this message. Is it a scam or phishing?\n\n',
+              'Check whether this message is a scam:\n\n',
             ),
           ),
+
           _PromptChip(
-            icon: '📩',
-            text: 'Phishing Checker',
+            icon: '📧',
+            text: 'Check Email',
             onTap: () => _useSuggestedPrompt(
-              'Analyse this suspicious email or SMS. Give me the risk level, red flags, and safe action.\n\n',
+              'Analyse this email for phishing risks:\n\n',
             ),
           ),
+
+          _PromptChip(
+            icon: '💻',
+            text: 'Programming',
+            onTap: () => _useSuggestedPrompt(
+              'Help me solve this programming problem:\n\n',
+            ),
+          ),
+
+          _PromptChip(
+            icon: '📱',
+            text: 'Flutter',
+            onTap: () =>
+                _useSuggestedPrompt('Help me with Flutter development:\n\n'),
+          ),
+
           _PromptChip(
             icon: '🎓',
-            text: 'AI Tutor',
-            onTap: () => _useSuggestedPrompt(
-              'Explain phishing in simple terms with one example.',
-            ),
-          ),
-          _PromptChip(
-            icon: '🔐',
-            text: 'Password Tips',
-            onTap: () => _useSuggestedPrompt(
-              'Give me 5 password safety tips for students.',
-            ),
-          ),
-          _PromptChip(
-            icon: '📚',
             text: 'Study Coach',
-            onTap: () => _useSuggestedPrompt(
-              'Act as my cybersecurity study coach. What topic should I revise today and why?',
-            ),
+            onTap: () =>
+                _useSuggestedPrompt('Act as my study coach and guide me.'),
           ),
         ],
       ),
