@@ -98,6 +98,10 @@ class HomeCubit extends Cubit<HomeState> {
             rewardedNewsUrls: List<String>.from(
               cloudData['rewardedNewsUrls'] ?? [],
             ),
+            recommendationScores: _mapDouble(
+              cloudData['recommendationScores'],
+              const {},
+            ),
             notifications: List<String>.from(cloudData['notifications'] ?? []),
             hasUnreadNotifications:
                 cloudData['hasUnreadNotifications'] ?? false,
@@ -221,6 +225,10 @@ class HomeCubit extends Cubit<HomeState> {
         claimedDailyQuests:
             prefs.getStringList(_key('claimedDailyQuests')) ?? [],
         rewardedNewsUrls: prefs.getStringList(_key('rewardedNewsUrls')) ?? [],
+        recommendationScores: _decodeDoubleMap(
+          prefs.getString(_key('recommendationScores')),
+          const {},
+        ),
         dailyQuestDate: prefs.getString(_key('dailyQuestDate')) == null
             ? null
             : DateTime.tryParse(prefs.getString(_key('dailyQuestDate'))!),
@@ -604,6 +612,7 @@ class HomeCubit extends Cubit<HomeState> {
       'dailyQuestDate',
       'claimedDailyQuests',
       'rewardedNewsUrls',
+      'recommendationScores',
       'lastActiveDate',
     ];
 
@@ -920,6 +929,7 @@ class HomeCubit extends Cubit<HomeState> {
         dailyQuestDate: state.dailyQuestDate,
         claimedDailyQuests: state.claimedDailyQuests,
         rewardedNewsUrls: state.rewardedNewsUrls,
+        recommendationScores: state.recommendationScores,
         lastActiveDate: state.lastActiveDate,
         notifications: state.notifications,
         hasUnreadNotifications: state.hasUnreadNotifications,
@@ -967,6 +977,11 @@ class HomeCubit extends Cubit<HomeState> {
     );
 
     await prefs.setStringList(_key('rewardedNewsUrls'), state.rewardedNewsUrls);
+
+    await prefs.setString(
+      _key('recommendationScores'),
+      jsonEncode(state.recommendationScores),
+    );
 
     await prefs.setBool(
       _key('hasUnreadNotifications'),

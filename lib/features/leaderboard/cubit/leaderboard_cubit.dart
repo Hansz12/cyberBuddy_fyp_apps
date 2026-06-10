@@ -34,7 +34,6 @@ class LeaderboardCubit extends Cubit<LeaderboardState> {
               return LeaderboardUser(
                 userId: (data['userId'] ?? doc.id).toString(),
                 name: (data['name'] ?? 'User').toString(),
-                faculty: (data['faculty'] ?? 'FSKM').toString(),
                 xp: _toInt(data['xp']),
                 level: _toInt(data['level']),
                 streak: _toInt(data['streak']),
@@ -87,7 +86,6 @@ class LeaderboardCubit extends Cubit<LeaderboardState> {
         return LeaderboardUser(
           userId: (data['userId'] ?? doc.id).toString(),
           name: (data['name'] ?? 'User').toString(),
-          faculty: (data['faculty'] ?? 'FSKM').toString(),
           xp: _toInt(data['xp']),
           level: _toInt(data['level']),
           streak: _toInt(data['streak']),

@@ -17,7 +17,6 @@ class LeaderboardRepository {
               'userId': data['userId'] ?? doc.id,
               'name': data['name'] ?? 'User',
               'email': data['email'] ?? '',
-              'faculty': data['faculty'] ?? 'FSKM',
               'xp': data['xp'] ?? 0,
               'level': data['level'] ?? 1,
               'streak': data['streak'] ?? 0,
@@ -35,14 +34,12 @@ class LeaderboardRepository {
     required int level,
     required int streak,
     required int badges,
-    String faculty = 'FSKM Mobile Computing',
   }) async {
     final leaderboardScore = xp + (streak * 10) + (badges * 25);
 
     await _firestore.collection('user_progress').doc(userId).set({
       'userId': userId,
       'name': name,
-      'faculty': faculty,
       'xp': xp,
       'level': level,
       'streak': streak,

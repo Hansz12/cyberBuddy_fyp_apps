@@ -3,7 +3,6 @@ import 'package:equatable/equatable.dart';
 class LeaderboardUser extends Equatable {
   final String userId;
   final String name;
-  final String faculty;
   final int xp;
   final int level;
   final int streak;
@@ -14,7 +13,6 @@ class LeaderboardUser extends Equatable {
   const LeaderboardUser({
     required this.userId,
     required this.name,
-    required this.faculty,
     required this.xp,
     required this.level,
     required this.streak,
@@ -27,7 +25,6 @@ class LeaderboardUser extends Equatable {
   List<Object?> get props => [
     userId,
     name,
-    faculty,
     xp,
     level,
     streak,

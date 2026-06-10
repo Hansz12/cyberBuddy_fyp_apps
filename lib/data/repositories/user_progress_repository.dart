@@ -60,6 +60,7 @@ class UserProgressRepository {
     required DateTime? dailyQuestDate,
     required List<String> claimedDailyQuests,
     required List<String> rewardedNewsUrls,
+    required Map<String, double> recommendationScores,
     required DateTime? lastActiveDate,
     required List<String> notifications,
     required bool hasUnreadNotifications,
@@ -73,7 +74,6 @@ class UserProgressRepository {
       'userId': uid,
       'name': _getDisplayName(),
       'email': _getEmail(),
-      'faculty': 'FSKM Mobile Computing',
 
       'xp': xp,
       'level': level,
@@ -100,6 +100,7 @@ class UserProgressRepository {
       'claimedDailyQuests': claimedDailyQuests,
 
       'rewardedNewsUrls': rewardedNewsUrls,
+      'recommendationScores': recommendationScores,
 
       'leaderboardScore': leaderboardScore,
       'lastActiveDate': lastActiveDate?.toIso8601String(),

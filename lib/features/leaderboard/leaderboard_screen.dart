@@ -40,7 +40,12 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
   }
 
   void _startQuiz(BuildContext context) {
-    context.read<QuizCubit>().loadQuiz("M001");
+    final homeState = context.read<HomeCubit>().state;
+    final recommendedModuleId = homeState.recommendedModuleIds.isNotEmpty
+        ? homeState.recommendedModuleIds.first
+        : "M001";
+
+    context.read<QuizCubit>().loadQuiz(recommendedModuleId);
 
     Navigator.push(
       context,
@@ -448,7 +453,7 @@ class _RankTile extends StatelessWidget {
                   ],
                 ),
                 Text(
-                  "${user.faculty} • ${user.streak} streak • ${user.badgesCount} badges",
+                  "Level ${user.level} • 🔥${user.streak} streak • 🏅${user.badgesCount} badges",
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     color: Color(0xFF94A3B8),
@@ -538,7 +543,7 @@ class _ChallengeCard extends StatelessWidget {
                 ),
               ),
               child: const Text(
-                "Start a quiz now →",
+                "Start Recommended Quiz →",
                 style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12),
               ),
             ),

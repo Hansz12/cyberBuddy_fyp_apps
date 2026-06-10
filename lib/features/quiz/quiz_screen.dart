@@ -1015,7 +1015,19 @@ class _QuizResultScreenState extends State<_QuizResultScreen> {
                           height: 18,
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
-                      : const Text("Back to Learning"),
+                      : const Text("Save Progress & Back"),
+                ),
+              ),
+
+              const SizedBox(height: 8),
+
+              const Text(
+                "Your XP, accuracy, and recommendation will be saved.",
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Color(0xFF64748B),
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
 
