@@ -9,6 +9,7 @@ class HomeState extends Equatable {
   final List<String> badges;
   final List<String> completedModules;
   final List<String> recommendedModules;
+  final List<String> recommendedModuleIds;
   final List<String> notifications;
   final bool hasUnreadNotifications;
 
@@ -19,6 +20,7 @@ class HomeState extends Equatable {
   final int totalQuestionsAnswered;
   final int totalCorrectAnswers;
   final int quizzesCompleted;
+  final List<int> last3Scores;
   final int perfectQuizzes;
   final int threatChecks;
 
@@ -33,6 +35,7 @@ class HomeState extends Equatable {
 
   final Map<String, double> moduleScores;
   final Map<String, String> moduleReasons;
+  final Map<String, double> recommendationScores;
 
   final DateTime? lastActiveDate;
 
@@ -43,6 +46,7 @@ class HomeState extends Equatable {
     this.badges = const [],
     this.completedModules = const [],
     this.recommendedModules = const [],
+    this.recommendedModuleIds = const [],
     this.notifications = const [],
     this.hasUnreadNotifications = false,
     this.topicScores = const {
@@ -84,6 +88,7 @@ class HomeState extends Equatable {
     this.totalQuestionsAnswered = 0,
     this.totalCorrectAnswers = 0,
     this.quizzesCompleted = 0,
+    this.last3Scores = const [],
     this.perfectQuizzes = 0,
     this.threatChecks = 0,
     this.dailyModulesCompleted = 0,
@@ -95,10 +100,16 @@ class HomeState extends Equatable {
     this.rewardedNewsUrls = const [],
     this.moduleScores = const {},
     this.moduleReasons = const {},
+    this.recommendationScores = const {},
     this.lastActiveDate,
   });
 
   int get avgScore {
+    if (last3Scores.isNotEmpty) {
+      final total = last3Scores.fold<int>(0, (sum, score) => sum + score);
+      return (total / last3Scores.length).round();
+    }
+
     if (totalQuestionsAnswered == 0) return 0;
     return ((totalCorrectAnswers / totalQuestionsAnswered) * 100).round();
   }
@@ -158,6 +169,7 @@ class HomeState extends Equatable {
     List<String>? badges,
     List<String>? completedModules,
     List<String>? recommendedModules,
+    List<String>? recommendedModuleIds,
     List<String>? notifications,
     bool? hasUnreadNotifications,
     Map<String, double>? topicScores,
@@ -166,6 +178,7 @@ class HomeState extends Equatable {
     int? totalQuestionsAnswered,
     int? totalCorrectAnswers,
     int? quizzesCompleted,
+    List<int>? last3Scores,
     int? perfectQuizzes,
     int? threatChecks,
     int? dailyModulesCompleted,
@@ -178,6 +191,7 @@ class HomeState extends Equatable {
     List<String>? rewardedNewsUrls,
     Map<String, double>? moduleScores,
     Map<String, String>? moduleReasons,
+    Map<String, double>? recommendationScores,
     DateTime? lastActiveDate,
     bool clearLastActiveDate = false,
   }) {
@@ -188,6 +202,7 @@ class HomeState extends Equatable {
       badges: badges ?? this.badges,
       completedModules: completedModules ?? this.completedModules,
       recommendedModules: recommendedModules ?? this.recommendedModules,
+      recommendedModuleIds: recommendedModuleIds ?? this.recommendedModuleIds,
       notifications: notifications ?? this.notifications,
       hasUnreadNotifications:
           hasUnreadNotifications ?? this.hasUnreadNotifications,
@@ -198,6 +213,7 @@ class HomeState extends Equatable {
           totalQuestionsAnswered ?? this.totalQuestionsAnswered,
       totalCorrectAnswers: totalCorrectAnswers ?? this.totalCorrectAnswers,
       quizzesCompleted: quizzesCompleted ?? this.quizzesCompleted,
+      last3Scores: last3Scores ?? this.last3Scores,
       perfectQuizzes: perfectQuizzes ?? this.perfectQuizzes,
       threatChecks: threatChecks ?? this.threatChecks,
       dailyModulesCompleted:
@@ -212,6 +228,8 @@ class HomeState extends Equatable {
       rewardedNewsUrls: rewardedNewsUrls ?? this.rewardedNewsUrls,
       moduleScores: moduleScores ?? this.moduleScores,
       moduleReasons: moduleReasons ?? this.moduleReasons,
+      recommendationScores:
+          recommendationScores ?? this.recommendationScores,
       lastActiveDate: clearLastActiveDate
           ? null
           : lastActiveDate ?? this.lastActiveDate,
@@ -226,6 +244,7 @@ class HomeState extends Equatable {
     badges,
     completedModules,
     recommendedModules,
+    recommendedModuleIds,
     notifications,
     hasUnreadNotifications,
     topicScores,
@@ -234,6 +253,7 @@ class HomeState extends Equatable {
     totalQuestionsAnswered,
     totalCorrectAnswers,
     quizzesCompleted,
+    last3Scores,
     perfectQuizzes,
     threatChecks,
     dailyModulesCompleted,
@@ -245,6 +265,7 @@ class HomeState extends Equatable {
     rewardedNewsUrls,
     moduleScores,
     moduleReasons,
+    recommendationScores,
     lastActiveDate,
   ];
 }

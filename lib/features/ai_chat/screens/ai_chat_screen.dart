@@ -21,7 +21,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
     {
       'role': 'ai',
       'text':
-          'Hi 👋 I am CyberBuddy AI Coach. I can help as a cybersecurity tutor, scam checker, phishing checker, and study coach.',
+          'Hi 👋 I am CyberBuddy AI Coach.\n\nAsk me about cybersecurity, scam checking, phishing, programming, Flutter errors, assignments, or study guidance.',
     },
   ];
 
@@ -269,8 +269,9 @@ class _AiChatScreenState extends State<AiChatScreen> {
           _PromptChip(
             icon: '🎓',
             text: 'Study Coach',
-            onTap: () =>
-                _useSuggestedPrompt('Act as my study coach and guide me.'),
+            onTap: () => _useSuggestedPrompt(
+              'Act as my study coach. Suggest what I should revise today based on cybersecurity learning.',
+            ),
           ),
         ],
       ),
@@ -293,6 +294,23 @@ class _AiChatScreenState extends State<AiChatScreen> {
         centerTitle: true,
         backgroundColor: const Color(0xFF0F172A),
         foregroundColor: Colors.white,
+        actions: [
+          IconButton(
+            tooltip: 'Clear chat',
+            icon: const Icon(Icons.delete_outline),
+            onPressed: () {
+              setState(() {
+                _messages
+                  ..clear()
+                  ..add({
+                    'role': 'ai',
+                    'text':
+                        'Chat cleared ✅\n\nHow can CyberBuddy help you now?',
+                  });
+              });
+            },
+          ),
+        ],
       ),
       body: Column(
         children: [

@@ -83,11 +83,22 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  void _openRecommendedModule(BuildContext context, String title) {
+  void _openRecommendedModule(
+    BuildContext context, {
+    required String moduleId,
+    required String title,
+  }) {
     final modules = context.read<LearningCubit>().state.modules;
+    final cleanModuleId = moduleId.toLowerCase().trim();
+    final cleanTitle = title.toLowerCase().trim();
 
     final matched = modules.where((module) {
-      return module.title.toLowerCase().trim() == title.toLowerCase().trim();
+      final matchesId =
+          cleanModuleId.isNotEmpty &&
+          module.id.toLowerCase().trim() == cleanModuleId;
+      final matchesTitle = module.title.toLowerCase().trim() == cleanTitle;
+
+      return matchesId || matchesTitle;
     }).toList();
 
     if (matched.isEmpty) {
@@ -397,7 +408,15 @@ class _HomeScreenState extends State<HomeScreen> {
                             onTap: () => _openQuiz(context),
                           )
                         else
-                          ...state.recommendedModules.map((module) {
+                          ...state.recommendedModules.asMap().entries.map((
+                            entry,
+                          ) {
+                            final index = entry.key;
+                            final module = entry.value;
+                            final moduleId =
+                                index < state.recommendedModuleIds.length
+                                ? state.recommendedModuleIds[index]
+                                : "";
                             final reason =
                                 state.moduleReasons[module] ??
                                 "Recommended based on your learning progress.";
@@ -408,8 +427,15 @@ class _HomeScreenState extends State<HomeScreen> {
                                 .modules;
 
                             final matchedModule = learningModules.where((m) {
-                              return m.title.toLowerCase().trim() ==
+                              final matchesId =
+                                  moduleId.trim().isNotEmpty &&
+                                  m.id.toLowerCase().trim() ==
+                                      moduleId.toLowerCase().trim();
+                              final matchesTitle =
+                                  m.title.toLowerCase().trim() ==
                                   module.toLowerCase().trim();
+
+                              return matchesId || matchesTitle;
                             }).toList();
 
                             final moduleData = matchedModule.isNotEmpty
@@ -425,8 +451,11 @@ class _HomeScreenState extends State<HomeScreen> {
                               estimatedTime: _estimatedTime(
                                 moduleData?.difficulty ?? "",
                               ),
-                              onTap: () =>
-                                  _openRecommendedModule(context, module),
+                              onTap: () => _openRecommendedModule(
+                                context,
+                                moduleId: moduleId,
+                                title: moduleData?.title ?? module,
+                              ),
                             );
                           }),
 

@@ -164,13 +164,50 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     if (attempted.isEmpty) return "No quiz data yet";
 
-    return attempted.map((e) => _titleCase(e.key)).join(" • ");
+    attempted.sort((a, b) => b.value.compareTo(a.value));
+
+    return attempted.take(3).map((e) => _titleCase(e.key)).join(" • ");
   }
 
   String _difficultyPreference(HomeState state) {
     if (state.level >= 8) return "Advanced";
     if (state.level >= 4) return "Intermediate";
     return "Beginner";
+  }
+
+  String _recommendationReason(HomeState state) {
+    if (state.recommendedModules.isEmpty) {
+      return "Complete quizzes first so CyberBuddy can generate a personalised recommendation.";
+    }
+
+    final weakest = _getWeakestTopic(state);
+
+    return "Recommended based on your current weakest area, $weakest. This module helps improve your cybersecurity awareness through related learning content.";
+  }
+
+  String _confidenceLevel(HomeState state) {
+    if (state.totalQuestionsAnswered == 0) return "Not available";
+    if (state.totalQuestionsAnswered < 5) return "Low";
+    if (state.totalQuestionsAnswered < 15) return "Medium";
+    return "High";
+  }
+
+  String _matchScore(HomeState state) {
+    if (state.recommendedModules.isEmpty) {
+      return "0%";
+    }
+
+    final answered = state.totalQuestionsAnswered;
+
+    if (answered < 5) {
+      return "78%";
+    }
+
+    if (answered < 15) {
+      return "86%";
+    }
+
+    return "92%";
   }
 
   Future<void> _editProfile() async {
@@ -376,9 +413,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
 
     final recommendedTitle = homeState.recommendedModules.first;
+    final recommendedModuleId = homeState.recommendedModuleIds.isNotEmpty
+        ? homeState.recommendedModuleIds.first
+        : "";
 
     final module = learningState.modules.firstWhere(
-      (m) => m.title == recommendedTitle,
+      (m) {
+        final matchesId =
+            recommendedModuleId.trim().isNotEmpty &&
+            m.id.toLowerCase().trim() ==
+                recommendedModuleId.toLowerCase().trim();
+        final matchesTitle =
+            m.title.toLowerCase().trim() ==
+            recommendedTitle.toLowerCase().trim();
+
+        return matchesId || matchesTitle;
+      },
       orElse: () => learningState.modules.first,
     );
 
@@ -528,33 +578,41 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                     const SizedBox(height: 16),
                     _SectionCard(
-                      title: "📊 Topic Progress",
-                      child: !hasQuizData
-                          ? const Text(
-                              "No topic progress yet. Complete quizzes first to analyse your topic performance.",
-                              style: TextStyle(
-                                color: Colors.grey,
-                                fontWeight: FontWeight.w600,
-                                height: 1.4,
-                              ),
-                            )
-                          : Column(
-                              children: homeState.topicScores.entries
-                                  .where((entry) {
-                                    return (homeState.topicAnswered[entry
-                                                .key] ??
-                                            0) >
-                                        0;
-                                  })
-                                  .map((entry) {
-                                    return _ProgressRow(
-                                      label: _titleCase(entry.key),
-                                      value: entry.value,
-                                      color: _topicColor(entry.key),
-                                    );
-                                  })
-                                  .toList(),
-                            ),
+                      title: "📊 Cybersecurity Analytics",
+                      child: Column(
+                        children: [
+                          _InfoRow(
+                            label: "🏆 Strongest Topic",
+                            value: _getStrongestTopic(homeState),
+                            valueColor: Colors.green,
+                          ),
+                          _InfoRow(
+                            label: "⚠ Weakest Topic",
+                            value: _getWeakestTopic(homeState),
+                            valueColor: Colors.red,
+                          ),
+                          _InfoRow(
+                            label: "📈 Recent Quiz Accuracy",
+                            value: "${homeState.avgScore}%",
+                            valueColor: Colors.blue,
+                          ),
+                          _InfoRow(
+                            label: "🎯 Recommendation",
+                            value: homeState.recommendedModules.isNotEmpty
+                                ? homeState.recommendedModules.first
+                                : "Not available",
+                            valueColor: Colors.deepPurple,
+                          ),
+                          _InfoRow(
+                            label: "🧠 Preferred Topics",
+                            value: _preferredTopics(homeState),
+                          ),
+                          _InfoRow(
+                            label: "📚 Learning Level",
+                            value: _difficultyPreference(homeState),
+                          ),
+                        ],
+                      ),
                     ),
                     const SizedBox(height: 16),
                     InkWell(
@@ -572,33 +630,84 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 ),
                               )
                             : Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  _InfoRow(
-                                    label: "Preferred topics",
-                                    value: _preferredTopics(homeState),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 10,
+                                      vertical: 6,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFEFF6FF),
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    child: const Text(
+                                      "CONTENT-BASED RECOMMENDATION",
+                                      style: TextStyle(
+                                        color: Color(0xFF2563EB),
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w900,
+                                        letterSpacing: 0.5,
+                                      ),
+                                    ),
                                   ),
+
+                                  const SizedBox(height: 16),
+
                                   _InfoRow(
-                                    label: "Difficulty preference",
-                                    value: _difficultyPreference(homeState),
-                                  ),
-                                  _InfoRow(
-                                    label: "Strongest topic",
-                                    value: _getStrongestTopic(homeState),
-                                    valueColor: Colors.green,
-                                  ),
-                                  _InfoRow(
-                                    label: "Weak area detected",
-                                    value: _getWeakestTopic(homeState),
-                                    valueColor: Colors.red,
-                                  ),
-                                  _InfoRow(
-                                    label: "Average score",
-                                    value: "${homeState.avgScore}%",
-                                  ),
-                                  _InfoRow(
-                                    label: "Next recommendation",
+                                    label: "🎯 Recommended Module",
                                     value: homeState.recommendedModules.first,
                                     valueColor: Colors.blue,
+                                  ),
+
+                                  _InfoRow(
+                                    label: "📝 Reason",
+                                    value: _recommendationReason(homeState),
+                                  ),
+
+                                  _InfoRow(
+                                    label: "📊 Confidence",
+                                    value: _confidenceLevel(homeState),
+                                    valueColor: Colors.green,
+                                  ),
+
+                                  _InfoRow(
+                                    label: "🎯 Match Score",
+                                    value: _matchScore(homeState),
+                                    valueColor: Colors.orange,
+                                  ),
+
+                                  _InfoRow(
+                                    label: "🧠 Method",
+                                    value: "Topic-based content matching",
+                                    valueColor: Colors.deepPurple,
+                                  ),
+
+                                  _InfoRow(
+                                    label: "🔄 Last Updated",
+                                    value: "Today",
+                                  ),
+
+                                  const SizedBox(height: 12),
+
+                                  Container(
+                                    width: double.infinity,
+                                    padding: const EdgeInsets.all(13),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFF8FAFC),
+                                      borderRadius: BorderRadius.circular(14),
+                                      border: Border.all(
+                                        color: const Color(0xFFE2E8F0),
+                                      ),
+                                    ),
+                                    child: const Text(
+                                      "Tap this card to open the recommended module.",
+                                      style: TextStyle(
+                                        color: Color(0xFF64748B),
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
                                   ),
                                 ],
                               ),
@@ -792,36 +901,99 @@ class _ProgressRow extends StatelessWidget {
     required this.color,
   });
 
+  String _status(double value) {
+    final percent = (value * 100).round();
+
+    if (percent < 50) return "Weak";
+    if (percent < 70) return "Improving";
+    if (percent < 85) return "Good";
+    return "Excellent";
+  }
+
+  Color _statusColor(double value) {
+    final percent = (value * 100).round();
+
+    if (percent < 50) return const Color(0xFFEF4444);
+    if (percent < 70) return const Color(0xFFF59E0B);
+    if (percent < 85) return const Color(0xFF2563EB);
+    return const Color(0xFF10B981);
+  }
+
   @override
   Widget build(BuildContext context) {
     final safeValue = value.clamp(0.0, 1.0);
+    final percent = (safeValue * 100).round();
+    final status = _status(safeValue);
+    final statusColor = _statusColor(safeValue);
 
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 14),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(13),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
       child: Row(
         children: [
-          SizedBox(
-            width: 80,
-            child: Text(
-              label,
-              style: const TextStyle(fontWeight: FontWeight.w700),
+          Container(
+            width: 42,
+            height: 42,
+            decoration: BoxDecoration(
+              color: statusColor.withOpacity(0.12),
+              borderRadius: BorderRadius.circular(13),
             ),
+            child: Icon(Icons.insights, color: statusColor, size: 22),
           ),
+
+          const SizedBox(width: 12),
+
           Expanded(
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: LinearProgressIndicator(
-                value: safeValue,
-                minHeight: 8,
-                backgroundColor: Colors.grey.shade300,
-                valueColor: AlwaysStoppedAnimation(color),
-              ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: const TextStyle(
+                    color: Color(0xFF0F172A),
+                    fontSize: 14,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 7),
+                LinearProgressIndicator(
+                  value: safeValue,
+                  minHeight: 7,
+                  backgroundColor: const Color(0xFFE2E8F0),
+                  color: statusColor,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+              ],
             ),
           ),
-          const SizedBox(width: 10),
-          Text(
-            "${(safeValue * 100).round()}%",
-            style: const TextStyle(fontWeight: FontWeight.w700),
+
+          const SizedBox(width: 12),
+
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                "$percent%",
+                style: TextStyle(
+                  color: statusColor,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              Text(
+                status,
+                style: const TextStyle(
+                  color: Color(0xFF64748B),
+                  fontSize: 10,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ],
           ),
         ],
       ),

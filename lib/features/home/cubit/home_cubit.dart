@@ -84,6 +84,7 @@ class HomeCubit extends Cubit<HomeState> {
             totalQuestionsAnswered: cloudData['totalQuestionsAnswered'] ?? 0,
             totalCorrectAnswers: cloudData['totalCorrectAnswers'] ?? 0,
             quizzesCompleted: cloudData['quizzesCompleted'] ?? 0,
+            last3Scores: _mapIntList(cloudData['last3Scores']),
             perfectQuizzes: cloudData['perfectQuizzes'] ?? 0,
             threatChecks: cloudData['threatChecks'] ?? 0,
             dailyModulesCompleted: cloudData['dailyModulesCompleted'] ?? 0,
@@ -167,6 +168,14 @@ class HomeCubit extends Cubit<HomeState> {
     return defaults;
   }
 
+  List<int> _mapIntList(dynamic raw) {
+    if (raw == null) return const [];
+
+    return List<dynamic>.from(raw)
+        .map((value) => int.tryParse(value.toString()) ?? 0)
+        .toList();
+  }
+
   Future<void> _loadLocalProgress() async {
     final prefs = await SharedPreferences.getInstance();
     final uid = _uid;
@@ -202,6 +211,7 @@ class HomeCubit extends Cubit<HomeState> {
             prefs.getInt(_key('totalQuestionsAnswered')) ?? 0,
         totalCorrectAnswers: prefs.getInt(_key('totalCorrectAnswers')) ?? 0,
         quizzesCompleted: prefs.getInt(_key('quizzesCompleted')) ?? 0,
+        last3Scores: _decodeIntList(prefs.getString(_key('last3Scores'))),
         perfectQuizzes: prefs.getInt(_key('perfectQuizzes')) ?? 0,
         threatChecks: prefs.getInt(_key('threatChecks')) ?? 0,
         dailyModulesCompleted: prefs.getInt(_key('dailyModulesCompleted')) ?? 0,
@@ -255,6 +265,16 @@ class HomeCubit extends Cubit<HomeState> {
     });
 
     return defaults;
+  }
+
+  List<int> _decodeIntList(String? json) {
+    if (json == null) return const [];
+
+    final decoded = jsonDecode(json) as List<dynamic>;
+
+    return decoded
+        .map((value) => int.tryParse(value.toString()) ?? 0)
+        .toList();
   }
 
   Future<void> recordModuleCompleted(String moduleId) async {
@@ -316,6 +336,14 @@ class HomeCubit extends Cubit<HomeState> {
     await _saveAllProgress();
   }
 
+  List<int> _last3ScoresWith(int quizScore) {
+    final scores = List<int>.from(state.last3Scores)..add(quizScore);
+
+    if (scores.length <= 3) return scores;
+
+    return scores.sublist(scores.length - 3);
+  }
+
   Future<void> recordQuizCompleted({
     required int totalQuestions,
     required int correctAnswers,
@@ -328,9 +356,12 @@ class HomeCubit extends Cubit<HomeState> {
         ? 0
         : ((correctAnswers / totalQuestions) * 100).round();
 
+    final last3Scores = _last3ScoresWith(quizScore);
+
     emit(
       state.copyWith(
         quizzesCompleted: state.quizzesCompleted + 1,
+        last3Scores: last3Scores,
         perfectQuizzes: state.perfectQuizzes + (isPerfect ? 1 : 0),
         dailyQuizAttempts: state.dailyQuizAttempts + 1,
         dailyBestQuizScore: max(state.dailyBestQuizScore, quizScore),
@@ -563,6 +594,7 @@ class HomeCubit extends Cubit<HomeState> {
       'totalQuestionsAnswered',
       'totalCorrectAnswers',
       'quizzesCompleted',
+      'last3Scores',
       'perfectQuizzes',
       'threatChecks',
       'dailyModulesCompleted',
@@ -594,8 +626,10 @@ class HomeCubit extends Cubit<HomeState> {
       emit(
         state.copyWith(
           recommendedModules: const [],
+          recommendedModuleIds: const [],
           moduleScores: const {},
           moduleReasons: const {},
+          recommendationScores: const {},
         ),
       );
       return;
@@ -639,6 +673,7 @@ class HomeCubit extends Cubit<HomeState> {
         final finalScore = weaknessScore + difficultyBoost + xpBoost;
 
         scoredModules.add({
+          'id': moduleId,
           'title': title,
           'topic': topic,
           'difficulty': difficulty,
@@ -655,18 +690,26 @@ class HomeCubit extends Cubit<HomeState> {
       final topModules = scoredModules.take(3).toList();
 
       final recommendedModules = <String>[];
+      final recommendedModuleIds = <String>[];
       final moduleReasons = <String, String>{};
       final moduleScores = <String, double>{};
+      final recommendationScores = <String, double>{};
 
       for (final module in topModules) {
         final title = module['title'].toString();
+        final id = module['id'].toString();
         final topic = module['topic'].toString();
         final answered = module['answered'] as int;
         final accuracy = module['accuracy'] as double;
         final percent = (accuracy * 100).round();
+        final recommendationScore = (100 - (accuracy * 100))
+            .clamp(0, 100)
+            .toDouble();
 
         recommendedModules.add(title);
+        recommendedModuleIds.add(id);
         moduleScores[title] = module['score'] as double;
+        recommendationScores[id] = recommendationScore;
 
         if (answered > 0) {
           moduleReasons[title] =
@@ -680,16 +723,20 @@ class HomeCubit extends Cubit<HomeState> {
       emit(
         state.copyWith(
           recommendedModules: recommendedModules,
+          recommendedModuleIds: recommendedModuleIds,
           moduleReasons: moduleReasons,
           moduleScores: moduleScores,
+          recommendationScores: recommendationScores,
         ),
       );
     } catch (_) {
       emit(
         state.copyWith(
           recommendedModules: const [],
+          recommendedModuleIds: const [],
           moduleReasons: const {},
           moduleScores: const {},
+          recommendationScores: const {},
         ),
       );
     }
@@ -808,6 +855,7 @@ class HomeCubit extends Cubit<HomeState> {
         : ((correctAnswers / totalQuestions) * 100).round();
 
     final isPerfect = totalQuestions > 0 && totalQuestions == correctAnswers;
+    final last3Scores = _last3ScoresWith(quizScore);
 
     final newXP = state.xp + earnedXp;
     final newLevel = (newXP ~/ 100) + 1;
@@ -828,6 +876,7 @@ class HomeCubit extends Cubit<HomeState> {
         totalQuestionsAnswered: state.totalQuestionsAnswered + totalAnsweredAdd,
         totalCorrectAnswers: state.totalCorrectAnswers + totalCorrectAdd,
         quizzesCompleted: state.quizzesCompleted + 1,
+        last3Scores: last3Scores,
         perfectQuizzes: state.perfectQuizzes + (isPerfect ? 1 : 0),
         dailyQuizAttempts: state.dailyQuizAttempts + 1,
         dailyBestQuizScore: max(state.dailyBestQuizScore, quizScore),
@@ -861,6 +910,7 @@ class HomeCubit extends Cubit<HomeState> {
         totalQuestionsAnswered: state.totalQuestionsAnswered,
         totalCorrectAnswers: state.totalCorrectAnswers,
         quizzesCompleted: state.quizzesCompleted,
+        last3Scores: state.last3Scores,
         perfectQuizzes: state.perfectQuizzes,
         threatChecks: state.threatChecks,
         dailyModulesCompleted: state.dailyModulesCompleted,
@@ -939,6 +989,7 @@ class HomeCubit extends Cubit<HomeState> {
 
     await prefs.setInt(_key('totalCorrectAnswers'), state.totalCorrectAnswers);
     await prefs.setInt(_key('quizzesCompleted'), state.quizzesCompleted);
+    await prefs.setString(_key('last3Scores'), jsonEncode(state.last3Scores));
     await prefs.setInt(_key('perfectQuizzes'), state.perfectQuizzes);
     await prefs.setInt(_key('threatChecks'), state.threatChecks);
 

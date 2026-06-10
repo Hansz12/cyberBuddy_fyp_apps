@@ -592,6 +592,26 @@ class _VideoPreviewCard extends StatelessWidget {
             ),
           ),
           Positioned(
+            right: 16,
+            top: 14,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.14),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: Colors.white24),
+              ),
+              child: const Text(
+                "COMING SOON",
+                style: TextStyle(
+                  color: Color(0xFFBFDBFE),
+                  fontSize: 10,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ),
+          ),
+          Positioned(
             left: 16,
             bottom: 14,
             child: Row(
@@ -603,7 +623,7 @@ class _VideoPreviewCard extends StatelessWidget {
                 ),
                 const SizedBox(width: 6),
                 Text(
-                  "Intro video · ${topic.toUpperCase()} · 2:30",
+                  "Quick Visual Guide · ${topic.toUpperCase()}",
                   style: const TextStyle(
                     color: Color(0xFFBFDBFE),
                     fontSize: 12,

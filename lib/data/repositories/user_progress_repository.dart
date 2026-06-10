@@ -50,6 +50,7 @@ class UserProgressRepository {
     required int totalQuestionsAnswered,
     required int totalCorrectAnswers,
     required int quizzesCompleted,
+    required List<int> last3Scores,
     required int perfectQuizzes,
     required int threatChecks,
     required int dailyModulesCompleted,
@@ -87,6 +88,7 @@ class UserProgressRepository {
       'totalQuestionsAnswered': totalQuestionsAnswered,
       'totalCorrectAnswers': totalCorrectAnswers,
       'quizzesCompleted': quizzesCompleted,
+      'last3Scores': last3Scores,
       'perfectQuizzes': perfectQuizzes,
       'threatChecks': threatChecks,
 

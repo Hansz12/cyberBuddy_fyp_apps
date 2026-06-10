@@ -147,6 +147,19 @@ class _LearningScreenState extends State<LearningScreen> {
     return "Not started";
   }
 
+  String _estimatedTime(String difficulty) {
+    switch (difficulty.toLowerCase()) {
+      case "beginner":
+        return "5 mins";
+      case "intermediate":
+        return "8 mins";
+      case "advanced":
+        return "12 mins";
+      default:
+        return "6 mins";
+    }
+  }
+
   String _difficultyBadge(LearningModule module) {
     if (module.completed) return "✓ Done";
 
@@ -345,14 +358,10 @@ class _LearningScreenState extends State<LearningScreen> {
                   children: [
                     Expanded(
                       child: _PreviewInfoBox(
-                        icon: module.completed
-                            ? Icons.check_circle
-                            : Icons.play_circle,
-                        title: "Status",
-                        value: module.completed ? "Completed" : "Not started",
-                        color: module.completed
-                            ? const Color(0xFF10B981)
-                            : const Color(0xFF64748B),
+                        icon: Icons.timer,
+                        title: "Time",
+                        value: _estimatedTime(module.difficulty),
+                        color: const Color(0xFF0EA5E9),
                       ),
                     ),
                     const SizedBox(width: 10),
@@ -360,7 +369,9 @@ class _LearningScreenState extends State<LearningScreen> {
                       child: _PreviewInfoBox(
                         icon: Icons.bolt,
                         title: "Reward",
-                        value: module.completed ? "Done" : "XP",
+                        value: module.completed
+                            ? "Done"
+                            : "+${module.xpReward} XP",
                         color: const Color(0xFFF59E0B),
                       ),
                     ),
@@ -693,6 +704,7 @@ class _PreviewInfoBox extends StatelessWidget {
     required this.color,
   });
 
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -814,6 +826,19 @@ class _LearningCard extends StatelessWidget {
     required this.onLongPress,
   });
 
+  String _estimateTime(String difficulty) {
+    switch (difficulty.toLowerCase()) {
+      case "beginner":
+        return "5 mins";
+      case "intermediate":
+        return "8 mins";
+      case "advanced":
+        return "12 mins";
+      default:
+        return "6 mins";
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDone = module.completed;
@@ -890,13 +915,27 @@ class _LearningCard extends StatelessWidget {
                   Row(
                     children: [
                       Expanded(
-                        child: Text(
-                          progressText,
-                          style: const TextStyle(
-                            color: Color(0xFF94A3B8),
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                          ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              progressText,
+                              style: const TextStyle(
+                                color: Color(0xFF94A3B8),
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              "+${module.xpReward} XP · ${_estimateTime(module.difficulty)}",
+                              style: const TextStyle(
+                                color: Color(0xFF64748B),
+                                fontSize: 11,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                       Container(
