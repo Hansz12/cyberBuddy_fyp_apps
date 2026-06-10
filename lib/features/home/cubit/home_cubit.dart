@@ -629,7 +629,11 @@ class HomeCubit extends Cubit<HomeState> {
         final accuracy = answered == 0 ? 0.0 : correct / answered;
         final weaknessScore = answered == 0 ? 0.35 : 1.0 - accuracy;
 
-        final difficultyBoost = _difficultyWeight(difficulty) * 0.05;
+        final difficultyBoost = _difficultyProgressionBoost(
+          difficulty: difficulty,
+          topicAccuracy: accuracy,
+          answered: answered,
+        );
         final xpBoost = xpReward / 1000;
 
         final finalScore = weaknessScore + difficultyBoost + xpBoost;
@@ -726,6 +730,35 @@ class HomeCubit extends Cubit<HomeState> {
     }
   }
 
+  double _difficultyProgressionBoost({
+    required String difficulty,
+    required double topicAccuracy,
+    required int answered,
+  }) {
+    final level = _difficultyWeight(difficulty);
+
+    if (answered == 0) {
+      if (level == 1) return 0.12;
+      if (level == 2) return 0.07;
+      return 0.03;
+    }
+
+    if (topicAccuracy < 0.6) {
+      if (level == 1) return 0.15;
+      if (level == 2) return 0.08;
+      return 0.02;
+    }
+
+    if (topicAccuracy >= 0.8) {
+      if (level == 2) return 0.15;
+      if (level == 3) return 0.10;
+      return 0.04;
+    }
+
+    if (level == 2) return 0.10;
+    return 0.05;
+  }
+
   Future<void> recordFullQuizResult({
     required int earnedXp,
     required List<Map<String, dynamic>> questions,
@@ -751,7 +784,7 @@ class HomeCubit extends Cubit<HomeState> {
           .toLowerCase()
           .trim();
 
-      final topic = rawTopic.isEmpty ? 'general' : rawTopic;
+      final topic = rawTopic.isEmpty ? 'general' : _normaliseTopic(rawTopic);
       final isCorrect = i < answerResults.length ? answerResults[i] : false;
 
       if ((topicAnswered[topic] ?? 0) == 0) {

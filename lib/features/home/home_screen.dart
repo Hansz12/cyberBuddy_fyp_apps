@@ -7,6 +7,7 @@ import '../../data/services/connectivity_service.dart';
 import '../../data/services/news_service.dart';
 import '../learning/cubit/learning_cubit.dart';
 import '../learning/learning_screen.dart';
+import '../learning/module_detail_screen.dart';
 import '../news/news_screen.dart';
 import '../quiz/cubit/quiz_cubit.dart';
 import '../quiz/quiz_screen.dart';
@@ -79,6 +80,28 @@ class _HomeScreenState extends State<HomeScreen> {
     Navigator.push(
       context,
       MaterialPageRoute(builder: (_) => const NewsScreen()),
+    );
+  }
+
+  void _openRecommendedModule(BuildContext context, String title) {
+    final modules = context.read<LearningCubit>().state.modules;
+
+    final matched = modules.where((module) {
+      return module.title.toLowerCase().trim() == title.toLowerCase().trim();
+    }).toList();
+
+    if (matched.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Recommended module not found.")),
+      );
+      return;
+    }
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ModuleDetailScreen(module: matched.first),
+      ),
     );
   }
 
@@ -159,6 +182,19 @@ class _HomeScreenState extends State<HomeScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text("Mission reward claimed: +$xpReward XP")),
     );
+  }
+
+  String _estimatedTime(String difficulty) {
+    switch (difficulty.toLowerCase()) {
+      case "beginner":
+        return "5 mins";
+      case "intermediate":
+        return "8 mins";
+      case "advanced":
+        return "12 mins";
+      default:
+        return "6 mins";
+    }
   }
 
   @override
@@ -366,10 +402,31 @@ class _HomeScreenState extends State<HomeScreen> {
                                 state.moduleReasons[module] ??
                                 "Recommended based on your learning progress.";
 
+                            final learningModules = context
+                                .read<LearningCubit>()
+                                .state
+                                .modules;
+
+                            final matchedModule = learningModules.where((m) {
+                              return m.title.toLowerCase().trim() ==
+                                  module.toLowerCase().trim();
+                            }).toList();
+
+                            final moduleData = matchedModule.isNotEmpty
+                                ? matchedModule.first
+                                : null;
+
                             return _RecommendedCard(
                               title: module,
                               reason: reason,
-                              onTap: () => _openLearning(context),
+                              difficulty:
+                                  moduleData?.difficulty ?? "Recommended",
+                              xpReward: moduleData?.xpReward ?? 0,
+                              estimatedTime: _estimatedTime(
+                                moduleData?.difficulty ?? "",
+                              ),
+                              onTap: () =>
+                                  _openRecommendedModule(context, module),
                             );
                           }),
 
@@ -1057,11 +1114,17 @@ class _QuestCardState extends State<_QuestCard> {
 class _RecommendedCard extends StatelessWidget {
   final String title;
   final String reason;
+  final String difficulty;
+  final int xpReward;
+  final String estimatedTime;
   final VoidCallback onTap;
 
   const _RecommendedCard({
     required this.title,
     required this.reason,
+    required this.difficulty,
+    required this.xpReward,
+    required this.estimatedTime,
     required this.onTap,
   });
 
@@ -1078,108 +1141,50 @@ class _RecommendedCard extends StatelessWidget {
             colors: [Color(0xFF0F172A), Color(0xFF1E3A8A)],
           ),
           borderRadius: BorderRadius.circular(22),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.blue.withOpacity(0.20),
-              blurRadius: 18,
-              offset: const Offset(0, 8),
-            ),
-          ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 5,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: const Text(
-                    "🤖 AI RECOMMENDED",
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                ),
-              ],
+            const Text(
+              "🤖 AI RECOMMENDED",
+              style: TextStyle(
+                color: Color(0xFF38BDF8),
+                fontSize: 11,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            const SizedBox(height: 14),
+
+            Text(
+              title,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 18,
+                fontWeight: FontWeight.w900,
+              ),
             ),
 
-            const SizedBox(height: 16),
+            const SizedBox(height: 8),
+
+            Text(
+              reason,
+              style: const TextStyle(
+                color: Colors.white70,
+                fontSize: 12,
+                height: 1.35,
+              ),
+            ),
+
+            const SizedBox(height: 14),
 
             Row(
               children: [
-                Container(
-                  width: 54,
-                  height: 54,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.12),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: const Center(
-                    child: Text("🛡️", style: TextStyle(fontSize: 24)),
-                  ),
-                ),
-
-                const SizedBox(width: 14),
-
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        title,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 17,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-
-                      const SizedBox(height: 4),
-
-                      Text(
-                        reason,
-                        style: const TextStyle(
-                          color: Colors.white70,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+                _MiniInfoChip(text: difficulty, icon: Icons.bar_chart),
+                const SizedBox(width: 8),
+                _MiniInfoChip(text: "+$xpReward XP", icon: Icons.bolt),
+                const SizedBox(width: 8),
+                _MiniInfoChip(text: estimatedTime, icon: Icons.timer),
               ],
-            ),
-
-            const SizedBox(height: 16),
-
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.10),
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: const Row(
-                children: [
-                  Icon(Icons.trending_up, color: Color(0xFF38BDF8), size: 18),
-
-                  SizedBox(width: 8),
-
-                  Expanded(
-                    child: Text(
-                      "Recommended based on your weakest cybersecurity topic.",
-                      style: TextStyle(color: Colors.white70, fontSize: 12),
-                    ),
-                  ),
-                ],
-              ),
             ),
 
             const SizedBox(height: 16),
@@ -1198,6 +1203,41 @@ class _RecommendedCard extends StatelessWidget {
                     fontWeight: FontWeight.w900,
                   ),
                 ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _MiniInfoChip extends StatelessWidget {
+  final String text;
+  final IconData icon;
+
+  const _MiniInfoChip({required this.text, required this.icon});
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.12),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Column(
+          children: [
+            Icon(icon, color: const Color(0xFF38BDF8), size: 16),
+            const SizedBox(height: 3),
+            Text(
+              text,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 10,
+                fontWeight: FontWeight.w900,
               ),
             ),
           ],
@@ -1505,6 +1545,7 @@ class _SimpleCard extends StatelessWidget {
   }
 }
 
+// ignore: unused_element
 class _IconBox extends StatelessWidget {
   final String icon;
   final Color bg;

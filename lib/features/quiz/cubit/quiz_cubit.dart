@@ -19,14 +19,15 @@ class QuizCubit extends Cubit<QuizState> {
           .where((q) {
             final qModuleId = q['module_id'] ?? q['moduleId'] ?? q['moduleID'];
 
-            final activeValue = q['is_active'] ?? q['active'] ?? true;
-            final isActive =
+            final activeValue = q['active'] ?? q['is_active'] ?? q['isActive'];
+
+            final active =
                 activeValue == true ||
                 activeValue.toString().toLowerCase() == 'true';
 
             return qModuleId.toString().trim().toUpperCase() ==
                     moduleIdString &&
-                isActive;
+                active;
           })
           .map((q) {
             return _formatQuestion(q);

@@ -18,6 +18,7 @@
   },
   {
     "module_id": "M002",
+    "next_module": "M009",
     "title": "Password Security",
     "topic": "password",
     "difficulty": "Beginner",

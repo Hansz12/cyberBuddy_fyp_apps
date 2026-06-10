@@ -66,6 +66,19 @@ class ModuleDetailScreen extends StatelessWidget {
     }
   }
 
+  String _estimatedTime(String difficulty) {
+    switch (difficulty.toLowerCase()) {
+      case "beginner":
+        return "5 mins";
+      case "intermediate":
+        return "8 mins";
+      case "advanced":
+        return "12 mins";
+      default:
+        return "6 mins";
+    }
+  }
+
   List<String> _contentPoints(String content, String title) {
     final cleaned = content.trim();
 
@@ -135,6 +148,97 @@ class ModuleDetailScreen extends StatelessWidget {
     }
   }
 
+  List<Map<String, String>> _quickTips(String topic) {
+    switch (topic.toLowerCase()) {
+      case "phishing":
+        return [
+          {
+            "title": "Check Sender",
+            "desc":
+                "Always verify the sender email address before clicking links.",
+          },
+          {
+            "title": "Avoid Urgency",
+            "desc": "Phishing messages often pressure you to act quickly.",
+          },
+          {
+            "title": "Use Official Site",
+            "desc":
+                "Open the official website manually instead of using links.",
+          },
+        ];
+      case "password":
+        return [
+          {
+            "title": "Use MFA",
+            "desc":
+                "Multi-factor authentication adds another layer of protection.",
+          },
+          {
+            "title": "Unique Password",
+            "desc": "Never reuse the same password for different accounts.",
+          },
+          {
+            "title": "Avoid Personal Info",
+            "desc":
+                "Do not use birthdays, names, or phone numbers as passwords.",
+          },
+        ];
+      case "malware":
+        return [
+          {
+            "title": "Avoid Unknown Apps",
+            "desc":
+                "Do not install APK files or cracked software from unknown sources.",
+          },
+          {
+            "title": "Update Device",
+            "desc": "Security updates help protect against malware attacks.",
+          },
+          {
+            "title": "Scan Files",
+            "desc":
+                "Be careful with files from emails, USB drives, or unknown links.",
+          },
+        ];
+      default:
+        return [
+          {
+            "title": "Verify First",
+            "desc":
+                "Always verify suspicious messages through official channels.",
+          },
+          {
+            "title": "Protect Data",
+            "desc":
+                "Do not share passwords, OTP, banking details, or private data.",
+          },
+          {
+            "title": "Report Issues",
+            "desc":
+                "Report suspicious links, messages, or files when possible.",
+          },
+        ];
+    }
+  }
+
+  void _showTip(BuildContext context, String title, String desc) {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(title),
+        content: Text(desc),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Got it"),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _startQuiz(BuildContext context, LearningModule currentModule) {
     if (currentModule.id.isEmpty) {
       ScaffoldMessenger.of(
@@ -151,23 +255,51 @@ class ModuleDetailScreen extends StatelessWidget {
     );
   }
 
-  Future<void> _completeModule(
+  Future<void> _confirmCompleteModule(
     BuildContext context,
     LearningModule currentModule,
   ) async {
     if (currentModule.completed) return;
 
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text("Complete Module?"),
+        content: Text(
+          "Mark this module as completed and earn +${currentModule.xpReward} XP?",
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text("Cancel"),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text("Complete"),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true && context.mounted) {
+      await _completeModule(context, currentModule);
+    }
+  }
+
+  Future<void> _completeModule(
+    BuildContext context,
+    LearningModule currentModule,
+  ) async {
     await context.read<LearningCubit>().completeModule(currentModule.id);
-
     await context.read<HomeCubit>().recordModuleCompleted(currentModule.id);
-
     await context.read<HomeCubit>().gainXP(currentModule.xpReward);
 
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            "Module completed! +${currentModule.xpReward} XP earned.",
+            "🎉 Module completed! +${currentModule.xpReward} XP earned.",
           ),
         ),
       );
@@ -189,7 +321,6 @@ class ModuleDetailScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final currentModule = _getLatestModule(context);
-
     final color = _topicColor(currentModule.topic);
 
     final overviewText = currentModule.content.trim().isEmpty
@@ -202,6 +333,7 @@ class ModuleDetailScreen extends StatelessWidget {
     );
 
     final actions = _actionPoints(currentModule.topic);
+    final tips = _quickTips(currentModule.topic);
 
     return Scaffold(
       backgroundColor: const Color(0xFFF1F5F9),
@@ -254,33 +386,40 @@ class ModuleDetailScreen extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 10),
-                  Row(
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
                     children: [
                       _HeaderChip(
                         text: currentModule.difficulty,
                         icon: Icons.bar_chart,
                       ),
-                      const SizedBox(width: 8),
                       _HeaderChip(
                         text: "+${currentModule.xpReward} XP",
                         icon: Icons.bolt,
                       ),
-                      if (currentModule.completed) ...[
-                        const SizedBox(width: 8),
+                      _HeaderChip(
+                        text: _estimatedTime(currentModule.difficulty),
+                        icon: Icons.timer,
+                      ),
+                      if (currentModule.completed)
                         const _HeaderChip(
                           text: "Completed",
                           icon: Icons.check_circle,
                         ),
-                      ],
                     ],
                   ),
                 ],
               ),
             ),
+
             Expanded(
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(16, 16, 16, 110),
                 children: [
+                  _VideoPreviewCard(topic: currentModule.topic),
+                  const SizedBox(height: 14),
+
                   _InfoCard(
                     title: "Module Overview",
                     child: Text(
@@ -293,7 +432,44 @@ class ModuleDetailScreen extends StatelessWidget {
                       ),
                     ),
                   ),
+
                   const SizedBox(height: 14),
+
+                  _StatsGrid(
+                    level: currentModule.difficulty,
+                    topic: currentModule.topic,
+                    xp: currentModule.xpReward,
+                    time: _estimatedTime(currentModule.difficulty),
+                  ),
+
+                  const SizedBox(height: 14),
+
+                  _InfoCard(
+                    title: "Quick Tips",
+                    child: SizedBox(
+                      height: 92,
+                      child: ListView.separated(
+                        scrollDirection: Axis.horizontal,
+                        itemCount: tips.length,
+                        separatorBuilder: (_, __) => const SizedBox(width: 10),
+                        itemBuilder: (context, index) {
+                          final tip = tips[index];
+
+                          return _QuickTipCard(
+                            title: tip["title"] ?? "",
+                            onTap: () => _showTip(
+                              context,
+                              tip["title"] ?? "",
+                              tip["desc"] ?? "",
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 14),
+
                   _InfoCard(
                     title: "Key Learning Points",
                     child: Column(
@@ -302,7 +478,9 @@ class ModuleDetailScreen extends StatelessWidget {
                       }).toList(),
                     ),
                   ),
+
                   const SizedBox(height: 14),
+
                   _InfoCard(
                     title: "What You Should Do",
                     child: Column(
@@ -314,6 +492,7 @@ class ModuleDetailScreen extends StatelessWidget {
                 ],
               ),
             ),
+
             Container(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
               decoration: const BoxDecoration(
@@ -345,7 +524,8 @@ class ModuleDetailScreen extends StatelessWidget {
                     child: OutlinedButton.icon(
                       onPressed: currentModule.completed
                           ? null
-                          : () => _completeModule(context, currentModule),
+                          : () =>
+                                _confirmCompleteModule(context, currentModule),
                       icon: Icon(
                         currentModule.completed
                             ? Icons.check_circle
@@ -382,6 +562,192 @@ class ModuleDetailScreen extends StatelessWidget {
   }
 }
 
+class _VideoPreviewCard extends StatelessWidget {
+  final String topic;
+
+  const _VideoPreviewCard({required this.topic});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 175,
+      decoration: BoxDecoration(
+        color: const Color(0xFF1E293B),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF0F172A).withOpacity(0.18),
+            blurRadius: 14,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Stack(
+        children: [
+          const Center(
+            child: Icon(
+              Icons.play_circle_fill_rounded,
+              color: Colors.white,
+              size: 64,
+            ),
+          ),
+          Positioned(
+            left: 16,
+            bottom: 14,
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.video_library,
+                  color: Color(0xFF93C5FD),
+                  size: 16,
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  "Intro video · ${topic.toUpperCase()} · 2:30",
+                  style: const TextStyle(
+                    color: Color(0xFFBFDBFE),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StatsGrid extends StatelessWidget {
+  final String level;
+  final String topic;
+  final int xp;
+  final String time;
+
+  const _StatsGrid({
+    required this.level,
+    required this.topic,
+    required this.xp,
+    required this.time,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: _StatBox(icon: Icons.bar_chart, label: "Level", value: level),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: _StatBox(icon: Icons.topic, label: "Topic", value: topic),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: _StatBox(icon: Icons.bolt, label: "Reward", value: "+$xp XP"),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: _StatBox(icon: Icons.timer, label: "Time", value: time),
+        ),
+      ],
+    );
+  }
+}
+
+class _StatBox extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String value;
+
+  const _StatBox({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 96,
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: const Color(0xFF2563EB), size: 20),
+          const Spacer(),
+          Text(
+            label,
+            style: const TextStyle(
+              color: Color(0xFF94A3B8),
+              fontSize: 10,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 3),
+          Text(
+            value,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              color: Color(0xFF0F172A),
+              fontSize: 11,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _QuickTipCard extends StatelessWidget {
+  final String title;
+  final VoidCallback onTap;
+
+  const _QuickTipCard({required this.title, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        width: 135,
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF8FAFC),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFE2E8F0)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Icon(Icons.lightbulb, color: Color(0xFFF59E0B)),
+            const Spacer(),
+            Text(
+              title,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: Color(0xFF0F172A),
+                fontSize: 12,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _HeaderChip extends StatelessWidget {
   final String text;
   final IconData icon;
@@ -398,6 +764,7 @@ class _HeaderChip extends StatelessWidget {
         border: Border.all(color: Colors.white24),
       ),
       child: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
           Icon(icon, color: const Color(0xFF38BDF8), size: 15),
           const SizedBox(width: 5),
