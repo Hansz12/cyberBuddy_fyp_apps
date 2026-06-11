@@ -1,4 +1,5 @@
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -13,11 +14,17 @@ import 'features/leaderboard/cubit/leaderboard_cubit.dart';
 import 'features/learning/cubit/learning_cubit.dart';
 
 import 'data/services/notification_service.dart';
+import 'data/services/push_notification_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
   await Firebase.initializeApp();
+
+  FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+
   await NotificationService.init();
+  await PushNotificationService.init();
   await NotificationService.scheduleDailyReminder();
 
   runApp(const CyberBuddyApp());

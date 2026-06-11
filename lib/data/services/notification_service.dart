@@ -42,6 +42,22 @@ class NotificationService {
     );
   }
 
+  static Future<void> showPushNotification({
+    required String title,
+    required String body,
+  }) async {
+    await _notifications.show(
+      DateTime.now().millisecondsSinceEpoch ~/ 1000,
+      title,
+      body,
+      _notificationDetails(
+        channelId: 'cyberbuddy_push_channel',
+        channelName: 'CyberBuddy Push Notifications',
+        description: 'Firebase push notifications for CyberBuddy users',
+      ),
+    );
+  }
+
   static Future<void> showInstantNotification() async {
     await _notifications.show(
       1,
