@@ -91,6 +91,7 @@ flutter:
     - assets/data/badges.json
     - assets/data/daily_quests.json
     - assets/data/recommendation_logic.json
+    - assets/data/module_videos.json
     - assets/app_icon.png
 
   # An image asset can refer to one or more resolution-specific "variants", see

@@ -1,0 +1,242 @@
+[
+  {
+    "module_id": "M001",
+    "video_category": "phishing",
+    "video_title": "What is phishing?",
+    "video_url": "https://www.youtube.com/watch?v=3GBmpqhQI8s",
+    "video_source": "YouTube",
+    "video_duration": "3-5 mins"
+  },
+  {
+    "module_id": "M002",
+    "video_category": "password_mfa",
+    "video_title": "Multi-factor Authentication - Cyber Safety Series",
+    "video_url": "https://www.youtube.com/watch?v=-mdIH67HKqk",
+    "video_source": "YouTube",
+    "video_duration": "3-5 mins"
+  },
+  {
+    "module_id": "M003",
+    "video_category": "social_engineering",
+    "video_title": "Pause, Think and Act",
+    "video_url": "https://www.youtube.com/watch?v=JpfEBQn2CjM",
+    "video_source": "YouTube",
+    "video_duration": "3-5 mins"
+  },
+  {
+    "module_id": "M004",
+    "video_category": "malware",
+    "video_title": "Malware: Safe Downloading and Software Installation Practices",
+    "video_url": "https://www.youtube.com/watch?v=5PRIwcxJbm0",
+    "video_source": "YouTube",
+    "video_duration": "3-5 mins"
+  },
+  {
+    "module_id": "M005",
+    "video_category": "privacy",
+    "video_title": "How To Protect Your Digital Footprint",
+    "video_url": "https://www.youtube.com/watch?v=s40tTZJd7As",
+    "video_source": "YouTube",
+    "video_duration": "3-5 mins"
+  },
+  {
+    "module_id": "M006",
+    "video_category": "scam_awareness",
+    "video_title": "Scam Awareness: Protect & Prevent",
+    "video_url": "https://www.youtube.com/watch?v=Csy-wrHQnSI",
+    "video_source": "YouTube",
+    "video_duration": "3-5 mins"
+  },
+  {
+    "module_id": "M007",
+    "video_category": "mobile_security",
+    "video_title": "Mobile Device Security Threats",
+    "video_url": "https://www.youtube.com/watch?v=-xoT7a6zELw",
+    "video_source": "YouTube",
+    "video_duration": "3-5 mins"
+  },
+  {
+    "module_id": "M008",
+    "video_category": "public_wifi",
+    "video_title": "Security Awareness Episode 8: Wi-Fi",
+    "video_url": "https://www.youtube.com/watch?v=RQttayB5ymA",
+    "video_source": "YouTube",
+    "video_duration": "3-5 mins"
+  },
+  {
+    "module_id": "M009",
+    "video_category": "password_mfa",
+    "video_title": "Multi-factor Authentication - Cyber Safety Series",
+    "video_url": "https://www.youtube.com/watch?v=-mdIH67HKqk",
+    "video_source": "YouTube",
+    "video_duration": "3-5 mins"
+  },
+  {
+    "module_id": "M010",
+    "video_category": "privacy",
+    "video_title": "How To Protect Your Digital Footprint",
+    "video_url": "https://www.youtube.com/watch?v=s40tTZJd7As",
+    "video_source": "YouTube",
+    "video_duration": "3-5 mins"
+  },
+  {
+    "module_id": "M011",
+    "video_category": "cyberbullying_ethics",
+    "video_title": "Digital Ethics and Cyberbullying Awareness",
+    "video_url": "https://www.youtube.com/watch?v=nEjoxH-Iw7M",
+    "video_source": "YouTube",
+    "video_duration": "3-5 mins"
+  },
+  {
+    "module_id": "M012",
+    "video_category": "online_banking_scam",
+    "video_title": "Scam Awareness: Protect & Prevent",
+    "video_url": "https://www.youtube.com/watch?v=Csy-wrHQnSI",
+    "video_source": "YouTube",
+    "video_duration": "3-5 mins"
+  },
+  {
+    "module_id": "M013",
+    "video_category": "email_security",
+    "video_title": "What is phishing?",
+    "video_url": "https://www.youtube.com/watch?v=3GBmpqhQI8s",
+    "video_source": "YouTube",
+    "video_duration": "3-5 mins"
+  },
+  {
+    "module_id": "M014",
+    "video_category": "social_media_safety",
+    "video_title": "Digital Footprints, Social Media, and Online Safety",
+    "video_url": "https://www.youtube.com/watch?v=2JPxz7sdlWU",
+    "video_source": "YouTube",
+    "video_duration": "3-5 mins"
+  },
+  {
+    "module_id": "M015",
+    "video_category": "cloud_storage",
+    "video_title": "Google Drive Security and Sharing Safety",
+    "video_url": "https://www.youtube.com/watch?v=L3hIXUzplaY",
+    "video_source": "YouTube",
+    "video_duration": "3-5 mins"
+  },
+  {
+    "module_id": "M016",
+    "video_category": "qr_safety",
+    "video_title": "What is phishing?",
+    "video_url": "https://www.youtube.com/watch?v=3GBmpqhQI8s",
+    "video_source": "YouTube",
+    "video_duration": "3-5 mins"
+  },
+  {
+    "module_id": "M017",
+    "video_category": "online_shopping_scam",
+    "video_title": "Scam Awareness: Protect & Prevent",
+    "video_url": "https://www.youtube.com/watch?v=Csy-wrHQnSI",
+    "video_source": "YouTube",
+    "video_duration": "3-5 mins"
+  },
+  {
+    "module_id": "M018",
+    "video_category": "cyber_hygiene",
+    "video_title": "7 Cybersecurity Tips",
+    "video_url": "https://www.youtube.com/watch?v=Uy60wy20ADE",
+    "video_source": "YouTube",
+    "video_duration": "3-5 mins"
+  },
+  {
+    "module_id": "M019",
+    "video_category": "software_update",
+    "video_title": "Malware: Safe Downloading and Software Installation Practices",
+    "video_url": "https://www.youtube.com/watch?v=5PRIwcxJbm0",
+    "video_source": "YouTube",
+    "video_duration": "3-5 mins"
+  },
+  {
+    "module_id": "M020",
+    "video_category": "ransomware",
+    "video_title": "What Is Ransomware and How It Works",
+    "video_url": "https://www.youtube.com/watch?v=kHZ0z2NOQpk",
+    "video_source": "YouTube",
+    "video_duration": "3-5 mins"
+  },
+  {
+    "module_id": "M021",
+    "video_category": "identity_theft",
+    "video_title": "How To Protect Your Digital Footprint",
+    "video_url": "https://www.youtube.com/watch?v=s40tTZJd7As",
+    "video_source": "YouTube",
+    "video_duration": "3-5 mins"
+  },
+  {
+    "module_id": "M022",
+    "video_category": "ai_safety",
+    "video_title": "Use AI Responsibly | Google AI Essentials",
+    "video_url": "https://www.youtube.com/watch?v=TShPEH5cgPM",
+    "video_source": "YouTube",
+    "video_duration": "3-5 mins"
+  },
+  {
+    "module_id": "M023",
+    "video_category": "digital_footprint",
+    "video_title": "How To Protect Your Digital Footprint",
+    "video_url": "https://www.youtube.com/watch?v=s40tTZJd7As",
+    "video_source": "YouTube",
+    "video_duration": "3-5 mins"
+  },
+  {
+    "module_id": "M024",
+    "video_category": "secure_messaging",
+    "video_title": "Multi-factor Authentication - Cyber Safety Series",
+    "video_url": "https://www.youtube.com/watch?v=-mdIH67HKqk",
+    "video_source": "YouTube",
+    "video_duration": "3-5 mins"
+  },
+  {
+    "module_id": "M025",
+    "video_category": "browser_web_safety",
+    "video_title": "What is phishing?",
+    "video_url": "https://www.youtube.com/watch?v=3GBmpqhQI8s",
+    "video_source": "YouTube",
+    "video_duration": "3-5 mins"
+  },
+  {
+    "module_id": "M026",
+    "video_category": "usb_safety",
+    "video_title": "Malware: Safe Downloading and Software Installation Practices",
+    "video_url": "https://www.youtube.com/watch?v=5PRIwcxJbm0",
+    "video_source": "YouTube",
+    "video_duration": "3-5 mins"
+  },
+  {
+    "module_id": "M027",
+    "video_category": "incident_reporting",
+    "video_title": "What Is Ransomware and How It Works",
+    "video_url": "https://www.youtube.com/watch?v=kHZ0z2NOQpk",
+    "video_source": "YouTube",
+    "video_duration": "3-5 mins"
+  },
+  {
+    "module_id": "M028",
+    "video_category": "network_security",
+    "video_title": "Security Awareness Episode 8: Wi-Fi",
+    "video_url": "https://www.youtube.com/watch?v=RQttayB5ymA",
+    "video_source": "YouTube",
+    "video_duration": "3-5 mins"
+  },
+  {
+    "module_id": "M029",
+    "video_category": "cyber_law_pdpa",
+    "video_title": "Personal Data Protection Act 2010 (PDPA)",
+    "video_url": "https://www.youtube.com/watch?v=ukZ0ge8eOH8",
+    "video_source": "YouTube",
+    "video_duration": "3-5 mins"
+  },
+  {
+    "module_id": "M030",
+    "video_category": "capstone",
+    "video_title": "What Is Ransomware and How It Works",
+    "video_url": "https://www.youtube.com/watch?v=kHZ0z2NOQpk",
+    "video_source": "YouTube",
+    "video_duration": "3-5 mins"
+  }
+]

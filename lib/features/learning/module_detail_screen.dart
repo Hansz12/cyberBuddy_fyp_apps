@@ -1,11 +1,53 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../home/cubit/home_cubit.dart';
 import '../quiz/cubit/quiz_cubit.dart';
 import '../quiz/quiz_screen.dart';
 import 'cubit/learning_cubit.dart';
 import 'cubit/learning_state.dart';
+
+class ModuleVideo {
+  final String moduleId;
+  final String videoCategory;
+  final String videoTitle;
+  final String videoUrl;
+  final String videoSource;
+  final String videoDuration;
+
+  const ModuleVideo({
+    required this.moduleId,
+    required this.videoCategory,
+    required this.videoTitle,
+    required this.videoUrl,
+    required this.videoSource,
+    required this.videoDuration,
+  });
+
+  factory ModuleVideo.fromJson(Map<String, dynamic> json) {
+    return ModuleVideo(
+      moduleId: json["module_id"]?.toString() ?? "",
+      videoCategory: json["video_category"]?.toString() ?? "",
+      videoTitle: json["video_title"]?.toString() ?? "Quick Cyber Guide",
+      videoUrl: json["video_url"]?.toString() ?? "",
+      videoSource: json["video_source"]?.toString() ?? "YouTube",
+      videoDuration: json["video_duration"]?.toString() ?? "3-5 mins",
+    );
+  }
+
+  String get thumbnailUrl {
+    final uri = Uri.tryParse(videoUrl);
+    final videoId = uri?.queryParameters["v"];
+
+    if (videoId == null || videoId.isEmpty) return "";
+
+    return "https://img.youtube.com/vi/$videoId/hqdefault.jpg";
+  }
+}
 
 class ModuleDetailScreen extends StatelessWidget {
   final LearningModule module;
@@ -417,7 +459,10 @@ class ModuleDetailScreen extends StatelessWidget {
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(16, 16, 16, 110),
                 children: [
-                  _VideoPreviewCard(topic: currentModule.topic),
+                  _VideoPreviewCard(
+                    moduleId: currentModule.id,
+                    topic: currentModule.topic,
+                  ),
                   const SizedBox(height: 14),
 
                   _InfoCard(
@@ -562,79 +607,211 @@ class ModuleDetailScreen extends StatelessWidget {
   }
 }
 
-class _VideoPreviewCard extends StatelessWidget {
+class _VideoPreviewCard extends StatefulWidget {
+  final String moduleId;
   final String topic;
 
-  const _VideoPreviewCard({required this.topic});
+  const _VideoPreviewCard({required this.moduleId, required this.topic});
+
+  @override
+  State<_VideoPreviewCard> createState() => _VideoPreviewCardState();
+}
+
+class _VideoPreviewCardState extends State<_VideoPreviewCard> {
+  late Future<ModuleVideo?> _videoFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _videoFuture = _loadModuleVideo(widget.moduleId);
+  }
+
+  @override
+  void didUpdateWidget(covariant _VideoPreviewCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    if (oldWidget.moduleId != widget.moduleId) {
+      _videoFuture = _loadModuleVideo(widget.moduleId);
+    }
+  }
+
+  Future<ModuleVideo?> _loadModuleVideo(String moduleId) async {
+    try {
+      final jsonString = await rootBundle.loadString(
+        "assets/data/module_videos.json",
+      );
+
+      final decoded = jsonDecode(jsonString);
+
+      if (decoded is! List) return null;
+
+      for (final item in decoded) {
+        if (item is Map<String, dynamic> &&
+            item["module_id"]?.toString() == moduleId) {
+          return ModuleVideo.fromJson(item);
+        }
+      }
+
+      return null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> _openVideo(BuildContext context, ModuleVideo? video) async {
+    if (video == null || video.videoUrl.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Video is not available for this module."),
+        ),
+      );
+      return;
+    }
+
+    final uri = Uri.parse(video.videoUrl);
+
+    try {
+      final launched = await launchUrl(
+        uri,
+        mode: LaunchMode.externalApplication,
+      );
+
+      if (!launched && context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Unable to open video link.")),
+        );
+      }
+    } catch (_) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Unable to open video link.")),
+        );
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: 175,
-      decoration: BoxDecoration(
-        color: const Color(0xFF1E293B),
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF0F172A).withOpacity(0.18),
-            blurRadius: 14,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Stack(
-        children: [
-          const Center(
-            child: Icon(
-              Icons.play_circle_fill_rounded,
-              color: Colors.white,
-              size: 64,
-            ),
-          ),
-          Positioned(
-            right: 16,
-            top: 14,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.14),
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: Colors.white24),
-              ),
-              child: const Text(
-                "COMING SOON",
-                style: TextStyle(
-                  color: Color(0xFFBFDBFE),
-                  fontSize: 10,
-                  fontWeight: FontWeight.w900,
+    return FutureBuilder<ModuleVideo?>(
+      future: _videoFuture,
+      builder: (context, snapshot) {
+        final video = snapshot.data;
+
+        return InkWell(
+          onTap: () => _openVideo(context, video),
+          borderRadius: BorderRadius.circular(20),
+          child: Container(
+            height: 175,
+            decoration: BoxDecoration(
+              color: const Color(0xFF1E293B),
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF0F172A).withOpacity(0.18),
+                  blurRadius: 14,
+                  offset: const Offset(0, 8),
                 ),
-              ),
+              ],
             ),
-          ),
-          Positioned(
-            left: 16,
-            bottom: 14,
-            child: Row(
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(20),
+              child: Stack(
               children: [
-                const Icon(
-                  Icons.video_library,
-                  color: Color(0xFF93C5FD),
-                  size: 16,
+                if (video != null && video.thumbnailUrl.isNotEmpty)
+                  Positioned.fill(
+                    child: Image.network(
+                      video.thumbnailUrl,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) {
+                        return Container(color: const Color(0xFF1E293B));
+                      },
+                    ),
+                  ),
+                Positioned.fill(
+                  child: Container(
+                    color: const Color(0xFF0F172A).withOpacity(0.45),
+                  ),
                 ),
-                const SizedBox(width: 6),
-                Text(
-                  "Quick Visual Guide · ${topic.toUpperCase()}",
-                  style: const TextStyle(
-                    color: Color(0xFFBFDBFE),
-                    fontSize: 12,
-                    fontWeight: FontWeight.w800,
+                const Center(
+                  child: Icon(
+                    Icons.play_circle_fill_rounded,
+                    color: Colors.white,
+                    size: 64,
+                  ),
+                ),
+                Positioned(
+                  right: 16,
+                  top: 14,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 5,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.14),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: Colors.white24),
+                    ),
+                    child: Text(
+                      video?.videoDuration ?? "3-5 mins",
+                      style: const TextStyle(
+                        color: Color(0xFFBFDBFE),
+                        fontSize: 10,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ),
+                ),
+                Positioned(
+                  left: 16,
+                  bottom: 14,
+                  right: 16,
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Icon(
+                        Icons.video_library,
+                        color: Color(0xFF93C5FD),
+                        size: 16,
+                      ),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              "Quick Visual Guide · ${widget.topic.toUpperCase()}",
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: Color(0xFFBFDBFE),
+                                fontSize: 12,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                            const SizedBox(height: 3),
+                            Text(
+                              video?.videoTitle ?? "Tap to watch on YouTube",
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: Color(0xFF93C5FD),
+                                fontSize: 10,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
             ),
+            ),
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 }
