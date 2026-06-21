@@ -9,6 +9,31 @@ class AuthCubit extends Cubit<AuthState> {
 
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
+  static bool isUniversityStudentEmail(String email) {
+    final parts = email.trim().toLowerCase().split('@');
+    if (parts.length != 2 || parts.first.isEmpty || parts.last.isEmpty) {
+      return false;
+    }
+
+    final domain = parts.last;
+    return domain.endsWith('.edu') ||
+        domain.contains('.edu.') ||
+        domain.endsWith('.ac.my') ||
+        domain.contains('.ac.');
+  }
+
+  bool _rejectNonUniversityEmail(String email) {
+    if (isUniversityStudentEmail(email)) return false;
+
+    emit(
+      state.copyWith(
+        errorMessage:
+            'CyberBuddy is only available for university students. Please use your official university email.',
+      ),
+    );
+    return true;
+  }
+
   void updateEmail(String value) {
     emit(state.copyWith(email: value, clearError: true));
   }
@@ -49,6 +74,8 @@ class AuthCubit extends Cubit<AuthState> {
       return false;
     }
 
+    if (_rejectNonUniversityEmail(email)) return false;
+
     emit(state.copyWith(isLoading: true, clearError: true));
 
     try {
@@ -80,6 +107,8 @@ class AuthCubit extends Cubit<AuthState> {
       emit(state.copyWith(errorMessage: 'Please enter email and password.'));
       return false;
     }
+
+    if (_rejectNonUniversityEmail(email)) return false;
 
     if (password.length < 6) {
       emit(
@@ -124,6 +153,8 @@ class AuthCubit extends Cubit<AuthState> {
       return false;
     }
 
+    if (_rejectNonUniversityEmail(email)) return false;
+
     emit(state.copyWith(isLoading: true, clearError: true));
 
     try {
@@ -164,6 +195,19 @@ class AuthCubit extends Cubit<AuthState> {
       );
 
       final googleUser = await GoogleSignIn.instance.authenticate();
+
+      if (!isUniversityStudentEmail(googleUser.email)) {
+        await GoogleSignIn.instance.signOut();
+        emit(
+          state.copyWith(
+            isLoading: false,
+            errorMessage:
+                'Please select your official university student email to continue.',
+          ),
+        );
+        return false;
+      }
+
       final googleAuth = googleUser.authentication;
 
       final credential = GoogleAuthProvider.credential(

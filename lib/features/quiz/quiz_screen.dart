@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -15,45 +17,30 @@ class QuizScreen extends StatefulWidget {
 }
 
 class _QuizScreenState extends State<QuizScreen> {
-  OverlayEntry? _xpOverlayEntry;
+  OverlayEntry? _feedbackOverlayEntry;
 
   @override
   void dispose() {
-    _xpOverlayEntry?.remove();
+    _feedbackOverlayEntry?.remove();
     super.dispose();
   }
 
-  void _showXpOverlay(int xp) {
-    _xpOverlayEntry?.remove();
+  void _showAnswerFeedback({required bool isCorrect, required int xp}) {
+    _feedbackOverlayEntry?.remove();
 
-    _xpOverlayEntry = OverlayEntry(
-      builder: (context) => _XpOverlayPopup(
+    _feedbackOverlayEntry = OverlayEntry(
+      builder: (_) => _QuizFeedbackOverlay(
+        isCorrect: isCorrect,
         xp: xp,
         onDismiss: () {
-          _xpOverlayEntry?.remove();
-          _xpOverlayEntry = null;
+          _feedbackOverlayEntry?.remove();
+          _feedbackOverlayEntry = null;
         },
       ),
     );
 
-    Overlay.of(context).insert(_xpOverlayEntry!);
+    Overlay.of(context, rootOverlay: true).insert(_feedbackOverlayEntry!);
   }
-
-  void _showWrongOverlay() {
-    _xpOverlayEntry?.remove();
-
-    _xpOverlayEntry = OverlayEntry(
-      builder: (context) => _WrongOverlayPopup(
-        onDismiss: () {
-          _xpOverlayEntry?.remove();
-          _xpOverlayEntry = null;
-        },
-      ),
-    );
-
-    Overlay.of(context).insert(_xpOverlayEntry!);
-  }
-
   Future _vibrateCorrect() async {
     final hasVibrator = await Vibration.hasVibrator();
     if (hasVibrator != true) return;
@@ -149,6 +136,20 @@ class _QuizScreenState extends State<QuizScreen> {
         final options = _options(state);
         final selectedIndex = state.selectedIndex;
         final isCorrect = selectedIndex == correctIndex;
+        final actionLabel = state.isAnswered
+            ? state.currentIndex == state.questions.length - 1
+                  ? 'Complete Mission 🎯'
+                  : 'Start Next Round 🚀'
+            : selectedIndex == null
+            ? 'Pick Your Move 👆'
+            : 'Lock It In ⚡';
+        final actionIcon = state.isAnswered
+            ? state.currentIndex == state.questions.length - 1
+                  ? Icons.emoji_events_rounded
+                  : Icons.arrow_forward_rounded
+            : selectedIndex == null
+            ? Icons.touch_app_outlined
+            : Icons.lock_rounded;
 
         return Scaffold(
           backgroundColor: const Color(0xFFF1F5F9),
@@ -181,16 +182,19 @@ class _QuizScreenState extends State<QuizScreen> {
                       Row(
                         children: [
                           ...List.generate(state.questions.length, (index) {
-                            final active = index <= state.currentIndex;
+                            final isCompleted = index < state.currentIndex;
+                            final isCurrent = index == state.currentIndex;
 
                             return Expanded(
                               child: AnimatedContainer(
-                                duration: const Duration(milliseconds: 400),
-                                curve: Curves.easeOut,
+                                duration: const Duration(milliseconds: 450),
+                                curve: Curves.easeOutCubic,
                                 margin: const EdgeInsets.only(right: 5),
-                                height: 6,
+                                height: isCurrent ? 8 : 6,
                                 decoration: BoxDecoration(
-                                  color: active
+                                  color: isCompleted
+                                      ? const Color(0xFF34D399)
+                                      : isCurrent
                                       ? const Color(0xFF38BDF8)
                                       : Colors.white24,
                                   borderRadius: BorderRadius.circular(10),
@@ -214,25 +218,53 @@ class _QuizScreenState extends State<QuizScreen> {
 
                       const SizedBox(height: 16),
 
-                      Text(
-                        " ${_topic(state).toUpperCase()} · ${_difficulty(state).toUpperCase()}",
-                        style: const TextStyle(
-                          color: Color(0xFF38BDF8),
-                          fontSize: 11,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: 1.1,
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: Colors.white24),
+                        ),
+                        child: Text(
+                          '${_topic(state).toUpperCase()} · ${_difficulty(state).toUpperCase()}',
+                          style: const TextStyle(
+                            color: Color(0xFF7DD3FC),
+                            fontSize: 12,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 0.8,
+                          ),
                         ),
                       ),
 
                       const SizedBox(height: 10),
 
-                      Text(
-                        _question(state),
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 20,
-                          fontWeight: FontWeight.w900,
-                          height: 1.25,
+                      AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 350),
+                        switchInCurve: Curves.easeOutCubic,
+                        switchOutCurve: Curves.easeInCubic,
+                        transitionBuilder: (child, animation) {
+                          final slide = Tween<Offset>(
+                            begin: const Offset(0.08, 0),
+                            end: Offset.zero,
+                          ).animate(animation);
+
+                          return FadeTransition(
+                            opacity: animation,
+                            child: SlideTransition(position: slide, child: child),
+                          );
+                        },
+                        child: Text(
+                          _question(state),
+                          key: ValueKey('question-${state.currentIndex}'),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 20,
+                            fontWeight: FontWeight.w900,
+                            height: 1.25,
+                          ),
                         ),
                       ),
                     ],
@@ -240,9 +272,25 @@ class _QuizScreenState extends State<QuizScreen> {
                 ),
 
                 Expanded(
-                  child: ListView(
-                    padding: const EdgeInsets.fromLTRB(18, 16, 18, 100),
-                    children: [
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 420),
+                    switchInCurve: Curves.easeOutCubic,
+                    switchOutCurve: Curves.easeInCubic,
+                    transitionBuilder: (child, animation) {
+                      final slide = Tween<Offset>(
+                        begin: const Offset(0.12, 0),
+                        end: Offset.zero,
+                      ).animate(animation);
+
+                      return FadeTransition(
+                        opacity: animation,
+                        child: SlideTransition(position: slide, child: child),
+                      );
+                    },
+                    child: ListView(
+                      key: ValueKey('challenge-${state.currentIndex}'),
+                      padding: const EdgeInsets.fromLTRB(18, 16, 18, 100),
+                      children: [
                       if (_scenario(state).trim().isNotEmpty) ...[
                         Container(
                           padding: const EdgeInsets.all(18),
@@ -254,18 +302,22 @@ class _QuizScreenState extends State<QuizScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Row(
-                                children: const [
+                              const Row(
+                                children: [
+                                  Icon(
+                                    Icons.shield_outlined,
+                                    size: 18,
+                                    color: Color(0xFF1E40AF),
+                                  ),
+                                  SizedBox(width: 8),
                                   Text(
-                                    "Cyber Alert 🚨",
+                                    'Incoming Intel',
                                     style: TextStyle(
                                       color: Color(0xFF1E40AF),
                                       fontWeight: FontWeight.w900,
-                                      fontSize: 13,
+                                      fontSize: 14,
                                     ),
                                   ),
-                                  SizedBox(width: 6),
-                                  Text("📩"),
                                 ],
                               ),
                               const SizedBox(height: 10),
@@ -292,6 +344,14 @@ class _QuizScreenState extends State<QuizScreen> {
                         const SizedBox(height: 18),
                       ],
 
+                      _ChallengePrompt(
+                        questionType:
+                            _q(state)['questionType']?.toString() ?? 'MCQ',
+                        hasSelection: selectedIndex != null,
+                        isAnswered: state.isAnswered,
+                      ),
+                      const SizedBox(height: 12),
+
                       _QuestionTypeRenderer(
                         questionType:
                             _q(state)['questionType']?.toString() ?? 'MCQ',
@@ -313,7 +373,8 @@ class _QuizScreenState extends State<QuizScreen> {
                         const SizedBox(height: 14),
                         _XpBox(isCorrect: isCorrect, xp: _xp(state)),
                       ],
-                    ],
+                      ],
+                    ),
                   ),
                 ),
 
@@ -335,11 +396,13 @@ class _QuizScreenState extends State<QuizScreen> {
                               if (!state.isAnswered) {
                                 if (isCorrect) {
                                   _vibrateCorrect();
-                                  _showXpOverlay(_xp(state));
                                 } else {
                                   _vibrateWrong();
-                                  _showWrongOverlay();
                                 }
+                                _showAnswerFeedback(
+                                  isCorrect: isCorrect,
+                                  xp: _xp(state),
+                                );
                                 context.read<QuizCubit>().submitAnswer();
                               } else {
                                 context.read<QuizCubit>().nextQuestion();
@@ -355,13 +418,22 @@ class _QuizScreenState extends State<QuizScreen> {
                           borderRadius: BorderRadius.circular(16),
                         ),
                       ),
-                      child: Text(
-                        state.isAnswered
-                            ? state.currentIndex == state.questions.length - 1
-                                  ? "Complete Mission 🎯"
-                                  : "Next Challenge →"
-                            : "Lock My Answer 🔐",
-                        style: const TextStyle(fontWeight: FontWeight.w900),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(actionIcon, size: 20),
+                          const SizedBox(width: 8),
+                          AnimatedSwitcher(
+                            duration: const Duration(milliseconds: 180),
+                            child: Text(
+                              actionLabel,
+                              key: ValueKey(actionLabel),
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
@@ -375,110 +447,204 @@ class _QuizScreenState extends State<QuizScreen> {
   }
 }
 
-class _WrongOverlayPopup extends StatefulWidget {
+class _QuizFeedbackOverlay extends StatefulWidget {
+  final bool isCorrect;
+  final int xp;
   final VoidCallback onDismiss;
 
-  const _WrongOverlayPopup({required this.onDismiss});
+  const _QuizFeedbackOverlay({
+    required this.isCorrect,
+    required this.xp,
+    required this.onDismiss,
+  });
 
   @override
-  State<_WrongOverlayPopup> createState() => _WrongOverlayPopupState();
+  State<_QuizFeedbackOverlay> createState() => _QuizFeedbackOverlayState();
 }
 
-class _WrongOverlayPopupState extends State<_WrongOverlayPopup> {
-  double _opacity = 0.0;
-  double _scale = 0.85;
+class _QuizFeedbackOverlayState extends State<_QuizFeedbackOverlay>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
 
   @override
   void initState() {
     super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1150),
+    )..forward();
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      setState(() {
-        _opacity = 1.0;
-        _scale = 1.0;
-      });
-
-      Future.delayed(const Duration(milliseconds: 1100), () {
-        if (!mounted) return;
-
-        setState(() {
-          _opacity = 0.0;
-          _scale = 0.85;
-        });
-
-        Future.delayed(const Duration(milliseconds: 260), () {
-          if (mounted) widget.onDismiss();
-        });
-      });
+    Future.delayed(const Duration(milliseconds: 1150), () {
+      if (mounted) widget.onDismiss();
     });
   }
 
   @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Positioned(
-      top: 80,
-      left: 0,
-      right: 0,
+    return Positioned.fill(
       child: IgnorePointer(
-        child: AnimatedOpacity(
-          opacity: _opacity,
-          duration: const Duration(milliseconds: 250),
-          child: AnimatedScale(
-            scale: _scale,
-            duration: const Duration(milliseconds: 250),
-            curve: Curves.easeOutBack,
-            child: Center(
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 22,
-                  vertical: 14,
-                ),
-                decoration: BoxDecoration(
-                  color: const Color.fromRGBO(127, 29, 29, 0.94),
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color.fromRGBO(255, 0, 0, 0.25),
-                      blurRadius: 18,
-                      offset: const Offset(0, 8),
+        child: AnimatedBuilder(
+          animation: _controller,
+          builder: (context, child) {
+            final progress = _controller.value;
+            final entryScale = Curves.elasticOut.transform(
+              (progress * 1.45).clamp(0.0, 1.0),
+            );
+            final fadeOut = progress < 0.82
+                ? 1.0
+                : (1 - ((progress - 0.82) / 0.18)).clamp(0.0, 1.0);
+            final shake = widget.isCorrect
+                ? 0.0
+                : math.sin(progress * math.pi * 10) * (1 - progress) * 12;
+
+            return Opacity(
+              opacity: fadeOut,
+              child: Stack(
+                children: [
+                  if (widget.isCorrect)
+                    Positioned.fill(
+                      child: CustomPaint(
+                        painter: _ConfettiPainter(progress: progress),
+                      ),
                     ),
-                  ],
-                ),
-                child: const Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text('⚠️', style: TextStyle(fontSize: 22)),
-                    SizedBox(width: 10),
-                    Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Not quite!',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w900,
+                  Center(
+                    child: Transform.translate(
+                      offset: Offset(shake, 0),
+                      child: Transform.scale(
+                        scale: 0.72 + (entryScale * 0.28),
+                        child: Container(
+                          width: 270,
+                          padding: const EdgeInsets.all(18),
+                          decoration: BoxDecoration(
+                            color: widget.isCorrect
+                                ? const Color(0xFF0D1B3E)
+                                : const Color(0xFF7F1D1D),
+                            borderRadius: BorderRadius.circular(24),
+                            boxShadow: [
+                              BoxShadow(
+                                color: (widget.isCorrect
+                                        ? const Color(0xFF2563EB)
+                                        : const Color(0xFFEF4444))
+                                    .withValues(alpha: 0.35),
+                                blurRadius: 28,
+                                spreadRadius: 2,
+                              ),
+                            ],
+                          ),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Container(
+                                height: 58,
+                                width: 58,
+                                alignment: Alignment.center,
+                                decoration: BoxDecoration(
+                                  color: widget.isCorrect
+                                      ? const Color(0xFFDCFCE7)
+                                      : const Color(0xFFFEE2E2),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Icon(
+                                  widget.isCorrect
+                                      ? Icons.celebration_rounded
+                                      : Icons.psychology_alt_rounded,
+                                  color: widget.isCorrect
+                                      ? const Color(0xFF16A34A)
+                                      : const Color(0xFFDC2626),
+                                  size: 30,
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              Text(
+                                widget.isCorrect ? 'Great Move!' : 'Almost There!',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 21,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                widget.isCorrect
+                                    ? '+${widget.xp} XP secured'
+                                    : 'Check the clue, then take the next challenge.',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  color: widget.isCorrect
+                                      ? const Color(0xFF7DD3FC)
+                                      : const Color(0xFFFECACA),
+                                  fontWeight: FontWeight.w700,
+                                  height: 1.3,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                        SizedBox(height: 4),
-                        Text(
-                          'Check the explanation below',
-                          style: TextStyle(
-                            color: Color(0xFFFECACA),
-                            fontSize: 12,
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-            ),
-          ),
+            );
+          },
         ),
       ),
     );
+  }
+}
+
+class _ConfettiPainter extends CustomPainter {
+  final double progress;
+
+  const _ConfettiPainter({required this.progress});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    const colors = [
+      Color(0xFF38BDF8),
+      Color(0xFF34D399),
+      Color(0xFFFBBF24),
+      Color(0xFFF472B6),
+      Color(0xFFA78BFA),
+    ];
+    final center = Offset(size.width / 2, size.height * 0.47);
+    final opacity = (1 - progress).clamp(0.0, 1.0);
+
+    for (var index = 0; index < 34; index++) {
+      final angle = (index * 0.74) + (index.isEven ? -0.4 : 0.25);
+      final distance = 70 + ((index * 23) % 155).toDouble();
+      final start = center + Offset(math.cos(angle), math.sin(angle)) * 26;
+      final end = center +
+          Offset(math.cos(angle), math.sin(angle)) * distance +
+          Offset(0, 180 * progress * progress);
+      final position = Offset.lerp(start, end, Curves.easeOut.transform(progress))!;
+      final paint = Paint()
+        ..color = colors[index % colors.length].withValues(alpha: opacity)
+        ..style = PaintingStyle.fill;
+
+      canvas.save();
+      canvas.translate(position.dx, position.dy);
+      canvas.rotate(angle + (progress * math.pi * 2));
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromCenter(center: Offset.zero, width: 8, height: 13),
+          const Radius.circular(2),
+        ),
+        paint,
+      );
+      canvas.restore();
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _ConfettiPainter oldDelegate) {
+    return oldDelegate.progress != progress;
   }
 }
 
@@ -622,6 +788,113 @@ class _OptionCardState extends State<_OptionCard> {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _ChallengePrompt extends StatelessWidget {
+  final String questionType;
+  final bool hasSelection;
+  final bool isAnswered;
+
+  const _ChallengePrompt({
+    required this.questionType,
+    required this.hasSelection,
+    required this.isAnswered,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final type = questionType.toLowerCase();
+    final prompt = type.contains('chat')
+        ? 'Pick the reply you would actually send.'
+        : type.contains('would')
+        ? 'Would you take the bait? Make your call.'
+        : type.contains('password')
+        ? 'Choose the strongest defense.'
+        : type.contains('qr')
+        ? 'Scan the clues before you make a move.'
+        : type.contains('true')
+        ? 'Trust your cyber instincts—true or false?'
+        : 'Choose your next move.';
+    final status = isAnswered
+        ? 'Move locked • Check your result below'
+        : hasSelection
+        ? 'Move selected • Ready when you are'
+        : 'Tap one card to begin';
+    final accent = isAnswered
+        ? const Color(0xFF10B981)
+        : hasSelection
+        ? const Color(0xFF2563EB)
+        : const Color(0xFF7C3AED);
+
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 240),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: accent.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: accent.withValues(alpha: 0.24)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            height: 38,
+            width: 38,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: accent.withValues(alpha: 0.14),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              isAnswered
+                  ? Icons.verified_rounded
+                  : hasSelection
+                  ? Icons.bolt_rounded
+                  : Icons.videogame_asset_rounded,
+              color: accent,
+              size: 21,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'YOUR MISSION',
+                  style: TextStyle(
+                    color: accent,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 0.8,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  isAnswered ? status : prompt,
+                  style: const TextStyle(
+                    color: Color(0xFF0F172A),
+                    fontWeight: FontWeight.w800,
+                    height: 1.25,
+                  ),
+                ),
+                if (!isAnswered) ...[
+                  const SizedBox(height: 3),
+                  Text(
+                    status,
+                    style: const TextStyle(
+                      color: Color(0xFF64748B),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -864,6 +1137,7 @@ class _QuestionTypeRenderer extends StatelessWidget {
       children: List.generate(options.length, (index) {
         final isTrue =
             options[index].toString().toLowerCase().contains('true');
+        final isCorrectAnswer = isAnswered && index == correctIndex;
 
         return Expanded(
           child: GestureDetector(
@@ -878,7 +1152,40 @@ class _QuestionTypeRenderer extends StatelessWidget {
               ),
               child: Column(
                 children: [
-                  Text(isTrue ? '✅' : '❌', style: const TextStyle(fontSize: 36)),
+                  Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      Container(
+                        width: 58,
+                        height: 58,
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          color: isTrue
+                              ? const Color(0xFFE0F2FE)
+                              : const Color(0xFFF1F5F9),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Text(
+                          isTrue ? 'T' : 'F',
+                          style: const TextStyle(
+                            color: Color(0xFF0F172A),
+                            fontSize: 28,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      ),
+                      if (isCorrectAnswer)
+                        const Positioned(
+                          right: -5,
+                          bottom: -5,
+                          child: Icon(
+                            Icons.check_circle,
+                            color: Color(0xFF10B981),
+                            size: 24,
+                          ),
+                        ),
+                    ],
+                  ),
                   const SizedBox(height: 8),
                   Text(
                     options[index].toString().toUpperCase(),
@@ -966,7 +1273,7 @@ class _ExplanationBox extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            isCorrect ? "✓ Correct answer!" : "✕ Not quite.",
+            isCorrect ? 'Nice move! You got it.' : 'Close one—learn the safer move.',
             style: TextStyle(
               color: isCorrect
                   ? const Color(0xFF10B981)
@@ -1021,7 +1328,7 @@ class _XpBox extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  isCorrect ? " Question answered correctly" : " Keep learning",
+                  isCorrect ? 'Mission XP secured' : 'Training mode active',
                   style: const TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.w800,
@@ -1054,117 +1361,12 @@ class _XpBox extends StatelessWidget {
               ),
               const SizedBox(height: 4),
               const Text(
-                "XP earned",
+                "mission reward",
                 style: TextStyle(color: Color(0xFF93C5FD), fontSize: 12),
               ),
             ],
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _XpOverlayPopup extends StatefulWidget {
-  final int xp;
-  final VoidCallback onDismiss;
-
-  const _XpOverlayPopup({required this.xp, required this.onDismiss});
-
-  @override
-  State<_XpOverlayPopup> createState() => _XpOverlayPopupState();
-}
-
-class _XpOverlayPopupState extends State<_XpOverlayPopup> {
-  double _opacity = 0.0;
-  double _scale = 0.75;
-
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      setState(() {
-        _opacity = 1.0;
-        _scale = 1.0;
-      });
-      Future.delayed(const Duration(milliseconds: 1200), () {
-        if (!mounted) return;
-        setState(() {
-          _opacity = 0.0;
-          _scale = 0.75;
-        });
-        Future.delayed(const Duration(milliseconds: 260), () {
-          if (mounted) widget.onDismiss();
-        });
-      });
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Positioned(
-      top: 80,
-      left: 0,
-      right: 0,
-      child: IgnorePointer(
-        child: AnimatedOpacity(
-          opacity: _opacity,
-          duration: const Duration(milliseconds: 260),
-          curve: Curves.easeOut,
-          child: AnimatedScale(
-            scale: _scale,
-            duration: const Duration(milliseconds: 280),
-            curve: Curves.easeOutBack,
-            child: Center(
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 22,
-                  vertical: 14,
-                ),
-                decoration: BoxDecoration(
-                  color: const Color.fromRGBO(13, 27, 62, 0.92),
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color.fromRGBO(0, 0, 0, 0.2),
-                      blurRadius: 18,
-                      offset: const Offset(0, 8),
-                    ),
-                  ],
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Text('🔥', style: TextStyle(fontSize: 22)),
-                    const SizedBox(width: 10),
-                    Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          '+${widget.xp} XP',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w900,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        const Text(
-                          'Correct answer!',
-                          style: TextStyle(
-                            color: Color(0xFF93C5FD),
-                            fontSize: 12,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ),
       ),
     );
   }
@@ -1219,16 +1421,20 @@ class _QuizResultScreenState extends State<_QuizResultScreen> {
     final state = widget.state;
     final percentage = ((state.score / state.questions.length) * 100).round();
     final earnedXp = state.earnedXp;
+    final missedIndexes = List.generate(state.questions.length, (index) => index)
+        .where(
+          (index) =>
+              index >= state.answerResults.length ||
+              !state.answerResults[index],
+        )
+        .toList();
 
     return Scaffold(
       backgroundColor: const Color(0xFFF1F5F9),
       body: SafeArea(
-        child: Padding(
+        child: ListView(
           padding: const EdgeInsets.all(18),
-          child: Column(
-            children: [
-              const Spacer(),
-
+          children: [
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(22),
@@ -1322,6 +1528,14 @@ class _QuizResultScreenState extends State<_QuizResultScreen> {
                 ),
               ),
 
+              if (missedIndexes.isNotEmpty) ...[
+                const SizedBox(height: 20),
+                _WrongAnswerReview(
+                  questions: state.questions,
+                  missedIndexes: missedIndexes,
+                ),
+              ],
+
               const SizedBox(height: 20),
 
               SizedBox(
@@ -1349,11 +1563,119 @@ class _QuizResultScreenState extends State<_QuizResultScreen> {
                   fontWeight: FontWeight.w600,
                 ),
               ),
+          ],
+        ),
+      ),
+    );
+  }
+}
 
-              const Spacer(),
+class _WrongAnswerReview extends StatelessWidget {
+  final List<Map<String, dynamic>> questions;
+  final List<int> missedIndexes;
+
+  const _WrongAnswerReview({
+    required this.questions,
+    required this.missedIndexes,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: const Color(0xFFFED7AA)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              Icon(Icons.replay_circle_filled_outlined, color: Color(0xFFF97316)),
+              SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Review Mistakes',
+                  style: TextStyle(
+                    color: Color(0xFF0F172A),
+                    fontSize: 18,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
             ],
           ),
-        ),
+          const SizedBox(height: 6),
+          const Text(
+            'A quick refresher for the concepts to revisit next.',
+            style: TextStyle(color: Color(0xFF64748B), height: 1.35),
+          ),
+          const SizedBox(height: 14),
+          ...missedIndexes.map((index) {
+            final question = questions[index];
+            final options = question['options'] as List? ?? const [];
+            final correctIndex = question['correctIndex'] as int? ?? 0;
+            final correctAnswer =
+                correctIndex >= 0 && correctIndex < options.length
+                ? options[correctIndex].toString()
+                : 'Review the safe action in the explanation.';
+            final explanation = question['explanation']?.toString() ?? '';
+
+            return Container(
+              width: double.infinity,
+              margin: const EdgeInsets.only(bottom: 10),
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFFBEB),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Question ${index + 1}',
+                    style: const TextStyle(
+                      color: Color(0xFFF97316),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    question['question']?.toString() ?? 'Cybersecurity challenge',
+                    style: const TextStyle(
+                      color: Color(0xFF0F172A),
+                      fontWeight: FontWeight.w900,
+                      height: 1.3,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Safest answer: $correctAnswer',
+                    style: const TextStyle(
+                      color: Color(0xFF166534),
+                      fontWeight: FontWeight.w800,
+                      height: 1.3,
+                    ),
+                  ),
+                  if (explanation.isNotEmpty) ...[
+                    const SizedBox(height: 6),
+                    Text(
+                      explanation,
+                      style: const TextStyle(
+                        color: Color(0xFF475569),
+                        fontSize: 13,
+                        height: 1.35,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            );
+          }),
+        ],
       ),
     );
   }

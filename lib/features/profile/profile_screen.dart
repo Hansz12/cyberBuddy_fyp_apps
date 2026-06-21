@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -8,6 +10,8 @@ import '../home/cubit/home_cubit.dart';
 import '../home/cubit/home_state.dart';
 import '../learning/cubit/learning_cubit.dart';
 import '../learning/module_detail_screen.dart';
+import '../../data/services/profile_image_service.dart';
+import 'edit_profile_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -17,8 +21,87 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  bool _isEditProfileOpen = false;
   User? user;
+  final ProfileImageService _profileImageService = ProfileImageService();
+  File? _profileImage;
+
+  static const _achievementDetails = <String, _AchievementDetail>{
+    'Rookie Badge': _AchievementDetail(
+      category: 'Getting Started',
+      description: 'Your first step into becoming a stronger cyber defender.',
+      condition: 'Answer at least one quiz question or earn your first XP.',
+    ),
+    'Beginner Defender': _AchievementDetail(
+      category: 'Progress',
+      description: 'You are building a solid foundation in cyber safety.',
+      condition: 'Reach 100 total XP.',
+    ),
+    'Intermediate Defender': _AchievementDetail(
+      category: 'Progress',
+      description: 'You have shown steady growth across CyberBuddy challenges.',
+      condition: 'Reach 300 total XP.',
+    ),
+    'Cyber Hero': _AchievementDetail(
+      category: 'Progress',
+      description: 'A strong milestone for an active cyber learner.',
+      condition: 'Reach 500 total XP.',
+    ),
+    'Cyber Champion': _AchievementDetail(
+      category: 'Progress',
+      description: 'You have reached champion-level commitment to cyber safety.',
+      condition: 'Reach 1,000 total XP.',
+    ),
+    'Consistent Learner': _AchievementDetail(
+      category: 'Engagement',
+      description: 'You keep showing up and building safer habits.',
+      condition: 'Maintain a 3-day activity streak.',
+    ),
+    '7-Day Streak': _AchievementDetail(
+      category: 'Engagement',
+      description: 'One full week of consistent cybersecurity learning.',
+      condition: 'Maintain a 7-day activity streak.',
+    ),
+    'Quiz Starter': _AchievementDetail(
+      category: 'Quiz Mastery',
+      description: 'You have completed your first CyberBuddy quiz.',
+      condition: 'Complete 1 quiz attempt.',
+    ),
+    'Quiz Master': _AchievementDetail(
+      category: 'Quiz Mastery',
+      description: 'You have built experience through repeated challenges.',
+      condition: 'Complete 5 quiz attempts.',
+    ),
+    'Perfect Score': _AchievementDetail(
+      category: 'Quiz Mastery',
+      description: 'A flawless run—every answer was the safest move.',
+      condition: 'Get 100% on any quiz attempt.',
+    ),
+    'Phishing Shield': _AchievementDetail(
+      category: 'Phishing Awareness',
+      description: 'You can spot phishing signals and choose safer actions.',
+      condition: 'Reach 70% progress in the phishing topic.',
+    ),
+    'Password Pro': _AchievementDetail(
+      category: 'Account Security',
+      description: 'You understand strong passwords and safer account habits.',
+      condition: 'Reach 80% progress in the password topic.',
+    ),
+    'Malware Hunter': _AchievementDetail(
+      category: 'Device Safety',
+      description: 'You can recognise malware risks and safe installation habits.',
+      condition: 'Reach 70% progress in the malware topic.',
+    ),
+    'Privacy Guardian': _AchievementDetail(
+      category: 'Privacy',
+      description: 'You know how to protect personal data and manage sharing.',
+      condition: 'Reach 70% progress in the privacy topic.',
+    ),
+    'Threat Spotter': _AchievementDetail(
+      category: 'Threat Checking',
+      description: 'You actively practise identifying suspicious cyber threats.',
+      condition: 'Complete 5 threat checks.',
+    ),
+  };
 
   @override
   void initState() {
@@ -28,11 +111,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _loadUser() async {
     await FirebaseAuth.instance.currentUser?.reload();
+    final profileImage = await _profileImageService.loadImage();
 
     if (!mounted) return;
 
     setState(() {
       user = FirebaseAuth.instance.currentUser;
+      _profileImage = profileImage;
     });
   }
 
@@ -186,37 +271,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _editProfile() async {
-    if (_isEditProfileOpen) return;
-
-    _isEditProfileOpen = true;
-    final initialName = getUserName();
-    String? newName;
-
-    try {
-      newName = await showModalBottomSheet<String>(
-        context: context,
-        isScrollControlled: true,
-        backgroundColor: Colors.white,
-        shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-        ),
-        builder: (_) => _EditProfileSheet(initialName: initialName),
-      );
-    } finally {
-      _isEditProfileOpen = false;
-    }
-
-    if (newName == null || newName.isEmpty) return;
-
-    await FirebaseAuth.instance.currentUser?.updateDisplayName(newName);
-    await FirebaseAuth.instance.currentUser?.reload();
+    final updated = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(builder: (_) => const EditProfileScreen()),
+    );
 
     if (!mounted) return;
 
-    setState(() {
-      user = FirebaseAuth.instance.currentUser;
-    });
+    await _loadUser();
 
+    if (!mounted || updated != true) return;
     _showSnack("Profile updated successfully.");
   }
 
@@ -235,30 +299,89 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _resetProgress() async {
     final confirm = await showDialog<bool>(
       context: context,
-      builder: (_) {
-        return AlertDialog(
-          title: const Text("Reset Progress?"),
-          content: const Text(
-            "This will reset your XP, level, streak, badges, topic progress, quiz scores, recommendations and notifications. This action cannot be undone.",
+      builder: (dialogContext) {
+        return Dialog(
+          insetPadding: const EdgeInsets.symmetric(horizontal: 24),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(28),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text("Cancel"),
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  height: 50,
+                  width: 50,
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFFFE4E6),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.restart_alt_rounded,
+                    color: Color(0xFFDC2626),
+                  ),
+                ),
+                const SizedBox(height: 18),
+                const Text(
+                  'Reset Progress?',
+                  style: TextStyle(
+                    color: Color(0xFF0F172A),
+                    fontSize: 24,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                const Text(
+                  'This will reset your XP, level, streak, badges, topic progress, quiz scores, recommendations and notifications. This action cannot be undone.',
+                  style: TextStyle(
+                    color: Color(0xFF64748B),
+                    height: 1.45,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () =>
+                            Navigator.of(dialogContext).pop(false),
+                        style: OutlinedButton.styleFrom(
+                          minimumSize: const Size.fromHeight(48),
+                          foregroundColor: const Color(0xFF475569),
+                          side: const BorderSide(color: Color(0xFFCBD5E1)),
+                        ),
+                        child: const Text('Cancel'),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () =>
+                            Navigator.of(dialogContext).pop(true),
+                        style: ElevatedButton.styleFrom(
+                          minimumSize: const Size.fromHeight(48),
+                          backgroundColor: const Color(0xFFDC2626),
+                          foregroundColor: Colors.white,
+                        ),
+                        child: const Text('Reset'),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-              onPressed: () => Navigator.pop(context, true),
-              child: const Text("Reset"),
-            ),
-          ],
+          ),
         );
       },
     );
 
     if (confirm != true) return;
+    if (!mounted) return;
 
-    await context.read<HomeCubit>().resetProgress();
+    final homeCubit = context.read<HomeCubit>();
+    await homeCubit.resetProgress();
 
     if (!mounted) return;
 
@@ -342,19 +465,127 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  void _showBadgeInfo(String title, String desc) {
+  void _showBadgeInfo(String title, {required bool isUnlocked}) {
+    final detail = _achievementDetails[title] ??
+        const _AchievementDetail(
+          category: 'CyberBuddy Achievement',
+          description: 'A milestone earned through your CyberBuddy learning journey.',
+          condition: 'Keep completing learning activities and quizzes.',
+        );
+
     showDialog(
       context: context,
-      builder: (_) {
-        return AlertDialog(
-          title: Text(title),
-          content: Text(desc),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text("Close"),
+      builder: (dialogContext) {
+        return Dialog(
+          insetPadding: const EdgeInsets.symmetric(horizontal: 24),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(28),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    height: 76,
+                    width: 76,
+                    alignment: Alignment.center,
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFEFF6FF),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Text(
+                      _badgeEmoji(title),
+                      style: const TextStyle(fontSize: 38),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  title,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: Color(0xFF0F172A),
+                    fontSize: 24,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    _AchievementChip(
+                      label: isUnlocked ? 'UNLOCKED' : 'NEXT ACHIEVEMENT',
+                      color: isUnlocked
+                          ? const Color(0xFF16A34A)
+                          : const Color(0xFFF97316),
+                    ),
+                    _AchievementChip(
+                      label: detail.category,
+                      color: const Color(0xFF0369A1),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 18),
+                Text(
+                  detail.description,
+                  style: const TextStyle(
+                    color: Color(0xFF475569),
+                    fontSize: 15,
+                    height: 1.45,
+                  ),
+                ),
+                const SizedBox(height: 18),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF8FAFC),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        isUnlocked ? 'HOW YOU UNLOCKED IT' : 'HOW TO UNLOCK IT',
+                        style: const TextStyle(
+                          color: Color(0xFF64748B),
+                          fontSize: 11,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 0.7,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        detail.condition,
+                        style: const TextStyle(
+                          color: Color(0xFF0F172A),
+                          fontWeight: FontWeight.w800,
+                          height: 1.35,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 20),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () => Navigator.of(dialogContext).pop(),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF1E3A8A),
+                      foregroundColor: Colors.white,
+                    ),
+                    child: Text(isUnlocked ? 'Awesome!' : 'I’ll get it!'),
+                  ),
+                ),
+              ],
             ),
-          ],
+          ),
         );
       },
     );
@@ -434,6 +665,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final hasBadges = homeState.badges.isNotEmpty;
     final hasRecommendation =
         hasQuizData && homeState.recommendedModules.isNotEmpty;
+    final lockedBadges = _achievementDetails.keys
+        .where((badge) => !homeState.badges.contains(badge))
+        .toList();
 
     return Scaffold(
       backgroundColor: const Color(0xFFF1F5F9),
@@ -457,14 +691,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     CircleAvatar(
                       radius: 48,
                       backgroundColor: Colors.white,
-                      child: Text(
-                        getInitials(),
-                        style: const TextStyle(
-                          fontSize: 34,
-                          fontWeight: FontWeight.w900,
-                          color: Color(0xFF0D1B3E),
-                        ),
-                      ),
+                      backgroundImage: _profileImage == null
+                          ? null
+                          : FileImage(_profileImage!),
+                      child: _profileImage == null
+                          ? Text(
+                              getInitials(),
+                              style: const TextStyle(
+                                fontSize: 34,
+                                fontWeight: FontWeight.w900,
+                                color: Color(0xFF0D1B3E),
+                              ),
+                            )
+                          : null,
                     ),
                     const SizedBox(height: 14),
                     Text(
@@ -512,16 +751,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   children: [
                     _SectionCard(
                       title: "🏅 Badge Collection",
-                      child: !hasBadges
-                          ? const Text(
-                              "No badges unlocked yet. Complete modules and quizzes to earn badges.",
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (!hasBadges)
+                            const Text(
+                              'Your first achievement is waiting—complete a module or answer a quiz question to begin.',
                               style: TextStyle(
                                 color: Colors.grey,
                                 fontWeight: FontWeight.w600,
                                 height: 1.4,
                               ),
                             )
-                          : GridView.count(
+                          else ...[
+                            _BadgeGroupLabel(
+                              label: 'UNLOCKED',
+                              count: homeState.badges.length,
+                              color: const Color(0xFF16A34A),
+                            ),
+                            const SizedBox(height: 10),
+                            GridView.count(
                               shrinkWrap: true,
                               physics: const NeverScrollableScrollPhysics(),
                               crossAxisCount: 4,
@@ -529,14 +778,49 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               children: homeState.badges.map((badge) {
                                 return _BadgeItem(
                                   _badgeEmoji(badge),
-                                  badge.replaceAll(" ", "\n"),
+                                  badge.replaceAll(' ', '\n'),
+                                  onTap: () =>
+                                      _showBadgeInfo(badge, isUnlocked: true),
+                                );
+                              }).toList(),
+                            ),
+                          ],
+                          if (lockedBadges.isNotEmpty) ...[
+                            const SizedBox(height: 18),
+                            _BadgeGroupLabel(
+                              label: 'NEXT ACHIEVEMENTS',
+                              count: lockedBadges.length,
+                              color: const Color(0xFFF97316),
+                            ),
+                            const SizedBox(height: 6),
+                            const Text(
+                              'Tap any locked badge to see your next target.',
+                              style: TextStyle(
+                                color: Color(0xFF64748B),
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            GridView.count(
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              crossAxisCount: 4,
+                              childAspectRatio: 0.82,
+                              children: lockedBadges.map((badge) {
+                                return _LockedBadgeItem(
+                                  emoji: _badgeEmoji(badge),
+                                  title: badge.replaceAll(' ', '\n'),
                                   onTap: () => _showBadgeInfo(
                                     badge,
-                                    "Unlocked through your CyberBuddy learning progress.",
+                                    isUnlocked: false,
                                   ),
                                 );
                               }).toList(),
                             ),
+                          ],
+                        ],
+                      ),
                     ),
                     const SizedBox(height: 16),
                     _SectionCard(
@@ -721,88 +1005,75 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 }
 
-class _EditProfileSheet extends StatefulWidget {
-  final String initialName;
+class _AchievementDetail {
+  final String category;
+  final String description;
+  final String condition;
 
-  const _EditProfileSheet({required this.initialName});
-
-  @override
-  State<_EditProfileSheet> createState() => _EditProfileSheetState();
+  const _AchievementDetail({
+    required this.category,
+    required this.description,
+    required this.condition,
+  });
 }
 
-class _EditProfileSheetState extends State<_EditProfileSheet> {
-  late final TextEditingController _controller;
+class _AchievementChip extends StatelessWidget {
+  final String label;
+  final Color color;
 
-  @override
-  void initState() {
-    super.initState();
-    _controller = TextEditingController(text: widget.initialName);
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  void _save() {
-    final value = _controller.text.trim();
-    if (value.isEmpty) return;
-
-    Navigator.of(context).pop(value);
-  }
+  const _AchievementChip({required this.label, required this.color});
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      top: false,
-      child: AnimatedPadding(
-        duration: const Duration(milliseconds: 180),
-        curve: Curves.easeOut,
-        padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                "Edit Profile",
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900),
-              ),
-              const SizedBox(height: 18),
-              TextField(
-                controller: _controller,
-                autofocus: true,
-                textInputAction: TextInputAction.done,
-                onSubmitted: (_) => _save(),
-                decoration: const InputDecoration(
-                  labelText: "Display name",
-                  border: OutlineInputBorder(),
-                ),
-              ),
-              const SizedBox(height: 18),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: () => Navigator.of(context).pop(),
-                      child: const Text("Cancel"),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: _save,
-                      child: const Text("Save"),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: color,
+          fontWeight: FontWeight.w900,
+          fontSize: 11,
         ),
       ),
+    );
+  }
+}
+
+class _BadgeGroupLabel extends StatelessWidget {
+  final String label;
+  final int count;
+  final Color color;
+
+  const _BadgeGroupLabel({
+    required this.label,
+    required this.count,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Container(
+          height: 8,
+          width: 8,
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+        ),
+        const SizedBox(width: 7),
+        Text(
+          '$label ($count)',
+          style: TextStyle(
+            color: color,
+            fontSize: 12,
+            fontWeight: FontWeight.w900,
+            letterSpacing: 0.7,
+          ),
+        ),
+      ],
     );
   }
 }
@@ -933,6 +1204,73 @@ class _BadgeItem extends StatelessWidget {
             style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _LockedBadgeItem extends StatelessWidget {
+  final String emoji;
+  final String title;
+  final VoidCallback onTap;
+
+  const _LockedBadgeItem({
+    required this.emoji,
+    required this.title,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(14),
+      child: Opacity(
+        opacity: 0.72,
+        child: Column(
+          children: [
+            Stack(
+              alignment: Alignment.center,
+              children: [
+                Container(
+                  height: 54,
+                  width: 54,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF1F5F9),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                  ),
+                  child: Opacity(
+                    opacity: 0.28,
+                    child: Text(emoji, style: const TextStyle(fontSize: 24)),
+                  ),
+                ),
+                Container(
+                  height: 26,
+                  width: 26,
+                  decoration: const BoxDecoration(
+                    color: Color(0xFF475569),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.lock_rounded, size: 15, color: Colors.white),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: Color(0xFF64748B),
+                fontSize: 10,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

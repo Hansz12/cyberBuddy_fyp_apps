@@ -205,7 +205,7 @@ class LoginScreen extends StatelessWidget {
                                     .updateEmail,
                                 decoration: const InputDecoration(
                                   prefixIcon: Icon(Icons.email),
-                                  hintText: "user@gmail.com.my",
+                                  hintText: "studentid@student.university.edu.my",
                                 ),
                               ),
 

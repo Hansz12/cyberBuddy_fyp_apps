@@ -160,7 +160,7 @@ class RegisterScreen extends StatelessWidget {
                                     .updateEmail,
                                 decoration: const InputDecoration(
                                   prefixIcon: Icon(Icons.email),
-                                  hintText: "user@gmail.com.my",
+                                  hintText: "studentid@student.university.edu.my",
                                 ),
                               ),
 
@@ -202,7 +202,7 @@ class RegisterScreen extends StatelessWidget {
 
                                     Expanded(
                                       child: Text(
-                                        "Use your active email. Your progress, XP, badges and leaderboard data will be linked to this account.",
+                                        "Use your official university student email. Gmail, Yahoo and personal email accounts are not accepted.",
                                         style: TextStyle(
                                           color: Color(0xFF475569),
                                           fontSize: 12,
