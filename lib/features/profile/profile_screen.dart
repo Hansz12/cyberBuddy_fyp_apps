@@ -17,6 +17,7 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
+  bool _isEditProfileOpen = false;
   User? user;
 
   @override
@@ -102,32 +103,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return "🏅";
   }
 
-  Color _topicColor(String topic) {
-    switch (topic.toLowerCase()) {
-      case "phishing":
-        return Colors.orange;
-      case "password":
-        return Colors.green;
-      case "social":
-        return Colors.indigo;
-      case "malware":
-        return Colors.red;
-      case "privacy":
-        return Colors.purple;
-      case "scam":
-        return Colors.blue;
-      case "mobile":
-        return Colors.teal;
-      case "network":
-        return Colors.cyan;
-      case "ethics":
-        return Colors.deepPurple;
-      case "banking":
-        return Colors.lightBlue;
-      default:
-        return Colors.grey;
-    }
-  }
 
   String _getWeakestTopic(HomeState state) {
     final attempted = state.topicScores.entries.where((entry) {
@@ -211,51 +186,38 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _editProfile() async {
-    final controller = TextEditingController(text: getUserName());
+    if (_isEditProfileOpen) return;
 
-    await showDialog(
-      context: context,
-      builder: (_) {
-        return AlertDialog(
-          title: const Text("Edit Profile"),
-          content: TextField(
-            controller: controller,
-            decoration: const InputDecoration(
-              labelText: "Display name",
-              border: OutlineInputBorder(),
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text("Cancel"),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                final newName = controller.text.trim();
+    _isEditProfileOpen = true;
+    final initialName = getUserName();
+    String? newName;
 
-                if (newName.isEmpty) {
-                  _showSnack("Name cannot be empty.");
-                  return;
-                }
+    try {
+      newName = await showModalBottomSheet<String>(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.white,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        builder: (_) => _EditProfileSheet(initialName: initialName),
+      );
+    } finally {
+      _isEditProfileOpen = false;
+    }
 
-                await FirebaseAuth.instance.currentUser?.updateDisplayName(
-                  newName,
-                );
+    if (newName == null || newName.isEmpty) return;
 
-                await _loadUser();
+    await FirebaseAuth.instance.currentUser?.updateDisplayName(newName);
+    await FirebaseAuth.instance.currentUser?.reload();
 
-                if (mounted) {
-                  Navigator.pop(context);
-                  _showSnack("Profile updated successfully.");
-                }
-              },
-              child: const Text("Save"),
-            ),
-          ],
-        );
-      },
-    );
+    if (!mounted) return;
+
+    setState(() {
+      user = FirebaseAuth.instance.currentUser;
+    });
+
+    _showSnack("Profile updated successfully.");
   }
 
   Future<void> _changePassword() async {
@@ -759,6 +721,92 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 }
 
+class _EditProfileSheet extends StatefulWidget {
+  final String initialName;
+
+  const _EditProfileSheet({required this.initialName});
+
+  @override
+  State<_EditProfileSheet> createState() => _EditProfileSheetState();
+}
+
+class _EditProfileSheetState extends State<_EditProfileSheet> {
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.initialName);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _save() {
+    final value = _controller.text.trim();
+    if (value.isEmpty) return;
+
+    Navigator.of(context).pop(value);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      top: false,
+      child: AnimatedPadding(
+        duration: const Duration(milliseconds: 180),
+        curve: Curves.easeOut,
+        padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                "Edit Profile",
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900),
+              ),
+              const SizedBox(height: 18),
+              TextField(
+                controller: _controller,
+                autofocus: true,
+                textInputAction: TextInputAction.done,
+                onSubmitted: (_) => _save(),
+                decoration: const InputDecoration(
+                  labelText: "Display name",
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 18),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      child: const Text("Cancel"),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: _save,
+                      child: const Text("Save"),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _HeaderBadge extends StatelessWidget {
   final String text;
   final bool green;
@@ -890,6 +938,7 @@ class _BadgeItem extends StatelessWidget {
   }
 }
 
+// ignore: unused_element
 class _ProgressRow extends StatelessWidget {
   final String label;
   final double value;

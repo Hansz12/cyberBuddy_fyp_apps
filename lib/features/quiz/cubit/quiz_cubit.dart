@@ -41,7 +41,8 @@ class QuizCubit extends Cubit<QuizState> {
       final shuffledQuestions = List<Map<String, dynamic>>.from(filtered)
         ..shuffle();
 
-      final selectedQuestions = shuffledQuestions.take(5).toList();
+      // Show every available challenge for a module, up to a maximum of 6.
+      final selectedQuestions = shuffledQuestions.take(6).toList();
 
       emit(
         state.copyWith(
@@ -119,7 +120,11 @@ class QuizCubit extends Cubit<QuizState> {
           raw['module_id']?.toString() ?? raw['moduleId']?.toString() ?? '',
       'topic': raw['topic']?.toString() ?? '',
       'difficulty': raw['difficulty']?.toString() ?? '',
-      'questionType': raw['question_type']?.toString() ?? 'MCQ',
+      'questionType':
+          raw['question_type']?.toString() ??
+          raw['answer_type']?.toString() ??
+          raw['type']?.toString() ??
+          'MCQ',
       'scenario': raw['scenario']?.toString() ?? '',
       'question': raw['question']?.toString() ?? '',
       'options': options,

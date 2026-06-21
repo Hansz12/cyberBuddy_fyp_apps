@@ -716,56 +716,56 @@ class _VideoPreviewCardState extends State<_VideoPreviewCard> {
             child: ClipRRect(
               borderRadius: BorderRadius.circular(20),
               child: Stack(
-              children: [
-                if (video != null && video.thumbnailUrl.isNotEmpty)
+                children: [
+                  if (video != null && video.thumbnailUrl.isNotEmpty)
+                    Positioned.fill(
+                      child: Image.network(
+                        video.thumbnailUrl,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) {
+                          return Container(color: const Color(0xFF1E293B));
+                        },
+                      ),
+                    ),
                   Positioned.fill(
-                    child: Image.network(
-                      video.thumbnailUrl,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) {
-                        return Container(color: const Color(0xFF1E293B));
-                      },
+                    child: Container(
+                      color: const Color(0xFF0F172A).withOpacity(0.45),
                     ),
                   ),
-                Positioned.fill(
-                  child: Container(
-                    color: const Color(0xFF0F172A).withOpacity(0.45),
-                  ),
-                ),
-                const Center(
-                  child: Icon(
-                    Icons.play_circle_fill_rounded,
-                    color: Colors.white,
-                    size: 64,
-                  ),
-                ),
-                Positioned(
-                  right: 16,
-                  top: 14,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 5,
+                  const Center(
+                    child: Icon(
+                      Icons.play_circle_fill_rounded,
+                      color: Colors.white,
+                      size: 64,
                     ),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.14),
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: Colors.white24),
-                    ),
-                    child: Text(
-                      video?.videoDuration ?? "3-5 mins",
-                      style: const TextStyle(
-                        color: Color(0xFFBFDBFE),
-                        fontSize: 10,
-                        fontWeight: FontWeight.w900,
+                  ),
+                  Positioned(
+                    right: 16,
+                    top: 14,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 5,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.14),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: Colors.white24),
+                      ),
+                      child: Text(
+                        video?.videoDuration ?? "3-5 mins",
+                        style: const TextStyle(
+                          color: Color(0xFFBFDBFE),
+                          fontSize: 10,
+                          fontWeight: FontWeight.w900,
+                        ),
                       ),
                     ),
                   ),
-                ),
-                Positioned(
-                  left: 16,
-                  bottom: 14,
-                  right: 16,
+                  Positioned(
+                    left: 16,
+                    bottom: 14,
+                    right: 16,
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -806,8 +806,8 @@ class _VideoPreviewCardState extends State<_VideoPreviewCard> {
                     ],
                   ),
                 ),
-              ],
-            ),
+                ],
+              ),
             ),
           ),
         );

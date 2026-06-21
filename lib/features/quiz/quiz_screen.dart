@@ -257,7 +257,7 @@ class _QuizScreenState extends State<QuizScreen> {
                               Row(
                                 children: const [
                                   Text(
-                                    "Incoming Message",
+                                    "Cyber Alert 🚨",
                                     style: TextStyle(
                                       color: Color(0xFF1E40AF),
                                       fontWeight: FontWeight.w900,
@@ -292,19 +292,17 @@ class _QuizScreenState extends State<QuizScreen> {
                         const SizedBox(height: 18),
                       ],
 
-                      ...List.generate(options.length, (index) {
-                        return _OptionCard(
-                          letter: String.fromCharCode(65 + index),
-                          text: options[index].toString(),
-                          index: index,
-                          selectedIndex: selectedIndex,
-                          correctIndex: correctIndex,
-                          isAnswered: state.isAnswered,
-                          onTap: () {
-                            context.read<QuizCubit>().selectAnswer(index);
-                          },
-                        );
-                      }),
+                      _QuestionTypeRenderer(
+                        questionType:
+                            _q(state)['questionType']?.toString() ?? 'MCQ',
+                        options: options,
+                        selectedIndex: selectedIndex,
+                        correctIndex: correctIndex,
+                        isAnswered: state.isAnswered,
+                        onSelect: (index) {
+                          context.read<QuizCubit>().selectAnswer(index);
+                        },
+                      ),
 
                       if (state.isAnswered) ...[
                         const SizedBox(height: 14),
@@ -360,9 +358,9 @@ class _QuizScreenState extends State<QuizScreen> {
                       child: Text(
                         state.isAnswered
                             ? state.currentIndex == state.questions.length - 1
-                                  ? "Finish quiz →"
-                                  : "Next question →"
-                            : "Submit answer",
+                                  ? "Complete Mission 🎯"
+                                  : "Next Challenge →"
+                            : "Lock My Answer 🔐",
                         style: const TextStyle(fontWeight: FontWeight.w900),
                       ),
                     ),
@@ -626,6 +624,327 @@ class _OptionCardState extends State<_OptionCard> {
         ),
       ),
     );
+  }
+}
+
+class _QuestionTypeRenderer extends StatelessWidget {
+  final String questionType;
+  final List<dynamic> options;
+  final int? selectedIndex;
+  final int correctIndex;
+  final bool isAnswered;
+  final ValueChanged<int> onSelect;
+
+  const _QuestionTypeRenderer({
+    required this.questionType,
+    required this.options,
+    required this.selectedIndex,
+    required this.correctIndex,
+    required this.isAnswered,
+    required this.onSelect,
+  });
+
+  bool _isSelected(int index) => selectedIndex == index;
+
+  Color _borderColor(int index) {
+    if (!isAnswered) {
+      return _isSelected(index)
+          ? const Color(0xFF2563EB)
+          : const Color(0xFFE2E8F0);
+    }
+    if (index == correctIndex) return const Color(0xFF10B981);
+    if (_isSelected(index)) return const Color(0xFFEF4444);
+    return const Color(0xFFE2E8F0);
+  }
+
+  Color _backgroundColor(int index) {
+    if (!isAnswered) {
+      return _isSelected(index) ? const Color(0xFFEFF6FF) : Colors.white;
+    }
+    if (index == correctIndex) return const Color(0xFFECFDF5);
+    if (_isSelected(index)) return const Color(0xFFFEF2F2);
+    return Colors.white;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final type = questionType.toLowerCase();
+
+    if (type.contains('would')) return _buildWouldYouClick();
+    if (type.contains('chat')) return _buildChatSimulation();
+    if (type.contains('password')) return _buildPasswordBattle();
+    if (type.contains('qr')) return _buildQrDetective();
+    if (type.contains('incident')) return _buildMissionAction();
+    if (type.contains('true')) return _buildTrueFalse();
+
+    return _buildDefaultMcq();
+  }
+
+  Widget _buildWouldYouClick() {
+    return Row(
+      children: List.generate(options.length, (index) {
+        final isYes = options[index].toString().toLowerCase().contains('yes');
+
+        return Expanded(
+          child: GestureDetector(
+            onTap: isAnswered ? null : () => onSelect(index),
+            child: Container(
+              margin: EdgeInsets.only(right: index == 0 ? 10 : 0),
+              padding: const EdgeInsets.symmetric(vertical: 24),
+              decoration: BoxDecoration(
+                color: _backgroundColor(index),
+                borderRadius: BorderRadius.circular(22),
+                border: Border.all(color: _borderColor(index), width: 2),
+              ),
+              child: Column(
+                children: [
+                  Text(isYes ? '👆' : '🚫', style: const TextStyle(fontSize: 36)),
+                  const SizedBox(height: 8),
+                  Text(
+                    options[index].toString().toUpperCase(),
+                    style: const TextStyle(
+                      color: Color(0xFF0F172A),
+                      fontSize: 20,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      }),
+    );
+  }
+
+  Widget _buildChatSimulation() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const Text(
+          'Choose your reply 💬',
+          style: TextStyle(
+            color: Color(0xFF475569),
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+        const SizedBox(height: 12),
+        ...List.generate(options.length, (index) {
+          final selected = _isSelected(index);
+          return Align(
+            alignment: index.isEven
+                ? Alignment.centerLeft
+                : Alignment.centerRight,
+            child: GestureDetector(
+              onTap: isAnswered ? null : () => onSelect(index),
+              child: Container(
+                width: double.infinity,
+                margin: const EdgeInsets.only(bottom: 12),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: selected && !isAnswered
+                      ? const Color(0xFF2563EB)
+                      : _backgroundColor(index),
+                  borderRadius: BorderRadius.circular(22),
+                  border: Border.all(color: _borderColor(index), width: 1.8),
+                ),
+                child: Text(
+                  '💬 ${options[index]}',
+                  style: TextStyle(
+                    color: selected && !isAnswered
+                        ? Colors.white
+                        : const Color(0xFF0F172A),
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800,
+                    height: 1.3,
+                  ),
+                ),
+              ),
+            ),
+          );
+        }),
+      ],
+    );
+  }
+
+  Widget _buildPasswordBattle() {
+    return Column(
+      children: List.generate(options.length, (index) {
+        return GestureDetector(
+          onTap: isAnswered ? null : () => onSelect(index),
+          child: Container(
+            margin: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.all(18),
+            decoration: BoxDecoration(
+              color: _backgroundColor(index),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: _borderColor(index), width: 1.8),
+            ),
+            child: Row(
+              children: [
+                const Text('🔐', style: TextStyle(fontSize: 26)),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Text(
+                    options[index].toString(),
+                    style: const TextStyle(
+                      color: Color(0xFF0F172A),
+                      fontSize: 17,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 0.4,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      }),
+    );
+  }
+
+  Widget _buildQrDetective() {
+    return Column(
+      children: [
+        Container(
+          width: double.infinity,
+          margin: const EdgeInsets.only(bottom: 14),
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(
+            color: const Color(0xFFFFFBEB),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: const Color(0xFFF59E0B)),
+          ),
+          child: const Column(
+            children: [
+              Text('▦', style: TextStyle(fontSize: 54)),
+              SizedBox(height: 6),
+              Text(
+                'QR Detective Mode',
+                style: TextStyle(
+                  color: Color(0xFF92400E),
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ],
+          ),
+        ),
+        ..._buildIconOptionTiles('🔎'),
+      ],
+    );
+  }
+
+  Widget _buildMissionAction() {
+    return Column(
+      children: [
+        Container(
+          width: double.infinity,
+          margin: const EdgeInsets.only(bottom: 14),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: const Color(0xFFEEF2FF),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: const Color(0xFF818CF8)),
+          ),
+          child: const Text(
+            '🎯 Mission: Pick the safest next action',
+            style: TextStyle(
+              color: Color(0xFF3730A3),
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ),
+        ..._buildIconOptionTiles('🛡️'),
+      ],
+    );
+  }
+
+  Widget _buildTrueFalse() {
+    return Row(
+      children: List.generate(options.length, (index) {
+        final isTrue =
+            options[index].toString().toLowerCase().contains('true');
+
+        return Expanded(
+          child: GestureDetector(
+            onTap: isAnswered ? null : () => onSelect(index),
+            child: Container(
+              margin: EdgeInsets.only(right: index == 0 ? 10 : 0),
+              padding: const EdgeInsets.symmetric(vertical: 24),
+              decoration: BoxDecoration(
+                color: _backgroundColor(index),
+                borderRadius: BorderRadius.circular(22),
+                border: Border.all(color: _borderColor(index), width: 2),
+              ),
+              child: Column(
+                children: [
+                  Text(isTrue ? '✅' : '❌', style: const TextStyle(fontSize: 36)),
+                  const SizedBox(height: 8),
+                  Text(
+                    options[index].toString().toUpperCase(),
+                    style: const TextStyle(
+                      color: Color(0xFF0F172A),
+                      fontSize: 18,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      }),
+    );
+  }
+
+  Widget _buildDefaultMcq() {
+    return Column(
+      children: List.generate(options.length, (index) {
+        return _OptionCard(
+          letter: String.fromCharCode(65 + index),
+          text: options[index].toString(),
+          index: index,
+          selectedIndex: selectedIndex,
+          correctIndex: correctIndex,
+          isAnswered: isAnswered,
+          onTap: () => onSelect(index),
+        );
+      }),
+    );
+  }
+
+  List<Widget> _buildIconOptionTiles(String icon) {
+    return List.generate(options.length, (index) {
+      return GestureDetector(
+          onTap: isAnswered ? null : () => onSelect(index),
+          child: Container(
+            margin: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: _backgroundColor(index),
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: _borderColor(index), width: 1.8),
+            ),
+            child: Row(
+              children: [
+                Text(icon, style: const TextStyle(fontSize: 24)),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    options[index].toString(),
+                    style: const TextStyle(
+                      color: Color(0xFF0F172A),
+                      fontSize: 14,
+                      fontWeight: FontWeight.w800,
+                      height: 1.3,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+      );
+    });
   }
 }
 
