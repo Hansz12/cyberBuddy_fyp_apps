@@ -90,12 +90,12 @@ BEGIN
         BLOCK "040904e4"
         BEGIN
             VALUE "CompanyName", "com.example" "\0"
-            VALUE "FileDescription", "cyberbuddy_app" "\0"
+            VALUE "FileDescription", "CyberBuddy" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "cyberbuddy_app" "\0"
+            VALUE "InternalName", "CyberBuddy" "\0"
             VALUE "LegalCopyright", "Copyright (C) 2026 com.example. All rights reserved." "\0"
-            VALUE "OriginalFilename", "cyberbuddy_app.exe" "\0"
-            VALUE "ProductName", "cyberbuddy_app" "\0"
+            VALUE "OriginalFilename", "CyberBuddy.exe" "\0"
+            VALUE "ProductName", "CyverBuddy" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END

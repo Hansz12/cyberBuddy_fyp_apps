@@ -8,7 +8,7 @@
 
 
     <application 
-        android:label="cyberbuddy_app"
+        android:label="CyberBuddy"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <meta-data

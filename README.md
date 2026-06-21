@@ -1,4 +1,4 @@
-# cyberbuddy_app
+# CyberBuddy
 
 A new Flutter project.
 
