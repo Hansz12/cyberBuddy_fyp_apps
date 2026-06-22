@@ -350,46 +350,58 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   void _openNotifications() {
+    context.read<HomeCubit>().markNotificationsAsRead();
     final notifications = context.read<HomeCubit>().state.notifications;
     showModalBottomSheet<void>(
       context: context,
+      isScrollControlled: true,
       backgroundColor: Colors.white,
       showDragHandle: true,
-      builder: (sheetContext) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Notifications',
-                style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
-              ),
-              const SizedBox(height: 16),
-              if (notifications.isEmpty)
-                const _EmptyState(
-                  icon: Icons.notifications_none_rounded,
-                  text: 'No notifications yet.',
-                )
-              else
-                ConstrainedBox(
-                  constraints: const BoxConstraints(maxHeight: 420),
-                  child: ListView.separated(
-                    shrinkWrap: true,
-                    itemCount: notifications.length,
-                    separatorBuilder: (_, __) => const Divider(height: 1),
-                    itemBuilder: (_, index) => ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      leading: const CircleAvatar(
-                        backgroundColor: Color(0xFFEFF6FF),
-                        child: Icon(Icons.notifications_rounded, color: _blue),
-                      ),
-                      title: Text(notifications[index]),
-                    ),
-                  ),
+      builder: (sheetContext) => DraggableScrollableSheet(
+        expand: false,
+        initialChildSize: 0.72,
+        minChildSize: 0.42,
+        maxChildSize: 0.92,
+        builder: (context, scrollController) => SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Notifications',
+                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
                 ),
-            ],
+                const SizedBox(height: 16),
+                Expanded(
+                  child: notifications.isEmpty
+                      ? const Center(
+                          child: _EmptyState(
+                            icon: Icons.notifications_none_rounded,
+                            text: 'No notifications yet.',
+                          ),
+                        )
+                      : ListView.separated(
+                          controller: scrollController,
+                          itemCount: notifications.length,
+                          separatorBuilder: (_, __) =>
+                              const Divider(height: 1),
+                          itemBuilder: (_, index) => ListTile(
+                            contentPadding: EdgeInsets.zero,
+                            leading: const CircleAvatar(
+                              backgroundColor: Color(0xFFEFF6FF),
+                              child: Icon(
+                                Icons.notifications_rounded,
+                                color: _blue,
+                              ),
+                            ),
+                            title: Text(notifications[index]),
+                          ),
+                        ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -587,10 +599,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     HomeState homeState,
     LearningState learningState,
   ) {
-    final lockedBadges = _achievementDetails.keys
-        .where((badge) => !homeState.badges.contains(badge))
-        .toList();
-
     return Scaffold(
       backgroundColor: const Color(0xFFF1F5F9),
       body: SafeArea(
@@ -601,7 +609,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             padding: EdgeInsets.zero,
             children: [
               Container(
-                padding: const EdgeInsets.fromLTRB(20, 28, 20, 42),
+                padding: const EdgeInsets.fromLTRB(20, 24, 20, 32),
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(
                     colors: [Color(0xFF0D1B3E), Color(0xFF1E3A8A)],
@@ -612,7 +620,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 child: Column(
                   children: [
                     CircleAvatar(
-                      radius: 54,
+                      radius: 46,
                       backgroundColor: Colors.white,
                       backgroundImage: _profileImage == null
                           ? null
@@ -634,7 +642,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       textAlign: TextAlign.center,
                       style: const TextStyle(
                         color: Colors.white,
-                        fontSize: 30,
+                        fontSize: 26,
                         fontWeight: FontWeight.w900,
                       ),
                     ),
@@ -644,16 +652,33 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       textAlign: TextAlign.center,
                       style: const TextStyle(color: Colors.white70, fontSize: 15),
                     ),
-                    const SizedBox(height: 18),
-                    _ClassicHeaderBadge(
-                      icon: Icons.shield_outlined,
-                      text: 'LV ${homeState.level} • Threat Spotter',
+                    const SizedBox(height: 14),
+                    FilledButton.icon(
+                      onPressed: _editProfile,
+                      icon: const Icon(Icons.edit_outlined, size: 17),
+                      label: const Text('Edit Profile'),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: Colors.white.withValues(alpha: 0.14),
+                        foregroundColor: const Color(0xFF67E8F9),
+                        textStyle: const TextStyle(fontWeight: FontWeight.w800),
+                      ),
                     ),
-                    const SizedBox(height: 10),
-                    _ClassicHeaderBadge(
-                      icon: Icons.local_fire_department_rounded,
-                      text: '${homeState.streak}-day streak',
-                      green: true,
+                    const SizedBox(height: 16),
+                    Wrap(
+                      alignment: WrapAlignment.center,
+                      spacing: 10,
+                      runSpacing: 10,
+                      children: [
+                        _ClassicHeaderBadge(
+                          icon: Icons.shield_outlined,
+                          text: 'LV ${homeState.level} • Threat Spotter',
+                        ),
+                        _ClassicHeaderBadge(
+                          icon: Icons.local_fire_department_rounded,
+                          text: '${homeState.streak}-day streak',
+                          green: true,
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -664,9 +689,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   padding: const EdgeInsets.symmetric(horizontal: 14),
                   child: Row(
                     children: [
-                      _ClassicStatCard(title: 'Total XP', value: '${homeState.xp}'),
+                      _ClassicStatCard(title: 'XP', value: '${homeState.xp}'),
                       _ClassicStatCard(title: 'Modules', value: '${learningState.modules.length}'),
-                      _ClassicStatCard(title: 'Avg Score', value: '${homeState.avgScore}%'),
+                      _ClassicStatCard(title: 'Score', value: '${homeState.avgScore}%'),
                       _ClassicStatCard(title: 'Badges', value: '${homeState.badges.length}'),
                     ],
                   ),
@@ -676,8 +701,35 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Column(
                   children: [
+                    _ClassicRecommendationProfileCard(
+                      state: homeState,
+                      onTap: homeState.recommendedModuleIds.isEmpty
+                          ? null
+                          : () => _openRecommendedModule(homeState),
+                    ),
                     _ClassicSectionCard(
-                      title: 'Badge Collection',
+                      title: 'Progress Snapshot',
+                      icon: Icons.insights_rounded,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Based on your latest quiz performance',
+                            style: TextStyle(
+                              color: Color(0xFF94A3B8),
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          _ClassicInfoRow(label: 'Strongest Topic', value: _strongestTopic(homeState), color: Colors.green),
+                          _ClassicInfoRow(label: 'Focus Area', value: _weakestTopic(homeState), color: Colors.red),
+                          _ClassicInfoRow(label: 'Quiz Accuracy', value: '${homeState.avgScore}%', color: Colors.blue),
+                        ],
+                      ),
+                    ),
+                    _ClassicSectionCard(
+                      title: 'Achievements',
                       icon: Icons.workspace_premium_rounded,
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -692,55 +744,48 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             const _ClassicEmptyBadges()
                           else
                             _ClassicBadgeGrid(
-                              badges: homeState.badges,
+                              badges: homeState.badges.take(4).toList(),
                               unlocked: true,
                               emojiForBadge: _badgeEmoji,
                               onTap: _showBadgeInfo,
                             ),
-                          if (lockedBadges.isNotEmpty) ...[
-                            const SizedBox(height: 24),
-                            _ClassicBadgeLabel(
-                              label: 'NEXT ACHIEVEMENTS',
-                              count: lockedBadges.length,
-                              color: const Color(0xFFF97316),
+                          const SizedBox(height: 14),
+                          SizedBox(
+                            width: double.infinity,
+                            child: OutlinedButton.icon(
+                              onPressed: () => _showAllBadges(homeState),
+                              icon: const Icon(Icons.workspace_premium_outlined),
+                              label: const Text('View All Achievements'),
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: const Color(0xFF2563EB),
+                                side: const BorderSide(color: Color(0xFFBFDBFE)),
+                              ),
                             ),
-                            const SizedBox(height: 12),
-                            _ClassicBadgeGrid(
-                              badges: lockedBadges,
-                              unlocked: false,
-                              emojiForBadge: _badgeEmoji,
-                              onTap: _showBadgeInfo,
-                            ),
-                          ],
+                          ),
                         ],
                       ),
                     ),
-                    const SizedBox(height: 4),
                     _ClassicSectionCard(
-                      title: 'Cybersecurity Analytics',
-                      icon: Icons.insights_rounded,
+                      title: 'Account',
+                      icon: Icons.settings_rounded,
                       child: Column(
                         children: [
-                          _ClassicInfoRow(label: 'Strongest Topic', value: _strongestTopic(homeState), color: Colors.green),
-                          _ClassicInfoRow(label: 'Weakest Topic', value: _weakestTopic(homeState), color: Colors.red),
-                          _ClassicInfoRow(label: 'Recent Quiz Accuracy', value: '${homeState.avgScore}%', color: Colors.blue),
+                          _CompactActionTile(icon: Icons.lock_outline, title: 'Change Password', onTap: _changePassword),
+                          _CompactActionTile(icon: Icons.notifications_none, title: 'Notifications', onTap: _openNotifications),
+                          _CompactActionTile(icon: Icons.help_outline, title: 'Help & Support', onTap: _openHelp),
                         ],
                       ),
                     ),
-                    _ClassicTopicProgressCard(state: homeState),
-                    _ClassicRecommendationProfileCard(
-                      state: homeState,
-                      onTap: homeState.recommendedModuleIds.isEmpty
-                          ? null
-                          : () => _openRecommendedModule(homeState),
+                    _ClassicSectionCard(
+                      title: 'Danger Zone',
+                      icon: Icons.warning_amber_rounded,
+                      child: Column(
+                        children: [
+                          _CompactActionTile(icon: Icons.restart_alt, title: 'Reset Progress', color: Colors.orange, onTap: _resetProgress),
+                          _CompactActionTile(icon: Icons.logout, title: 'Logout', color: Colors.red, onTap: _logout),
+                        ],
+                      ),
                     ),
-                    const SizedBox(height: 8),
-                    _ClassicAccountTile(icon: Icons.person_outline, title: 'Edit Profile', onTap: _editProfile),
-                    _ClassicAccountTile(icon: Icons.lock_outline, title: 'Change Password', onTap: _changePassword),
-                    _ClassicAccountTile(icon: Icons.notifications_none, title: 'Notifications', onTap: _openNotifications),
-                    _ClassicAccountTile(icon: Icons.help_outline, title: 'Help & Support', onTap: _openHelp),
-                    _ClassicAccountTile(icon: Icons.restart_alt, title: 'Reset Progress', color: Colors.orange, onTap: _resetProgress),
-                    _ClassicAccountTile(icon: Icons.logout, title: 'Logout', color: Colors.red, onTap: _logout),
                     const SizedBox(height: 110),
                   ],
                 ),
@@ -1186,6 +1231,37 @@ class _ClassicInfoRow extends StatelessWidget {
   }
 }
 
+class _CompactActionTile extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final Color color;
+  final VoidCallback onTap;
+
+  const _CompactActionTile({
+    required this.icon,
+    required this.title,
+    required this.onTap,
+    this.color = const Color(0xFF334155),
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      dense: true,
+      visualDensity: VisualDensity.compact,
+      minVerticalPadding: 4,
+      contentPadding: EdgeInsets.zero,
+      leading: Icon(icon, color: color),
+      title: Text(
+        title,
+        style: TextStyle(color: color, fontWeight: FontWeight.w800),
+      ),
+      trailing: Icon(Icons.chevron_right, color: color),
+      onTap: onTap,
+    );
+  }
+}
+
 class _ClassicAccountTile extends StatelessWidget {
   final IconData icon;
   final String title;
@@ -1318,112 +1394,68 @@ class _ClassicRecommendationProfileCard extends StatelessWidget {
     required this.onTap,
   });
 
-  String _titleCase(String value) {
-    if (value.isEmpty) return value;
-    return value[0].toUpperCase() + value.substring(1);
-  }
-
-  List<String> get _attemptedTopics => state.topicAnswered.entries
-      .where((entry) => entry.value > 0)
-      .map((entry) => entry.key)
-      .toList();
-
-  String get _preferredTopics {
-    final topics = _attemptedTopics
-        .where((topic) => state.topicProgress(topic) >= 0.6)
-        .toList()
-      ..sort((a, b) => state.topicProgress(b).compareTo(state.topicProgress(a)));
-    if (topics.isEmpty) return 'Complete more quizzes to personalise this.';
-    return topics.take(7).map(_titleCase).join(' • ');
-  }
-
-  String get _strongest {
-    final topics = _attemptedTopics;
-    if (topics.isEmpty) return 'Not available';
-    topics.sort((a, b) => state.topicProgress(b).compareTo(state.topicProgress(a)));
-    final topic = topics.first;
-    return '${_titleCase(topic)} (${(state.topicProgress(topic) * 100).round()}%)';
-  }
-
-  String get _weakest {
-    final topics = _attemptedTopics;
-    if (topics.isEmpty) return 'Not available';
-    topics.sort((a, b) => state.topicProgress(a).compareTo(state.topicProgress(b)));
-    final topic = topics.first;
-    return '${_titleCase(topic)} (${(state.topicProgress(topic) * 100).round()}%)';
-  }
-
-  String get _difficulty {
-    if (state.level >= 8) return 'Advanced';
-    if (state.level >= 4) return 'Intermediate';
-    return 'Beginner';
-  }
-
   @override
   Widget build(BuildContext context) {
+    final recommendedModule = state.recommendedModules.isEmpty
+        ? 'Complete a quiz to unlock your next module'
+        : state.recommendedModules.first;
+    final recommendationReason = state.recommendedModules.isEmpty
+        ? 'Complete a quiz so CyberBuddy can personalise this recommendation.'
+        : state.moduleReasons[recommendedModule] ??
+            'Selected from your current learning progress and incomplete modules.';
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(24),
-      child: _ClassicSectionCard(
-        title: 'Recommendation Profile',
-        icon: Icons.track_changes_rounded,
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 14),
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          color: const Color(0xFFEFF6FF),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: const Color(0xFFBFDBFE)),
+        ),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _ClassicRecommendationRow(label: 'Preferred topics', value: _preferredTopics),
-            _ClassicRecommendationRow(label: 'Difficulty preference', value: _difficulty),
-            _ClassicRecommendationRow(label: 'Strongest topic', value: _strongest, color: const Color(0xFF4CAF50)),
-            _ClassicRecommendationRow(label: 'Weak area detected', value: _weakest, color: const Color(0xFFF44336)),
-            _ClassicRecommendationRow(label: 'Average score', value: '${state.avgScore}%'),
-            _ClassicRecommendationRow(
-              label: 'Next recommendation',
-              value: state.recommendedModules.isEmpty
-                  ? 'Complete a quiz first'
-                  : state.recommendedModules.first,
-              color: const Color(0xFF2196F3),
+            const Row(
+              children: [
+                Icon(Icons.auto_awesome_rounded, color: Color(0xFF2563EB)),
+                SizedBox(width: 8),
+                Text(
+                  'Recommended Next',
+                  style: TextStyle(
+                    color: Color(0xFF1D4ED8),
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Text(
+              recommendedModule,
+              style: const TextStyle(
+                color: Color(0xFF0F172A),
+                fontSize: 19,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            const SizedBox(height: 7),
+            Text(
+              recommendationReason,
+              style: const TextStyle(color: Color(0xFF475569), height: 1.4),
+            ),
+            const SizedBox(height: 15),
+            FilledButton.icon(
+              onPressed: onTap,
+              icon: const Icon(Icons.play_arrow_rounded),
+              label: Text(onTap == null ? 'Complete a Quiz First' : 'Start Module'),
+              style: FilledButton.styleFrom(
+                backgroundColor: const Color(0xFF2563EB),
+                foregroundColor: Colors.white,
+              ),
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-class _ClassicRecommendationRow extends StatelessWidget {
-  final String label;
-  final String value;
-  final Color? color;
-
-  const _ClassicRecommendationRow({
-    required this.label,
-    required this.value,
-    this.color,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 142,
-            child: Text(
-              label,
-              style: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 12),
-            ),
-          ),
-          Expanded(
-            child: Text(
-              value,
-              style: TextStyle(
-                color: color ?? const Color(0xFF111827),
-                fontWeight: FontWeight.w800,
-                height: 1.35,
-              ),
-            ),
-          ),
-        ],
       ),
     );
   }

@@ -157,7 +157,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   ),
                   const SizedBox(height: 6),
                   const Text(
-                    'Choose a photo that represents you.',
+                    'Update your profile photo and display name.',
                     style: TextStyle(color: Colors.white70),
                   ),
                   const SizedBox(height: 18),

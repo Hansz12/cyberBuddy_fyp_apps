@@ -6,6 +6,10 @@ import 'package:timezone/timezone.dart' as tz;
 class NotificationService {
   static const _dailyInactivityReminderId = 200;
   static const _lastAppOpenDateKey = 'last_app_open_date';
+  static const _notificationPermissionRequestedKey =
+      'notification_permission_requested';
+  static const _exactAlarmPermissionRequestedKey =
+      'exact_alarm_permission_requested';
   static const _reminderHour = 20;
 
   static final FlutterLocalNotificationsPlugin _notifications =
@@ -26,8 +30,30 @@ class NotificationService {
         .resolvePlatformSpecificImplementation<
           AndroidFlutterLocalNotificationsPlugin
         >();
-    await androidNotifications?.requestNotificationsPermission();
-    await androidNotifications?.requestExactAlarmsPermission();
+    await androidNotifications?.createNotificationChannel(
+      const AndroidNotificationChannel(
+        'cyberbuddy_push_channel',
+        'CyberBuddy Push Notifications',
+        description: 'Firebase push notifications for CyberBuddy users',
+        importance: Importance.high,
+      ),
+    );
+    final preferences = await SharedPreferences.getInstance();
+    final notificationsEnabled =
+        await androidNotifications?.areNotificationsEnabled();
+    if (notificationsEnabled != true &&
+        preferences.getBool(_notificationPermissionRequestedKey) != true) {
+      await androidNotifications?.requestNotificationsPermission();
+      await preferences.setBool(_notificationPermissionRequestedKey, true);
+    }
+
+    final canScheduleExact =
+        await androidNotifications?.canScheduleExactNotifications();
+    if (canScheduleExact == false &&
+        preferences.getBool(_exactAlarmPermissionRequestedKey) != true) {
+      await androidNotifications?.requestExactAlarmsPermission();
+      await preferences.setBool(_exactAlarmPermissionRequestedKey, true);
+    }
   }
 
   static NotificationDetails _notificationDetails({

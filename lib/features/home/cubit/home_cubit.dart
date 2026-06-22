@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
 
@@ -8,14 +9,31 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../../data/repositories/leaderboard_repository.dart';
 import '../../../data/repositories/user_progress_repository.dart';
 import '../../../data/services/local_data_service.dart';
+import '../../../data/services/push_notification_service.dart';
 import 'home_state.dart';
 
 class HomeCubit extends Cubit<HomeState> {
-  HomeCubit() : super(const HomeState());
+  HomeCubit() : super(const HomeState()) {
+    if (_uid != null) {
+      _pendingPushNotifications.addAll(
+        PushNotificationService.takePendingNotifications(),
+      );
+    } else {
+      // A notification received before sign-in must not leak into a later,
+      // different user's Mission Log.
+      PushNotificationService.takePendingNotifications();
+    }
+    _pushNotificationSubscription =
+        PushNotificationService.foregroundNotifications.listen((notification) {
+      _handlePushNotification(notification);
+    });
+  }
 
   final UserProgressRepository _progressRepository = UserProgressRepository();
   final LeaderboardRepository _leaderboardRepository = LeaderboardRepository();
   final LocalDataService _dataService = LocalDataService();
+  late final StreamSubscription<PushNotification> _pushNotificationSubscription;
+  final List<PushNotification> _pendingPushNotifications = [];
 
   String? _activeUid;
 
@@ -39,7 +57,34 @@ class HomeCubit extends Cubit<HomeState> {
 
   void clearSession() {
     _activeUid = null;
+    _pendingPushNotifications.clear();
     emit(const HomeState());
+  }
+
+  void _handlePushNotification(PushNotification notification) {
+    if (_activeUid == null) {
+      if (_uid != null) _pendingPushNotifications.add(notification);
+      return;
+    }
+    unawaited(addNotification(notification.missionLogEntry));
+  }
+
+  Future<void> _flushPendingPushNotifications() async {
+    if (_activeUid == null || _pendingPushNotifications.isEmpty) return;
+
+    final pending = List<PushNotification>.from(_pendingPushNotifications);
+    _pendingPushNotifications.clear();
+    final entries = pending.reversed
+        .map((notification) => notification.missionLogEntry)
+        .toList();
+
+    emit(
+      state.copyWith(
+        notifications: [...entries, ...state.notifications],
+        hasUnreadNotifications: true,
+      ),
+    );
+    await _saveAllProgress();
   }
 
   Future<void> loadUserData() async {
@@ -116,15 +161,18 @@ class HomeCubit extends Cubit<HomeState> {
 
         await _saveLocalProgress();
         await _saveLeaderboard();
+        await _flushPendingPushNotifications();
         return;
       }
 
       emit(const HomeState());
       _resetDailyQuestIfNeeded();
       await _saveAllProgress();
+      await _flushPendingPushNotifications();
     } catch (_) {
       if (_activeUid == uid) {
         await _loadLocalProgress();
+        await _flushPendingPushNotifications();
       }
     }
   }
@@ -170,6 +218,12 @@ class HomeCubit extends Cubit<HomeState> {
     });
 
     return defaults;
+  }
+
+  @override
+  Future<void> close() async {
+    await _pushNotificationSubscription.cancel();
+    return super.close();
   }
 
   List<int> _mapIntList(dynamic raw) {
