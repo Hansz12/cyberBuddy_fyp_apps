@@ -471,10 +471,10 @@ class _QuizFeedbackOverlayState extends State<_QuizFeedbackOverlay>
     super.initState();
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1150),
+      duration: const Duration(milliseconds: 1900),
     )..forward();
 
-    Future.delayed(const Duration(milliseconds: 1150), () {
+    Future.delayed(const Duration(milliseconds: 1900), () {
       if (mounted) widget.onDismiss();
     });
   }
@@ -496,9 +496,9 @@ class _QuizFeedbackOverlayState extends State<_QuizFeedbackOverlay>
             final entryScale = Curves.elasticOut.transform(
               (progress * 1.45).clamp(0.0, 1.0),
             );
-            final fadeOut = progress < 0.82
+            final fadeOut = progress < 0.78
                 ? 1.0
-                : (1 - ((progress - 0.82) / 0.18)).clamp(0.0, 1.0);
+                : (1 - ((progress - 0.78) / 0.22)).clamp(0.0, 1.0);
             final shake = widget.isCorrect
                 ? 0.0
                 : math.sin(progress * math.pi * 10) * (1 - progress) * 12;
@@ -507,83 +507,69 @@ class _QuizFeedbackOverlayState extends State<_QuizFeedbackOverlay>
               opacity: fadeOut,
               child: Stack(
                 children: [
-                  if (widget.isCorrect)
-                    Positioned.fill(
-                      child: CustomPaint(
-                        painter: _ConfettiPainter(progress: progress),
-                      ),
-                    ),
-                  Center(
-                    child: Transform.translate(
-                      offset: Offset(shake, 0),
-                      child: Transform.scale(
-                        scale: 0.72 + (entryScale * 0.28),
-                        child: Container(
-                          width: 270,
-                          padding: const EdgeInsets.all(18),
-                          decoration: BoxDecoration(
-                            color: widget.isCorrect
-                                ? const Color(0xFF0D1B3E)
-                                : const Color(0xFF7F1D1D),
-                            borderRadius: BorderRadius.circular(24),
-                            boxShadow: [
-                              BoxShadow(
-                                color: (widget.isCorrect
-                                        ? const Color(0xFF2563EB)
-                                        : const Color(0xFFEF4444))
-                                    .withValues(alpha: 0.35),
-                                blurRadius: 28,
-                                spreadRadius: 2,
+                  Align(
+                    alignment: Alignment.bottomCenter,
+                    child: Padding(
+                      padding: const EdgeInsets.only(bottom: 98),
+                      child: Transform.translate(
+                        offset: Offset(shake, 0),
+                        child: Transform.scale(
+                          scale: 0.9 + (entryScale * 0.1),
+                          child: ConstrainedBox(
+                            constraints: const BoxConstraints(maxWidth: 270),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 8,
                               ),
-                            ],
-                          ),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Container(
-                                height: 58,
-                                width: 58,
-                                alignment: Alignment.center,
-                                decoration: BoxDecoration(
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(999),
+                                border: Border.all(
                                   color: widget.isCorrect
-                                      ? const Color(0xFFDCFCE7)
-                                      : const Color(0xFFFEE2E2),
-                                  shape: BoxShape.circle,
+                                      ? const Color(0xFF22C55E)
+                                      : const Color(0xFFFB7185),
+                                  width: 1.5,
                                 ),
-                                child: Icon(
-                                  widget.isCorrect
-                                      ? Icons.celebration_rounded
-                                      : Icons.psychology_alt_rounded,
-                                  color: widget.isCorrect
-                                      ? const Color(0xFF16A34A)
-                                      : const Color(0xFFDC2626),
-                                  size: 30,
-                                ),
+                                boxShadow: const [
+                                  BoxShadow(
+                                    color: Color.fromRGBO(15, 23, 42, 0.14),
+                                    blurRadius: 14,
+                                    offset: Offset(0, 6),
+                                  ),
+                                ],
                               ),
-                              const SizedBox(height: 12),
-                              Text(
-                                widget.isCorrect ? 'Great Move!' : 'Almost There!',
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 21,
-                                  fontWeight: FontWeight.w900,
-                                ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    widget.isCorrect
+                                        ? Icons.check_circle_rounded
+                                        : Icons.tips_and_updates_rounded,
+                                    color: widget.isCorrect
+                                        ? const Color(0xFF16A34A)
+                                        : const Color(0xFFE11D48),
+                                    size: 22,
+                                  ),
+                                  const SizedBox(width: 7),
+                                  Flexible(
+                                    child: Text(
+                                      widget.isCorrect
+                                          ? '+${widget.xp} XP added'
+                                          : 'Review the clue below',
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      textScaler: TextScaler.noScaling,
+                                      style: const TextStyle(
+                                        color: Color(0xFF0F172A),
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w900,
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
-                              const SizedBox(height: 6),
-                              Text(
-                                widget.isCorrect
-                                    ? '+${widget.xp} XP secured'
-                                    : 'Check the clue, then take the next challenge.',
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                  color: widget.isCorrect
-                                      ? const Color(0xFF7DD3FC)
-                                      : const Color(0xFFFECACA),
-                                  fontWeight: FontWeight.w700,
-                                  height: 1.3,
-                                ),
-                              ),
-                            ],
+                            ),
                           ),
                         ),
                       ),
@@ -601,8 +587,9 @@ class _QuizFeedbackOverlayState extends State<_QuizFeedbackOverlay>
 
 class _ConfettiPainter extends CustomPainter {
   final double progress;
+  final double centerYFactor;
 
-  const _ConfettiPainter({required this.progress});
+  const _ConfettiPainter({required this.progress, this.centerYFactor = 0.47});
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -613,7 +600,7 @@ class _ConfettiPainter extends CustomPainter {
       Color(0xFFF472B6),
       Color(0xFFA78BFA),
     ];
-    final center = Offset(size.width / 2, size.height * 0.47);
+    final center = Offset(size.width / 2, size.height * centerYFactor);
     final opacity = (1 - progress).clamp(0.0, 1.0);
 
     for (var index = 0; index < 34; index++) {
@@ -644,7 +631,8 @@ class _ConfettiPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _ConfettiPainter oldDelegate) {
-    return oldDelegate.progress != progress;
+    return oldDelegate.progress != progress ||
+        oldDelegate.centerYFactor != centerYFactor;
   }
 }
 
@@ -1381,13 +1369,29 @@ class _QuizResultScreen extends StatefulWidget {
   State<_QuizResultScreen> createState() => _QuizResultScreenState();
 }
 
-class _QuizResultScreenState extends State<_QuizResultScreen> {
+class _QuizResultScreenState extends State<_QuizResultScreen>
+    with SingleTickerProviderStateMixin {
   bool _isSaving = false;
+  late final AnimationController _celebrationController;
+  late final Animation<double> _resultCardScale;
 
   @override
   void initState() {
     super.initState();
+    _celebrationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2200),
+    )..forward();
+    _resultCardScale = Tween<double>(begin: 0.9, end: 1.0).animate(
+      CurvedAnimation(parent: _celebrationController, curve: Curves.elasticOut),
+    );
     HapticFeedback.mediumImpact();
+  }
+
+  @override
+  void dispose() {
+    _celebrationController.dispose();
+    super.dispose();
   }
 
   Future<void> _backToLearning(BuildContext context) async {
@@ -1431,11 +1435,22 @@ class _QuizResultScreenState extends State<_QuizResultScreen> {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF1F5F9),
-      body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.all(18),
-          children: [
-              Container(
+      body: Stack(
+        children: [
+          SafeArea(
+            child: ListView(
+              padding: EdgeInsets.fromLTRB(
+                18,
+                missedIndexes.isEmpty
+                    ? MediaQuery.sizeOf(context).height * 0.2
+                    : 18,
+                18,
+                18,
+              ),
+              children: [
+              ScaleTransition(
+                scale: _resultCardScale,
+                child: Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(22),
                 decoration: BoxDecoration(
@@ -1526,6 +1541,7 @@ class _QuizResultScreenState extends State<_QuizResultScreen> {
                     ),
                   ],
                 ),
+                ),
               ),
 
               if (missedIndexes.isNotEmpty) ...[
@@ -1563,8 +1579,24 @@ class _QuizResultScreenState extends State<_QuizResultScreen> {
                   fontWeight: FontWeight.w600,
                 ),
               ),
-          ],
-        ),
+              ],
+            ),
+          ),
+          if (percentage >= 80)
+            Positioned.fill(
+              child: IgnorePointer(
+                child: AnimatedBuilder(
+                  animation: _celebrationController,
+                  builder: (context, child) => CustomPaint(
+                    painter: _ConfettiPainter(
+                      progress: _celebrationController.value,
+                      centerYFactor: missedIndexes.isEmpty ? 0.5 : 0.3,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }

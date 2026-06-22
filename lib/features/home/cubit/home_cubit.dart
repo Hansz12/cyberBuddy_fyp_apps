@@ -112,7 +112,7 @@ class HomeCubit extends Cubit<HomeState> {
         _resetDailyQuestIfNeeded();
         updateStreak();
         _checkBadges();
-        _generateRecommendation();
+        await _generateRecommendation();
 
         await _saveLocalProgress();
         await _saveLeaderboard();
@@ -241,7 +241,7 @@ class HomeCubit extends Cubit<HomeState> {
     _resetDailyQuestIfNeeded();
     updateStreak();
     _checkBadges();
-    _generateRecommendation();
+    await _generateRecommendation();
 
     await _saveAllProgress();
   }
@@ -338,7 +338,7 @@ class HomeCubit extends Cubit<HomeState> {
       ),
     );
 
-    _generateRecommendation();
+    await _generateRecommendation();
     _checkBadges();
 
     await _saveAllProgress();
@@ -405,7 +405,7 @@ class HomeCubit extends Cubit<HomeState> {
 
     updateStreak();
     _checkBadges();
-    _generateRecommendation();
+    await _generateRecommendation();
 
     await _saveAllProgress();
   }
@@ -439,7 +439,7 @@ class HomeCubit extends Cubit<HomeState> {
 
     updateStreak();
     _checkBadges();
-    _generateRecommendation();
+    await _generateRecommendation();
 
     await _saveAllProgress();
   }
@@ -474,7 +474,7 @@ class HomeCubit extends Cubit<HomeState> {
 
     updateStreak();
     _checkBadges();
-    _generateRecommendation();
+    await _generateRecommendation();
 
     await _saveAllProgress();
 
@@ -630,20 +630,7 @@ class HomeCubit extends Cubit<HomeState> {
     await _saveLeaderboard();
   }
 
-  void _generateRecommendation() async {
-    if (state.totalQuestionsAnswered == 0) {
-      emit(
-        state.copyWith(
-          recommendedModules: const [],
-          recommendedModuleIds: const [],
-          moduleScores: const {},
-          moduleReasons: const {},
-          recommendationScores: const {},
-        ),
-      );
-      return;
-    }
-
+  Future<void> _generateRecommendation() async {
     try {
       final modules = await _dataService.loadModules();
 
@@ -670,16 +657,32 @@ class HomeCubit extends Cubit<HomeState> {
         final correct = state.topicCorrect[topic] ?? 0;
 
         final accuracy = answered == 0 ? 0.0 : correct / answered;
-        final weaknessScore = answered == 0 ? 0.35 : 1.0 - accuracy;
+
+        // Scores from a handful of answers should not be treated as absolute.
+        // This confidence value rises gradually as the learner answers more
+        // questions in a topic, preventing one lucky or unlucky answer from
+        // completely driving the training path.
+        final confidence = answered == 0 ? 0.0 : answered / (answered + 4);
+        final weaknessScore = answered == 0
+            ? 0.0
+            : (1.0 - accuracy) * (0.70 + (0.30 * confidence));
+        final coverageBoost = answered == 0 ? 0.28 : 0.0;
+        final uncertaintyBoost = answered > 0 && confidence < 0.5 ? 0.10 : 0.0;
 
         final difficultyBoost = _difficultyProgressionBoost(
           difficulty: difficulty,
           topicAccuracy: accuracy,
           answered: answered,
         );
-        final xpBoost = xpReward / 1000;
+        // XP is deliberately only a tie-breaker; learning need stays first.
+        final xpBoost = xpReward / 2000;
 
-        final finalScore = weaknessScore + difficultyBoost + xpBoost;
+        final finalScore =
+            weaknessScore +
+            coverageBoost +
+            uncertaintyBoost +
+            difficultyBoost +
+            xpBoost;
 
         scoredModules.add({
           'id': moduleId,
@@ -688,6 +691,8 @@ class HomeCubit extends Cubit<HomeState> {
           'difficulty': difficulty,
           'answered': answered,
           'accuracy': accuracy,
+          'confidence': confidence,
+          'weaknessScore': weaknessScore,
           'score': finalScore,
         });
       }
@@ -708,12 +713,15 @@ class HomeCubit extends Cubit<HomeState> {
         final title = module['title'].toString();
         final id = module['id'].toString();
         final topic = module['topic'].toString();
+        final difficulty = module['difficulty'].toString();
         final answered = module['answered'] as int;
         final accuracy = module['accuracy'] as double;
+        final confidence = module['confidence'] as double;
+        final weaknessScore = module['weaknessScore'] as double;
         final percent = (accuracy * 100).round();
-        final recommendationScore = (100 - (accuracy * 100))
-            .clamp(0, 100)
-            .toDouble();
+        final recommendationScore = answered == 0
+            ? 35.0
+            : (weaknessScore * 100).clamp(0, 100).toDouble();
 
         recommendedModules.add(title);
         recommendedModuleIds.add(id);
@@ -721,11 +729,21 @@ class HomeCubit extends Cubit<HomeState> {
         recommendationScores[id] = recommendationScore;
 
         if (answered > 0) {
-          moduleReasons[title] =
-              'Recommended because your $topic quiz score is $percent%. This module targets your weaker area.';
+          if (accuracy >= 0.8) {
+            moduleReasons[title] =
+                'You scored $percent% in $topic across $answered question${answered == 1 ? '' : 's'}. This $difficulty module is your next step.';
+          } else {
+            final evidence = confidence < 0.5
+                ? 'an early signal'
+                : confidence < 0.75
+                    ? 'growing evidence'
+                    : 'strong evidence';
+            moduleReasons[title] =
+                'Your $topic score is $percent% across $answered question${answered == 1 ? '' : 's'} ($evidence). This $difficulty module will strengthen the topic.';
+          }
         } else {
           moduleReasons[title] =
-              'Recommended to expand your cybersecurity coverage in $topic.';
+              'Start here to build your cybersecurity coverage in $topic with a $difficulty module.';
         }
       }
 
@@ -899,7 +917,7 @@ class HomeCubit extends Cubit<HomeState> {
 
     updateStreak();
     _checkBadges();
-    _generateRecommendation();
+    await _generateRecommendation();
 
     await _saveAllProgress();
   }
