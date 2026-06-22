@@ -54,23 +54,25 @@ class _AiChatScreenState extends State<AiChatScreen> {
     // screen, typing and sending remain available while a reply is generated.
     _messageQueue = _messageQueue.then(
       (_) => _requestReply(text, replyId, version),
+      // A failed request must not block every message sent after it.
+      onError: (_) => _requestReply(text, replyId, version),
     );
   }
 
   Future<void> _requestReply(String text, int replyId, int version) async {
     if (version != _conversationVersion) return;
 
-    bool online;
+    String reply;
     try {
-      online = await ConnectivityService.hasInternetConnection();
-    } catch (_) {
-      online = false;
-    }
-    if (version != _conversationVersion || !mounted) return;
+      final online = await ConnectivityService.hasInternetConnection();
+      if (version != _conversationVersion || !mounted) return;
 
-    final reply = online
-        ? await _geminiService.sendMessage(text)
-        : 'CyberBuddy AI needs an internet connection. Reconnect and send your message again.';
+      reply = online
+          ? await _geminiService.sendMessage(text)
+          : 'CyberBuddy AI needs an internet connection. Reconnect and send your message again.';
+    } catch (_) {
+      reply = 'CyberBuddy AI could not process this message. Please try again.';
+    }
 
     if (version != _conversationVersion || !mounted) return;
 
@@ -212,15 +214,15 @@ class _AiChatScreenState extends State<AiChatScreen> {
         ),
         borderRadius: BorderRadius.circular(22),
       ),
-      child: const Column(
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(Icons.smart_toy_rounded, color: Colors.white, size: 32),
-              SizedBox(width: 10),
+              const Icon(Icons.smart_toy_rounded, color: Colors.white, size: 32),
+              const SizedBox(width: 10),
               Expanded(
-                child: Text(
+                child: const Text(
                   'CyberBuddy AI',
                   style: TextStyle(
                     color: Colors.white,
@@ -229,11 +231,11 @@ class _AiChatScreenState extends State<AiChatScreen> {
                   ),
                 ),
               ),
-              _StatusPill(),
+              _StatusPill(configured: _geminiService.isConfigured),
             ],
           ),
-          SizedBox(height: 12),
-          Text(
+          const SizedBox(height: 12),
+          const Text(
             'Continue asking follow-up questions, send several messages, and press and hold a response to copy it.',
             style: TextStyle(color: Colors.white70, height: 1.4),
           ),
@@ -378,24 +380,35 @@ class _AiChatScreenState extends State<AiChatScreen> {
 }
 
 class _StatusPill extends StatelessWidget {
-  const _StatusPill();
+  final bool configured;
+
+  const _StatusPill({required this.configured});
 
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
       decoration: BoxDecoration(
-        color: const Color(0xFF22C55E).withValues(alpha: 0.18),
+        color: (configured ? const Color(0xFF22C55E) : const Color(0xFFF59E0B))
+            .withValues(alpha: 0.18),
         borderRadius: BorderRadius.circular(20),
       ),
-      child: const Row(
+      child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.circle, color: Color(0xFF4ADE80), size: 8),
-          SizedBox(width: 5),
+          Icon(
+            Icons.circle,
+            color: configured ? const Color(0xFF4ADE80) : const Color(0xFFFBBF24),
+            size: 8,
+          ),
+          const SizedBox(width: 5),
           Text(
-            'Ready',
-            style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w700),
+            configured ? 'Configured' : 'Setup needed',
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+            ),
           ),
         ],
       ),

@@ -1,6 +1,9 @@
 # Miscellaneous
 *.class
 *.log
+.env
+.env.*
+.vscode/launch.json
 *.pyc
 *.swp
 .DS_Store

@@ -36,28 +36,60 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   }
 
   Future<void> _loadProfileImage() async {
-    final image = await _profileImageService.loadImage();
+    final userId = FirebaseAuth.instance.currentUser?.uid;
+    if (userId == null) return;
+
+    File? image;
+    try {
+      image = await _profileImageService.loadImage(userId: userId);
+    } catch (_) {
+      // The profile can still be edited when a locally saved image is missing.
+    }
     if (!mounted) return;
 
     setState(() => _profileImage = image);
   }
 
   Future<void> _pickProfileImage() async {
-    final pickedImage = await ImagePicker().pickImage(
-      source: ImageSource.gallery,
-      imageQuality: 85,
-      maxWidth: 1200,
-    );
-    if (pickedImage == null) return;
+    final userId = FirebaseAuth.instance.currentUser?.uid;
+    if (userId == null) {
+      _showError('Please sign in again before changing your profile photo.');
+      return;
+    }
 
-    final image = await _profileImageService.saveImage(File(pickedImage.path));
+    File? image;
+    try {
+      final pickedImage = await ImagePicker().pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 85,
+        maxWidth: 1200,
+      );
+      if (pickedImage == null) return;
+
+      image = await _profileImageService.saveImage(
+        File(pickedImage.path),
+        userId: userId,
+      );
+    } catch (_) {
+      if (mounted) {
+        _showError('Unable to update profile photo. Please try again.');
+      }
+      return;
+    }
     if (!mounted) return;
 
     setState(() => _profileImage = image);
   }
 
   Future<void> _removeProfileImage() async {
-    await _profileImageService.removeImage();
+    try {
+      await _profileImageService.removeImage(
+        userId: FirebaseAuth.instance.currentUser?.uid,
+      );
+    } catch (_) {
+      if (mounted) _showError('Unable to remove profile photo. Please try again.');
+      return;
+    }
     if (!mounted) return;
 
     setState(() => _profileImage = null);
@@ -78,10 +110,16 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     } on FirebaseAuthException catch (error) {
       if (!mounted) return;
       setState(() => _isSaving = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(error.message ?? 'Unable to update profile.')),
-      );
+      _showError(error.message ?? 'Unable to update profile.');
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _isSaving = false);
+      _showError('Unable to update profile. Please try again.');
     }
+  }
+
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override

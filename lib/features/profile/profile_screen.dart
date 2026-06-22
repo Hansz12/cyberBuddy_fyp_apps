@@ -131,13 +131,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
       await userBeforeReload?.reload();
     } catch (_) {}
 
-    File? image;
-    try {
-      image = await _profileImageService.loadImage();
-    } catch (_) {}
-
     final preferences = await SharedPreferences.getInstance();
     final currentUser = FirebaseAuth.instance.currentUser ?? userBeforeReload;
+    File? image;
+    if (currentUser != null) {
+      try {
+        image = await _profileImageService.loadImage(userId: currentUser.uid);
+      } catch (_) {}
+    }
     if (currentUser != null) {
       await _cacheUserIdentity(currentUser, preferences: preferences);
     }
@@ -150,7 +151,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       _user = currentUser ?? _user;
       _cachedName = preferences.getString(_cachedNameKey);
       _cachedEmail = preferences.getString(_cachedEmailKey);
-      _profileImage = image ?? _profileImage;
+      _profileImage = currentUser == null ? null : image;
     });
   }
 
@@ -160,7 +161,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     await _cacheUserIdentity(user);
     File? image;
     try {
-      image = await _profileImageService.loadImage();
+      image = await _profileImageService.loadImage(userId: user.uid);
     } catch (_) {}
     if (!mounted) return;
 
@@ -168,7 +169,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       _user = user;
       _cachedName = _displayNameFor(user);
       _cachedEmail = user.email;
-      _profileImage = image ?? _profileImage;
+      _profileImage = image;
     });
   }
 
@@ -342,10 +343,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
     if (shouldReset != true || !mounted) return;
 
-    await Future.wait([
-      context.read<HomeCubit>().resetProgress(),
-      context.read<LearningCubit>().resetLearningProgress(),
-    ]);
+    try {
+      await context.read<HomeCubit>().resetProgress();
+      await context.read<LearningCubit>().resetLearningProgress();
+    } catch (_) {
+      if (mounted) {
+        _showSnack(
+          'Progress could not be reset. Check your connection and try again.',
+        );
+      }
+      return;
+    }
     if (mounted) _showSnack('Your progress has been reset.');
   }
 
@@ -568,6 +576,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _logout() async {
     context.read<HomeCubit>().clearSession();
+    context.read<LearningCubit>().clearSession();
     try {
       await GoogleSignIn.instance.signOut();
     } catch (_) {}

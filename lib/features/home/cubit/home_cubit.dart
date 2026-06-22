@@ -155,7 +155,7 @@ class HomeCubit extends Cubit<HomeState> {
         );
 
         _resetDailyQuestIfNeeded();
-        updateStreak();
+        updateStreak(markActive: false);
         _checkBadges();
         await _generateRecommendation();
 
@@ -293,7 +293,7 @@ class HomeCubit extends Cubit<HomeState> {
     );
 
     _resetDailyQuestIfNeeded();
-    updateStreak();
+    updateStreak(markActive: false);
     _checkBadges();
     await _generateRecommendation();
 
@@ -563,11 +563,13 @@ class HomeCubit extends Cubit<HomeState> {
     await _saveAllProgress();
   }
 
-  void updateStreak() {
+  void updateStreak({bool markActive = true}) {
     final today = DateTime.now();
 
     if (state.lastActiveDate == null) {
-      emit(state.copyWith(streak: 1, lastActiveDate: today));
+      if (markActive) {
+        emit(state.copyWith(streak: 1, lastActiveDate: today));
+      }
       return;
     }
 
@@ -581,9 +583,16 @@ class HomeCubit extends Cubit<HomeState> {
     if (difference == 0) return;
 
     if (difference == 1) {
-      emit(state.copyWith(streak: state.streak + 1, lastActiveDate: today));
+      if (markActive) {
+        emit(state.copyWith(streak: state.streak + 1, lastActiveDate: today));
+      }
     } else {
-      emit(state.copyWith(streak: 1, lastActiveDate: today));
+      emit(
+        state.copyWith(
+          streak: markActive ? 1 : 0,
+          lastActiveDate: markActive ? today : state.lastActiveDate,
+        ),
+      );
     }
   }
 
@@ -679,18 +688,18 @@ class HomeCubit extends Cubit<HomeState> {
       'lastActiveDate',
     ];
 
+    // Do not silently continue when the cloud reset fails. Otherwise the
+    // locally reset values are overwritten by the old Firestore document on
+    // the next sign-in.
+    await _progressRepository.resetProgress();
+
     for (final key in keys) {
       await prefs.remove(_key(key));
     }
 
-    try {
-      await _progressRepository.resetProgress();
-    } catch (_) {}
-
     emit(const HomeState());
 
     await _saveLocalProgress();
-    await _saveLeaderboard();
   }
 
   Future<void> _generateRecommendation() async {
@@ -1114,6 +1123,7 @@ class HomeCubit extends Cubit<HomeState> {
         level: state.level,
         streak: state.streak,
         badges: state.badges,
+        completedModules: state.completedModules,
         topicScores: state.topicScores,
         topicAnswered: state.topicAnswered,
         topicCorrect: state.topicCorrect,

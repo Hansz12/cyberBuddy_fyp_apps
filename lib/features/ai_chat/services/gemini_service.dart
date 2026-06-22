@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'dart:developer' as developer;
+
 import 'package:google_generative_ai/google_generative_ai.dart';
 
 import '../../../core/secrets/api_keys.dart';
@@ -6,8 +9,12 @@ import '../../../core/secrets/api_keys.dart';
 /// screen. This is important for follow-up questions such as "why?" or
 /// "explain that in Malay" to retain their context.
 class GeminiService {
+  static const _requestTimeout = Duration(seconds: 30);
+
   late final GenerativeModel _model;
   late ChatSession _chat;
+
+  bool get isConfigured => ApiKeys.hasGeminiApiKey;
 
   GeminiService() {
     _model = GenerativeModel(
@@ -51,16 +58,42 @@ Do not help with harmful cyber activities, hacking other people, stealing accoun
   }
 
   Future<String> sendMessage(String message) async {
+    if (!ApiKeys.hasGeminiApiKey) {
+      return 'CyberBuddy AI is not configured yet. Please launch the app with a valid Gemini API key.';
+    }
+
     // Capture this session so a later "Clear chat" cannot accidentally move
     // an in-flight request into a new conversation.
     final chat = _chat;
 
     try {
-      final response = await chat.sendMessage(Content.text(message));
+      final response = await chat
+          .sendMessage(Content.text(message))
+          .timeout(_requestTimeout);
       return response.text?.trim().isNotEmpty == true
           ? response.text!.trim()
           : 'Sorry, I could not generate an answer. Please try again.';
-    } catch (_) {
+    } on TimeoutException {
+      return 'CyberBuddy AI is taking too long to respond. Please try again.';
+    } catch (error, stackTrace) {
+      developer.log(
+        'Gemini request failed',
+        name: 'CyberBuddyAI',
+        error: error,
+        stackTrace: stackTrace,
+      );
+
+      final details = error.toString().toLowerCase();
+      if (details.contains('429') || details.contains('resource exhausted')) {
+        return 'CyberBuddy AI is busy right now. Please wait a moment and try again.';
+      }
+      if (details.contains('401') ||
+          details.contains('403') ||
+          details.contains('api key') ||
+          details.contains('permission denied')) {
+        return 'CyberBuddy AI could not verify its configuration. Please check the Gemini API key.';
+      }
+
       return 'Sorry, CyberBuddy AI could not respond right now. Please check your connection and try again.';
     }
   }

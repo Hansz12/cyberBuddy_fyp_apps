@@ -44,6 +44,7 @@ class UserProgressRepository {
     required int level,
     required int streak,
     required List<String> badges,
+    required List<String> completedModules,
     required Map<String, double> topicScores,
     required Map<String, int> topicAnswered,
     required Map<String, int> topicCorrect,
@@ -80,6 +81,7 @@ class UserProgressRepository {
       'streak': streak,
       'badges': badges,
       'badgesCount': badges.length,
+      'completedModules': completedModules,
 
       'topicScores': topicScores,
       'topicAnswered': topicAnswered,
@@ -114,6 +116,76 @@ class UserProgressRepository {
     final uid = userId;
     if (uid == null) return;
 
-    await _firestore.collection('user_progress').doc(uid).delete();
+    // Replace the document rather than deleting it. The leaderboard keeps a
+    // user entry in this collection, so a delete followed by a leaderboard
+    // update could recreate a partial document or leave old data behind when
+    // the delete failed. A full overwrite makes the cloud source of truth
+    // explicitly zeroed before the user can sign in again.
+    await _firestore.collection('user_progress').doc(uid).set({
+      'userId': uid,
+      'name': _getDisplayName(),
+      'email': _getEmail(),
+      'xp': 0,
+      'level': 1,
+      'streak': 0,
+      'badges': <String>[],
+      'badgesCount': 0,
+      'completedModules': <String>[],
+      'topicScores': const <String, double>{
+        'phishing': 0,
+        'password': 0,
+        'social': 0,
+        'malware': 0,
+        'privacy': 0,
+        'scam': 0,
+        'mobile': 0,
+        'network': 0,
+        'ethics': 0,
+        'banking': 0,
+      },
+      'topicAnswered': const <String, int>{
+        'phishing': 0,
+        'password': 0,
+        'social': 0,
+        'malware': 0,
+        'privacy': 0,
+        'scam': 0,
+        'mobile': 0,
+        'network': 0,
+        'ethics': 0,
+        'banking': 0,
+      },
+      'topicCorrect': const <String, int>{
+        'phishing': 0,
+        'password': 0,
+        'social': 0,
+        'malware': 0,
+        'privacy': 0,
+        'scam': 0,
+        'mobile': 0,
+        'network': 0,
+        'ethics': 0,
+        'banking': 0,
+      },
+      'totalQuestionsAnswered': 0,
+      'totalCorrectAnswers': 0,
+      'quizzesCompleted': 0,
+      'last3Scores': <int>[],
+      'perfectQuizzes': 0,
+      'threatChecks': 0,
+      'dailyModulesCompleted': 0,
+      'dailyQuizAttempts': 0,
+      'dailyTopicsTried': 0,
+      'dailyBestQuizScore': 0,
+      'dailyQuestDate': null,
+      'claimedDailyQuests': <String>[],
+      'rewardedNewsUrls': <String>[],
+      'recommendationScores': <String, double>{},
+      'leaderboardScore': 0,
+      'lastActiveDate': null,
+      'notifications': <String>[],
+      'hasUnreadNotifications': false,
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
   }
 }
