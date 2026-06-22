@@ -25,13 +25,38 @@ void main() async {
 
   await NotificationService.init();
   await PushNotificationService.init();
-  await NotificationService.scheduleDailyReminder();
+  await NotificationService.recordDailyAppOpen();
 
   runApp(const CyberBuddyApp());
 }
 
-class CyberBuddyApp extends StatelessWidget {
+class CyberBuddyApp extends StatefulWidget {
   const CyberBuddyApp({super.key});
+
+  @override
+  State<CyberBuddyApp> createState() => _CyberBuddyAppState();
+}
+
+class _CyberBuddyAppState extends State<CyberBuddyApp>
+    with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      NotificationService.recordDailyAppOpen();
+    }
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {

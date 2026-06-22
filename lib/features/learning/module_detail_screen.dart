@@ -333,9 +333,17 @@ class ModuleDetailScreen extends StatelessWidget {
     BuildContext context,
     LearningModule currentModule,
   ) async {
-    await context.read<LearningCubit>().completeModule(currentModule.id);
-    await context.read<HomeCubit>().recordModuleCompleted(currentModule.id);
-    await context.read<HomeCubit>().gainXP(currentModule.xpReward);
+    final learningCubit = context.read<LearningCubit>();
+    final homeCubit = context.read<HomeCubit>();
+    final completedNow = await learningCubit.completeModule(currentModule.id);
+
+    if (!completedNow) return;
+
+    final recordedNow = await homeCubit.recordModuleCompleted(currentModule.id);
+
+    if (!recordedNow) return;
+
+    await homeCubit.gainXP(currentModule.xpReward);
 
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(

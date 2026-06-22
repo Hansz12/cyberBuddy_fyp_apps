@@ -285,15 +285,21 @@ class HomeCubit extends Cubit<HomeState> {
         .toList();
   }
 
-  Future<void> recordModuleCompleted(String moduleId) async {
-    if (moduleId.isEmpty) return;
+  /// Saves one completion event. Returns false when it was already recorded.
+  Future<bool> recordModuleCompleted(String moduleId) async {
+    final cleanModuleId = moduleId.trim();
+    if (cleanModuleId.isEmpty) return false;
 
     _resetDailyQuestIfNeeded();
 
     final completed = List<String>.from(state.completedModules);
 
-    if (!completed.contains(moduleId)) {
-      completed.add(moduleId);
+    final isAlreadyCompleted = completed.any(
+      (id) => id.trim().toUpperCase() == cleanModuleId.toUpperCase(),
+    );
+
+    if (!isAlreadyCompleted) {
+      completed.add(cleanModuleId);
 
       emit(
         state.copyWith(
@@ -303,7 +309,10 @@ class HomeCubit extends Cubit<HomeState> {
       );
 
       await _saveAllProgress();
+      return true;
     }
+
+    return false;
   }
 
   Future<void> recordQuizAnswer(String topic, bool correct) async {

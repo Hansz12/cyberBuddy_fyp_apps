@@ -72,17 +72,24 @@ class LearningCubit extends Cubit<LearningState> {
     }
   }
 
-  Future<void> completeModule(String moduleId) async {
-    if (moduleId.isEmpty) return;
+  /// Marks a module as complete once and reports whether this call changed it.
+  /// The return value keeps reward logic idempotent when a button is tapped
+  /// more than once or a delayed dialog is confirmed twice.
+  Future<bool> completeModule(String moduleId) async {
+    final cleanModuleId = moduleId.trim();
+    if (cleanModuleId.isEmpty) return false;
 
     final updatedCompletedIds = List<String>.from(state.completedModuleIds);
 
-    if (!updatedCompletedIds.contains(moduleId)) {
-      updatedCompletedIds.add(moduleId);
-    }
+    final isAlreadyCompleted = updatedCompletedIds.any(
+      (id) => id.trim().toUpperCase() == cleanModuleId.toUpperCase(),
+    );
+    if (isAlreadyCompleted) return false;
+
+    updatedCompletedIds.add(cleanModuleId);
 
     final updatedModules = state.modules.map((module) {
-      if (module.id == moduleId) {
+      if (module.id.trim().toUpperCase() == cleanModuleId.toUpperCase()) {
         return module.copyWith(completed: true);
       }
 
@@ -101,6 +108,8 @@ class LearningCubit extends Cubit<LearningState> {
     if (_uid != null) {
       await prefs.setStringList(_key(_completedKey), updatedCompletedIds);
     }
+
+    return true;
   }
 
   Future<void> resetLearningProgress() async {

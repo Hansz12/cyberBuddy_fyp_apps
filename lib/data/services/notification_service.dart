@@ -1,8 +1,13 @@
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:timezone/data/latest.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
 
 class NotificationService {
+  static const _dailyInactivityReminderId = 200;
+  static const _lastAppOpenDateKey = 'last_app_open_date';
+  static const _reminderHour = 20;
+
   static final FlutterLocalNotificationsPlugin _notifications =
       FlutterLocalNotificationsPlugin();
 
@@ -17,11 +22,12 @@ class NotificationService {
 
     await _notifications.initialize(initSettings);
 
-    await _notifications
+    final androidNotifications = await _notifications
         .resolvePlatformSpecificImplementation<
           AndroidFlutterLocalNotificationsPlugin
-        >()
-        ?.requestNotificationsPermission();
+        >();
+    await androidNotifications?.requestNotificationsPermission();
+    await androidNotifications?.requestExactAlarmsPermission();
   }
 
   static NotificationDetails _notificationDetails({
@@ -110,41 +116,76 @@ class NotificationService {
     );
   }
 
-  static Future<void> scheduleDailyReminder() async {
-    await _notifications.zonedSchedule(
-      2,
-      '🎯 Daily Quest Available',
-      'Answer 5 cybersecurity quiz questions and earn XP!',
-      _nextInstanceOfTime(20, 0),
-      _notificationDetails(
-        channelId: 'daily_learning_channel',
-        channelName: 'Daily Learning Reminder',
-        description: 'Daily reminder to study cybersecurity',
-      ),
-      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-      uiLocalNotificationDateInterpretation:
-          UILocalNotificationDateInterpretation.absoluteTime,
-      matchDateTimeComponents: DateTimeComponents.time,
-    );
+  /// Records that the app was opened today and restarts the daily 8 PM
+  /// reminder from tomorrow. If the user does not open the app tomorrow, the
+  /// operating system delivers the reminder and continues it each inactive day.
+  static Future<void> recordDailyAppOpen() async {
+    final now = DateTime.now();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_lastAppOpenDateKey, _dateKey(now));
+
+    await _notifications.cancel(_dailyInactivityReminderId);
+    await _scheduleInactivityReminder(_tomorrowAtReminderTime(now));
   }
 
-  static tz.TZDateTime _nextInstanceOfTime(int hour, int minute) {
-    final now = tz.TZDateTime.now(tz.local);
+  /// Kept for existing callers; it now follows the inactivity-only rule.
+  static Future<void> scheduleDailyReminder() => recordDailyAppOpen();
 
-    var scheduledDate = tz.TZDateTime(
-      tz.local,
-      now.year,
-      now.month,
-      now.day,
-      hour,
-      minute,
+  static Future<void> _scheduleInactivityReminder(
+    tz.TZDateTime scheduledDate,
+  ) async {
+    const details = NotificationDetails(
+      android: AndroidNotificationDetails(
+        'daily_learning_channel',
+        'Daily Learning Reminder',
+        channelDescription: 'One daily reminder when CyberBuddy was not opened',
+        importance: Importance.high,
+        priority: Priority.high,
+        playSound: true,
+        enableVibration: true,
+      ),
     );
 
-    if (scheduledDate.isBefore(now)) {
-      scheduledDate = scheduledDate.add(const Duration(days: 1));
+    Future<void> schedule(AndroidScheduleMode mode) {
+      return _notifications.zonedSchedule(
+        _dailyInactivityReminderId,
+        'CyberBuddy mission is waiting',
+        'Take a 2-minute cyber challenge and keep your streak alive.',
+        scheduledDate,
+        details,
+        androidScheduleMode: mode,
+        uiLocalNotificationDateInterpretation:
+            UILocalNotificationDateInterpretation.absoluteTime,
+        matchDateTimeComponents: DateTimeComponents.time,
+      );
     }
 
-    return scheduledDate;
+    try {
+      await schedule(AndroidScheduleMode.exactAllowWhileIdle);
+    } catch (_) {
+      // Some phones restrict exact alarms. An inexact reminder is preferable
+      // to silently giving the user no reminder at all.
+      await schedule(AndroidScheduleMode.inexactAllowWhileIdle);
+    }
+  }
+
+  static tz.TZDateTime _tomorrowAtReminderTime(DateTime now) {
+    // DateTime creates 8 PM in the phone's local timezone. Converting that
+    // instant to UTC avoids timezone package defaults while preserving the
+    // user's local 8 PM trigger for this one-time notification.
+    final tomorrowAtEight = DateTime(
+      now.year,
+      now.month,
+      now.day + 1,
+      _reminderHour,
+    );
+    return tz.TZDateTime.from(tomorrowAtEight, tz.UTC);
+  }
+
+  static String _dateKey(DateTime date) {
+    return '${date.year.toString().padLeft(4, '0')}-'
+        '${date.month.toString().padLeft(2, '0')}-'
+        '${date.day.toString().padLeft(2, '0')}';
   }
 
   static Future<void> cancelAllNotifications() async {

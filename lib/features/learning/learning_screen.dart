@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../home/cubit/home_cubit.dart';
+import '../home/cubit/home_state.dart';
 import 'cubit/learning_cubit.dart';
 import 'cubit/learning_state.dart';
 import 'module_detail_screen.dart';
@@ -221,7 +223,32 @@ class _LearningScreenState extends State<LearningScreen> {
         .toList();
   }
 
-  LearningModule? _continueModule(List<LearningModule> modules) {
+  LearningModule? _continueModule(
+    List<LearningModule> modules,
+    HomeState homeState,
+  ) {
+    final recommendedModuleId = homeState.recommendedModuleIds.isNotEmpty
+        ? homeState.recommendedModuleIds.first.trim().toLowerCase()
+        : '';
+    final recommendedTitle = homeState.recommendedModules.isNotEmpty
+        ? homeState.recommendedModules.first.trim().toLowerCase()
+        : '';
+
+    if (recommendedModuleId.isNotEmpty || recommendedTitle.isNotEmpty) {
+      for (final module in modules) {
+        final matchesId =
+            recommendedModuleId.isNotEmpty &&
+            module.id.trim().toLowerCase() == recommendedModuleId;
+        final matchesTitle =
+            recommendedTitle.isNotEmpty &&
+            module.title.trim().toLowerCase() == recommendedTitle;
+
+        if (!module.completed && (matchesId || matchesTitle)) {
+          return module;
+        }
+      }
+    }
+
     final notCompleted = modules.where((module) => !module.completed).toList();
     if (notCompleted.isNotEmpty) return notCompleted.first;
     return null;
@@ -475,7 +502,8 @@ class _LearningScreenState extends State<LearningScreen> {
             }
 
             final filteredModules = _filteredModules(state.modules);
-            final continueModule = _continueModule(state.modules);
+            final homeState = context.watch<HomeCubit>().state;
+            final continueModule = _continueModule(state.modules, homeState);
             final completedCount = _completedCount(state.modules);
 
             final beginnerModules = _modulesByDifficulty(

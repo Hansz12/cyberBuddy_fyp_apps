@@ -1,16 +1,19 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../data/services/profile_image_service.dart';
 import '../auth/splash_screen.dart';
 import '../home/cubit/home_cubit.dart';
 import '../home/cubit/home_state.dart';
 import '../learning/cubit/learning_cubit.dart';
+import '../learning/cubit/learning_state.dart';
 import '../learning/module_detail_screen.dart';
-import '../../data/services/profile_image_service.dart';
 import 'edit_profile_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -21,15 +24,23 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  User? user;
+  static const _blue = Color(0xFF2563EB);
+
   final ProfileImageService _profileImageService = ProfileImageService();
+  User? _user;
   File? _profileImage;
+  StreamSubscription<User?>? _userSubscription;
+  String? _cachedName;
+  String? _cachedEmail;
+
+  static const _cachedNameKey = 'profile_cached_name';
+  static const _cachedEmailKey = 'profile_cached_email';
 
   static const _achievementDetails = <String, _AchievementDetail>{
     'Rookie Badge': _AchievementDetail(
       category: 'Getting Started',
       description: 'Your first step into becoming a stronger cyber defender.',
-      condition: 'Answer at least one quiz question or earn your first XP.',
+      condition: 'Answer one quiz question or earn your first XP.',
     ),
     'Beginner Defender': _AchievementDetail(
       category: 'Progress',
@@ -64,12 +75,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
     'Quiz Starter': _AchievementDetail(
       category: 'Quiz Mastery',
       description: 'You have completed your first CyberBuddy quiz.',
-      condition: 'Complete 1 quiz attempt.',
+      condition: 'Complete one quiz attempt.',
     ),
     'Quiz Master': _AchievementDetail(
       category: 'Quiz Mastery',
       description: 'You have built experience through repeated challenges.',
-      condition: 'Complete 5 quiz attempts.',
+      condition: 'Complete five quiz attempts.',
     ),
     'Perfect Score': _AchievementDetail(
       category: 'Quiz Mastery',
@@ -99,61 +110,113 @@ class _ProfileScreenState extends State<ProfileScreen> {
     'Threat Spotter': _AchievementDetail(
       category: 'Threat Checking',
       description: 'You actively practise identifying suspicious cyber threats.',
-      condition: 'Complete 5 threat checks.',
+      condition: 'Complete five threat checks.',
     ),
   };
 
   @override
   void initState() {
     super.initState();
+    _userSubscription = FirebaseAuth.instance.userChanges().listen(
+      _onUserChanged,
+    );
     _loadUser();
   }
 
   Future<void> _loadUser() async {
-    await FirebaseAuth.instance.currentUser?.reload();
-    final profileImage = await _profileImageService.loadImage();
+    // Reload may fail while Firebase is restoring a saved session or when
+    // the device is offline. Never let that erase an otherwise valid profile.
+    final userBeforeReload = FirebaseAuth.instance.currentUser;
+    try {
+      await userBeforeReload?.reload();
+    } catch (_) {}
+
+    File? image;
+    try {
+      image = await _profileImageService.loadImage();
+    } catch (_) {}
+
+    final preferences = await SharedPreferences.getInstance();
+    final currentUser = FirebaseAuth.instance.currentUser ?? userBeforeReload;
+    if (currentUser != null) {
+      await _cacheUserIdentity(currentUser, preferences: preferences);
+    }
 
     if (!mounted) return;
 
     setState(() {
-      user = FirebaseAuth.instance.currentUser;
-      _profileImage = profileImage;
+      // Firebase can temporarily report null during native session recovery.
+      // Keep the visible user instead of flashing to Guest User.
+      _user = currentUser ?? _user;
+      _cachedName = preferences.getString(_cachedNameKey);
+      _cachedEmail = preferences.getString(_cachedEmailKey);
+      _profileImage = image ?? _profileImage;
     });
   }
 
-  String getUserName() {
-    if (user == null) return "Guest User";
+  Future<void> _onUserChanged(User? user) async {
+    if (user == null) return;
 
-    if (user!.displayName != null && user!.displayName!.trim().isNotEmpty) {
-      return user!.displayName!.trim();
-    }
+    await _cacheUserIdentity(user);
+    File? image;
+    try {
+      image = await _profileImageService.loadImage();
+    } catch (_) {}
+    if (!mounted) return;
 
-    final email = user!.email;
-
-    if (email != null && email.contains("@")) {
-      return email.split("@").first;
-    }
-
-    return "User";
+    setState(() {
+      _user = user;
+      _cachedName = _displayNameFor(user);
+      _cachedEmail = user.email;
+      _profileImage = image ?? _profileImage;
+    });
   }
 
-  String getUserEmail() {
-    if (user == null) return "Not signed in";
-    return user!.email ?? "No email";
+  String _displayNameFor(User user) {
+    final displayName = user.displayName?.trim();
+    if (displayName != null && displayName.isNotEmpty) return displayName;
+
+    final email = user.email;
+    if (email != null && email.contains('@')) return email.split('@').first;
+    return 'CyberBuddy User';
   }
 
-  String getInitials() {
-    final name = getUserName().trim();
-
-    if (name.isEmpty) return "U";
-
-    final parts = name.split(" ");
-
-    if (parts.length >= 2) {
-      return "${parts[0][0]}${parts[1][0]}".toUpperCase();
+  Future<void> _cacheUserIdentity(
+    User user, {
+    SharedPreferences? preferences,
+  }) async {
+    final prefs = preferences ?? await SharedPreferences.getInstance();
+    await prefs.setString(_cachedNameKey, _displayNameFor(user));
+    if (user.email != null && user.email!.isNotEmpty) {
+      await prefs.setString(_cachedEmailKey, user.email!);
     }
+  }
 
-    return name.substring(0, 1).toUpperCase();
+  Future<void> _clearCachedIdentity() async {
+    final preferences = await SharedPreferences.getInstance();
+    await preferences.remove(_cachedNameKey);
+    await preferences.remove(_cachedEmailKey);
+  }
+
+  String get _name {
+    final displayName = _user?.displayName?.trim();
+    if (displayName != null && displayName.isNotEmpty) return displayName;
+
+    if (_cachedName != null && _cachedName!.isNotEmpty) return _cachedName!;
+
+    final email = _user?.email;
+    if (email != null && email.contains('@')) return email.split('@').first;
+    if (_cachedEmail != null && _cachedEmail!.contains('@')) {
+      return _cachedEmail!.split('@').first;
+    }
+    return _user == null ? 'Guest User' : 'CyberBuddy User';
+  }
+
+  String get _email => _user?.email ?? _cachedEmail ?? 'Not signed in';
+
+  String get _initials {
+    final words = _name.split(RegExp(r'\s+')).where((word) => word.isNotEmpty);
+    return words.take(2).map((word) => word[0]).join().toUpperCase();
   }
 
   void _showSnack(String message) {
@@ -162,112 +225,76 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  String _titleCase(String text) {
-    if (text.trim().isEmpty) return "-";
-
-    final clean = text.trim();
-    return clean[0].toUpperCase() + clean.substring(1);
+  String _titleCase(String value) {
+    if (value.isEmpty) return 'Not available';
+    return value[0].toUpperCase() + value.substring(1);
   }
 
-  String _badgeEmoji(String badge) {
-    final lower = badge.toLowerCase();
-
-    if (lower.contains("phishing")) return "🛡️";
-    if (lower.contains("password")) return "🔐";
-    if (lower.contains("streak")) return "🔥";
-    if (lower.contains("quiz")) return "🏆";
-    if (lower.contains("perfect")) return "⭐";
-    if (lower.contains("malware")) return "🦠";
-    if (lower.contains("privacy")) return "👁️";
-    if (lower.contains("threat")) return "🎯";
-    if (lower.contains("rookie")) return "🌱";
-    if (lower.contains("champion")) return "💎";
-    if (lower.contains("defender")) return "🛡️";
-    if (lower.contains("learner")) return "📚";
-
-    return "🏅";
+  IconData _badgeIcon(String name) {
+    final lower = name.toLowerCase();
+    if (lower.contains('phishing')) return Icons.mark_email_read_rounded;
+    if (lower.contains('password')) return Icons.key_rounded;
+    if (lower.contains('streak')) return Icons.local_fire_department_rounded;
+    if (lower.contains('quiz')) return Icons.emoji_events_rounded;
+    if (lower.contains('perfect')) return Icons.star_rounded;
+    if (lower.contains('malware')) return Icons.bug_report_rounded;
+    if (lower.contains('privacy')) return Icons.visibility_rounded;
+    if (lower.contains('threat')) return Icons.radar_rounded;
+    if (lower.contains('rookie')) return Icons.eco_rounded;
+    if (lower.contains('champion')) return Icons.workspace_premium_rounded;
+    if (lower.contains('defender')) return Icons.shield_rounded;
+    return Icons.military_tech_rounded;
   }
 
-
-  String _getWeakestTopic(HomeState state) {
-    final attempted = state.topicScores.entries.where((entry) {
-      return (state.topicAnswered[entry.key] ?? 0) > 0;
-    }).toList();
-
-    if (attempted.isEmpty) return "No quiz data yet";
-
-    attempted.sort((a, b) => a.value.compareTo(b.value));
-
-    final weakest = attempted.first;
-
-    return "${_titleCase(weakest.key)} (${(weakest.value * 100).round()}%)";
-  }
-
-  String _getStrongestTopic(HomeState state) {
-    final attempted = state.topicScores.entries.where((entry) {
-      return (state.topicAnswered[entry.key] ?? 0) > 0;
-    }).toList();
-
-    if (attempted.isEmpty) return "No quiz data yet";
-
-    attempted.sort((a, b) => b.value.compareTo(a.value));
-
-    final strongest = attempted.first;
-
-    return "${_titleCase(strongest.key)} (${(strongest.value * 100).round()}%)";
-  }
-
-  String _preferredTopics(HomeState state) {
-    final attempted = state.topicScores.entries.where((entry) {
-      return (state.topicAnswered[entry.key] ?? 0) > 0 && entry.value >= 0.6;
-    }).toList();
-
-    if (attempted.isEmpty) return "No quiz data yet";
-
-    attempted.sort((a, b) => b.value.compareTo(a.value));
-
-    return attempted.take(3).map((e) => _titleCase(e.key)).join(" • ");
-  }
-
-  String _difficultyPreference(HomeState state) {
-    if (state.level >= 8) return "Advanced";
-    if (state.level >= 4) return "Intermediate";
-    return "Beginner";
-  }
-
-  String _recommendationReason(HomeState state) {
-    if (state.recommendedModules.isEmpty) {
-      return "Complete quizzes first so CyberBuddy can generate a personalised recommendation.";
+  Color _badgeColor(String name) {
+    final lower = name.toLowerCase();
+    if (lower.contains('phishing') || lower.contains('privacy')) {
+      return const Color(0xFF7C3AED);
     }
-
-    final weakest = _getWeakestTopic(state);
-
-    return "Recommended based on your current weakest area, $weakest. This module helps improve your cybersecurity awareness through related learning content.";
+    if (lower.contains('malware') || lower.contains('threat')) {
+      return const Color(0xFFDC2626);
+    }
+    if (lower.contains('streak')) return const Color(0xFFEA580C);
+    if (lower.contains('quiz') || lower.contains('perfect')) {
+      return const Color(0xFFD97706);
+    }
+    return _blue;
   }
 
-  String _confidenceLevel(HomeState state) {
-    if (state.totalQuestionsAnswered == 0) return "Not available";
-    if (state.totalQuestionsAnswered < 5) return "Low";
-    if (state.totalQuestionsAnswered < 15) return "Medium";
-    return "High";
+  String _badgeEmoji(String name) {
+    final lower = name.toLowerCase();
+    if (lower.contains('phishing')) return '🛡️';
+    if (lower.contains('password')) return '🔐';
+    if (lower.contains('streak')) return '🔥';
+    if (lower.contains('quiz')) return '🏆';
+    if (lower.contains('perfect')) return '⭐';
+    if (lower.contains('malware')) return '🦠';
+    if (lower.contains('privacy')) return '👁️';
+    if (lower.contains('threat')) return '🎯';
+    if (lower.contains('rookie')) return '🌱';
+    if (lower.contains('champion')) return '💎';
+    if (lower.contains('defender')) return '🛡️';
+    return '🏅';
   }
 
-  String _matchScore(HomeState state) {
-    if (state.recommendedModules.isEmpty) {
-      return "0%";
-    }
+  String _strongestTopic(HomeState state) {
+    final topics = state.topicAnswered.entries
+        .where((entry) => entry.value > 0)
+        .map((entry) => entry.key)
+        .toList();
+    if (topics.isEmpty) return 'Complete a quiz to unlock';
+    topics.sort((a, b) => state.topicProgress(b).compareTo(state.topicProgress(a)));
+    return _titleCase(topics.first);
+  }
 
-    final answered = state.totalQuestionsAnswered;
-
-    if (answered < 5) {
-      return "78%";
-    }
-
-    if (answered < 15) {
-      return "86%";
-    }
-
-    return "92%";
+  String _weakestTopic(HomeState state) {
+    final topics = state.topicAnswered.entries
+        .where((entry) => entry.value > 0)
+        .map((entry) => entry.key)
+        .toList();
+    if (topics.isEmpty) return 'No data yet';
+    topics.sort((a, b) => state.topicProgress(a).compareTo(state.topicProgress(b)));
+    return _titleCase(topics.first);
   }
 
   Future<void> _editProfile() async {
@@ -275,396 +302,291 @@ class _ProfileScreenState extends State<ProfileScreen> {
       context,
       MaterialPageRoute(builder: (_) => const EditProfileScreen()),
     );
-
     if (!mounted) return;
-
     await _loadUser();
-
-    if (!mounted || updated != true) return;
-    _showSnack("Profile updated successfully.");
+    if (updated == true) _showSnack('Profile updated successfully.');
   }
 
   Future<void> _changePassword() async {
     final email = FirebaseAuth.instance.currentUser?.email;
-
     if (email == null || email.isEmpty) {
-      _showSnack("No email found for this account.");
+      _showSnack('No email address is available for this account.');
       return;
     }
 
     await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
-    _showSnack("Password reset email sent to $email.");
+    if (mounted) _showSnack('Password reset email sent to $email.');
   }
 
   Future<void> _resetProgress() async {
-    final confirm = await showDialog<bool>(
+    final shouldReset = await showDialog<bool>(
       context: context,
-      builder: (dialogContext) {
-        return Dialog(
-          insetPadding: const EdgeInsets.symmetric(horizontal: 24),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(28),
+      builder: (dialogContext) => AlertDialog(
+        icon: const Icon(Icons.restart_alt_rounded, color: Color(0xFFDC2626)),
+        title: const Text('Reset progress?'),
+        content: const Text(
+          'Your XP, badges, streak, quiz scores and recommendations will be reset. This cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancel'),
           ),
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  height: 50,
-                  width: 50,
-                  decoration: const BoxDecoration(
-                    color: Color(0xFFFFE4E6),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.restart_alt_rounded,
-                    color: Color(0xFFDC2626),
-                  ),
-                ),
-                const SizedBox(height: 18),
-                const Text(
-                  'Reset Progress?',
-                  style: TextStyle(
-                    color: Color(0xFF0F172A),
-                    fontSize: 24,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-                const SizedBox(height: 10),
-                const Text(
-                  'This will reset your XP, level, streak, badges, topic progress, quiz scores, recommendations and notifications. This action cannot be undone.',
-                  style: TextStyle(
-                    color: Color(0xFF64748B),
-                    height: 1.45,
-                  ),
-                ),
-                const SizedBox(height: 24),
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: () =>
-                            Navigator.of(dialogContext).pop(false),
-                        style: OutlinedButton.styleFrom(
-                          minimumSize: const Size.fromHeight(48),
-                          foregroundColor: const Color(0xFF475569),
-                          side: const BorderSide(color: Color(0xFFCBD5E1)),
-                        ),
-                        child: const Text('Cancel'),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: ElevatedButton(
-                        onPressed: () =>
-                            Navigator.of(dialogContext).pop(true),
-                        style: ElevatedButton.styleFrom(
-                          minimumSize: const Size.fromHeight(48),
-                          backgroundColor: const Color(0xFFDC2626),
-                          foregroundColor: Colors.white,
-                        ),
-                        child: const Text('Reset'),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: const Color(0xFFDC2626)),
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Reset'),
           ),
-        );
-      },
+        ],
+      ),
     );
+    if (shouldReset != true || !mounted) return;
 
-    if (confirm != true) return;
-    if (!mounted) return;
-
-    final homeCubit = context.read<HomeCubit>();
-    await homeCubit.resetProgress();
-
-    if (!mounted) return;
-
-    _showSnack("Progress has been reset.");
+    await Future.wait([
+      context.read<HomeCubit>().resetProgress(),
+      context.read<LearningCubit>().resetLearningProgress(),
+    ]);
+    if (mounted) _showSnack('Your progress has been reset.');
   }
 
   void _openNotifications() {
     final notifications = context.read<HomeCubit>().state.notifications;
-
-    showModalBottomSheet(
+    showModalBottomSheet<void>(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: const Color(0xFFF1F5F9),
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
-      ),
-      builder: (_) {
-        return DraggableScrollableSheet(
-          expand: false,
-          initialChildSize: 0.55,
-          minChildSize: 0.35,
-          maxChildSize: 0.85,
-          builder: (context, scrollController) {
-            return ListView(
-              controller: scrollController,
-              padding: const EdgeInsets.all(18),
-              children: [
-                const Text(
-                  "Notifications 🔔",
-                  style: TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.w900,
-                    color: Color(0xFF0F172A),
+      backgroundColor: Colors.white,
+      showDragHandle: true,
+      builder: (sheetContext) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Notifications',
+                style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
+              ),
+              const SizedBox(height: 16),
+              if (notifications.isEmpty)
+                const _EmptyState(
+                  icon: Icons.notifications_none_rounded,
+                  text: 'No notifications yet.',
+                )
+              else
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxHeight: 420),
+                  child: ListView.separated(
+                    shrinkWrap: true,
+                    itemCount: notifications.length,
+                    separatorBuilder: (_, __) => const Divider(height: 1),
+                    itemBuilder: (_, index) => ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: const CircleAvatar(
+                        backgroundColor: Color(0xFFEFF6FF),
+                        child: Icon(Icons.notifications_rounded, color: _blue),
+                      ),
+                      title: Text(notifications[index]),
+                    ),
                   ),
                 ),
-                const SizedBox(height: 14),
-                if (notifications.isEmpty)
-                  _MiniCard(
-                    child: const Text(
-                      "No notifications yet.",
-                      style: TextStyle(color: Colors.grey),
-                    ),
-                  )
-                else
-                  ...notifications.map(
-                    (item) => _MiniCard(
-                      child: Text(
-                        item,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w700,
-                          color: Color(0xFF0F172A),
-                        ),
-                      ),
-                    ),
-                  ),
-              ],
-            );
-          },
-        );
-      },
+            ],
+          ),
+        ),
+      ),
     );
   }
 
   void _openHelp() {
-    showDialog(
+    showDialog<void>(
       context: context,
-      builder: (_) {
-        return AlertDialog(
-          title: const Text("Help & Support"),
-          content: const Text(
-            "CyberBuddy helps students improve cybersecurity awareness through gamified modules, quizzes, threat checking, XP, badges, topic progress, and content-based learning recommendations.",
+      builder: (dialogContext) => AlertDialog(
+        icon: const Icon(Icons.support_agent_rounded, color: _blue),
+        title: const Text('Help & Support'),
+        content: const Text(
+          'CyberBuddy helps you practise cybersecurity awareness through learning modules, quizzes, threat checks and personalised recommendations.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Close'),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text("Close"),
-            ),
-          ],
-        );
-      },
+        ],
+      ),
     );
   }
 
-  void _showBadgeInfo(String title, {required bool isUnlocked}) {
-    final detail = _achievementDetails[title] ??
+  void _showBadgeInfo(String badge, {required bool isUnlocked}) {
+    final detail = _achievementDetails[badge] ??
         const _AchievementDetail(
           category: 'CyberBuddy Achievement',
           description: 'A milestone earned through your CyberBuddy learning journey.',
           condition: 'Keep completing learning activities and quizzes.',
         );
+    final color = _badgeColor(badge);
 
-    showDialog(
+    showDialog<void>(
       context: context,
-      builder: (dialogContext) {
-        return Dialog(
-          insetPadding: const EdgeInsets.symmetric(horizontal: 24),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(28),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(
-                  child: Container(
-                    height: 76,
-                    width: 76,
-                    alignment: Alignment.center,
-                    decoration: const BoxDecoration(
-                      color: Color(0xFFEFF6FF),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Text(
-                      _badgeEmoji(title),
-                      style: const TextStyle(fontSize: 38),
-                    ),
-                  ),
+      builder: (dialogContext) => Dialog(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _BadgeGlyph(icon: _badgeIcon(badge), color: color, size: 72),
+              const SizedBox(height: 18),
+              Text(
+                badge,
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                detail.category,
+                style: const TextStyle(
+                  color: Color(0xFF64748B),
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
                 ),
-                const SizedBox(height: 16),
-                Text(
-                  title,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: Color(0xFF0F172A),
-                    fontSize: 24,
-                    fontWeight: FontWeight.w900,
-                  ),
+              ),
+              const SizedBox(height: 8),
+              _Tag(
+                label: isUnlocked ? 'UNLOCKED' : 'NEXT MILESTONE',
+                color: isUnlocked ? const Color(0xFF16A34A) : const Color(0xFFEA580C),
+              ),
+              const SizedBox(height: 16),
+              Text(detail.description, style: const TextStyle(height: 1.45)),
+              const SizedBox(height: 16),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF8FAFC),
+                  borderRadius: BorderRadius.circular(14),
                 ),
-                const SizedBox(height: 10),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _AchievementChip(
-                      label: isUnlocked ? 'UNLOCKED' : 'NEXT ACHIEVEMENT',
-                      color: isUnlocked
-                          ? const Color(0xFF16A34A)
-                          : const Color(0xFFF97316),
+                    Text(
+                      isUnlocked ? 'HOW YOU EARNED IT' : 'HOW TO UNLOCK',
+                      style: const TextStyle(
+                        color: Color(0xFF64748B),
+                        fontWeight: FontWeight.w800,
+                        fontSize: 11,
+                        letterSpacing: 0.6,
+                      ),
                     ),
-                    _AchievementChip(
-                      label: detail.category,
-                      color: const Color(0xFF0369A1),
-                    ),
+                    const SizedBox(height: 6),
+                    Text(detail.condition, style: const TextStyle(fontWeight: FontWeight.w700)),
                   ],
                 ),
-                const SizedBox(height: 18),
-                Text(
-                  detail.description,
-                  style: const TextStyle(
-                    color: Color(0xFF475569),
-                    fontSize: 15,
-                    height: 1.45,
-                  ),
+              ),
+              const SizedBox(height: 18),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton(
+                  onPressed: () => Navigator.pop(dialogContext),
+                  child: const Text('Done'),
                 ),
-                const SizedBox(height: 18),
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF8FAFC),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: const Color(0xFFE2E8F0)),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        isUnlocked ? 'HOW YOU UNLOCKED IT' : 'HOW TO UNLOCK IT',
-                        style: const TextStyle(
-                          color: Color(0xFF64748B),
-                          fontSize: 11,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: 0.7,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        detail.condition,
-                        style: const TextStyle(
-                          color: Color(0xFF0F172A),
-                          fontWeight: FontWeight.w800,
-                          height: 1.35,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 20),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: () => Navigator.of(dialogContext).pop(),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF1E3A8A),
-                      foregroundColor: Colors.white,
-                    ),
-                    child: Text(isUnlocked ? 'Awesome!' : 'I’ll get it!'),
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
-        );
-      },
+        ),
+      ),
     );
   }
 
-  void _openRecommendedModule() {
-    final homeState = context.read<HomeCubit>().state;
+  void _showAllBadges(HomeState state) {
+    final locked = _achievementDetails.keys
+        .where((badge) => !state.badges.contains(badge))
+        .toList();
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      showDragHandle: true,
+      builder: (sheetContext) => DraggableScrollableSheet(
+        expand: false,
+        initialChildSize: 0.78,
+        minChildSize: 0.5,
+        maxChildSize: 0.92,
+        builder: (_, scrollController) => ListView(
+          controller: scrollController,
+          padding: const EdgeInsets.fromLTRB(20, 4, 20, 28),
+          children: [
+            const Text('All achievements', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
+            const SizedBox(height: 6),
+            Text('${state.badges.length} unlocked', style: const TextStyle(color: Color(0xFF64748B))),
+            const SizedBox(height: 20),
+            _BadgeSection(
+              title: 'Unlocked',
+              color: const Color(0xFF16A34A),
+              badges: state.badges,
+              isUnlocked: true,
+              onTap: _showBadgeInfo,
+            ),
+            if (locked.isNotEmpty) ...[
+              const SizedBox(height: 22),
+              _BadgeSection(
+                title: 'Next milestones',
+                color: const Color(0xFFEA580C),
+                badges: locked,
+                isUnlocked: false,
+                onTap: _showBadgeInfo,
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _openRecommendedModule(HomeState homeState) {
     final learningState = context.read<LearningCubit>().state;
-
-    if (homeState.recommendedModules.isEmpty) {
-      _showSnack("Complete quizzes first to generate recommendations.");
-      return;
-    }
-
-    if (learningState.modules.isEmpty) {
-      _showSnack("Modules not loaded yet.");
-      return;
-    }
-
-    final recommendedTitle = homeState.recommendedModules.first;
-    final recommendedModuleId = homeState.recommendedModuleIds.isNotEmpty
-        ? homeState.recommendedModuleIds.first
-        : "";
+    final moduleId = homeState.recommendedModuleIds.isEmpty
+        ? null
+        : homeState.recommendedModuleIds.first;
+    if (moduleId == null || learningState.modules.isEmpty) return;
 
     final module = learningState.modules.firstWhere(
-      (m) {
-        final matchesId =
-            recommendedModuleId.trim().isNotEmpty &&
-            m.id.toLowerCase().trim() ==
-                recommendedModuleId.toLowerCase().trim();
-        final matchesTitle =
-            m.title.toLowerCase().trim() ==
-            recommendedTitle.toLowerCase().trim();
-
-        return matchesId || matchesTitle;
-      },
+      (item) => item.id == moduleId,
       orElse: () => learningState.modules.first,
     );
-
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => ModuleDetailScreen(module: module)),
-    );
+    Navigator.push(context, MaterialPageRoute(builder: (_) => ModuleDetailScreen(module: module)));
   }
 
-  Future<void> logout() async {
+  Future<void> _logout() async {
     context.read<HomeCubit>().clearSession();
-
     try {
       await GoogleSignIn.instance.signOut();
     } catch (_) {}
-
     await FirebaseAuth.instance.signOut();
-
+    await _clearCachedIdentity();
     if (!mounted) return;
-
     Navigator.pushAndRemoveUntil(
       context,
       MaterialPageRoute(builder: (_) => const SplashScreen()),
-      (route) => false,
+      (_) => false,
     );
+  }
+
+  @override
+  void dispose() {
+    _userSubscription?.cancel();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final homeState = context.watch<HomeCubit>().state;
     final learningState = context.watch<LearningCubit>().state;
+    return _buildClassicProfile(context, homeState, learningState);
+  }
 
-    final xp = homeState.xp;
-    final level = homeState.level;
-    final streak = homeState.streak;
-    final modules = learningState.modules.length;
-    final badges = homeState.badges.length;
-    final avgScore = homeState.avgScore;
-
-    final hasQuizData = homeState.totalQuestionsAnswered > 0;
-    final hasBadges = homeState.badges.isNotEmpty;
-    final hasRecommendation =
-        hasQuizData && homeState.recommendedModules.isNotEmpty;
+  Widget _buildClassicProfile(
+    BuildContext context,
+    HomeState homeState,
+    LearningState learningState,
+  ) {
     final lockedBadges = _achievementDetails.keys
         .where((badge) => !homeState.badges.contains(badge))
         .toList();
@@ -673,12 +595,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
       backgroundColor: const Color(0xFFF1F5F9),
       body: SafeArea(
         child: RefreshIndicator(
+          color: const Color(0xFF2563EB),
           onRefresh: _loadUser,
           child: ListView(
             padding: EdgeInsets.zero,
             children: [
               Container(
-                padding: const EdgeInsets.fromLTRB(20, 24, 20, 30),
+                padding: const EdgeInsets.fromLTRB(20, 28, 20, 42),
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(
                     colors: [Color(0xFF0D1B3E), Color(0xFF1E3A8A)],
@@ -689,58 +612,62 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 child: Column(
                   children: [
                     CircleAvatar(
-                      radius: 48,
+                      radius: 54,
                       backgroundColor: Colors.white,
                       backgroundImage: _profileImage == null
                           ? null
                           : FileImage(_profileImage!),
                       child: _profileImage == null
                           ? Text(
-                              getInitials(),
+                              _initials,
                               style: const TextStyle(
-                                fontSize: 34,
-                                fontWeight: FontWeight.w900,
                                 color: Color(0xFF0D1B3E),
+                                fontSize: 35,
+                                fontWeight: FontWeight.w900,
                               ),
                             )
                           : null,
                     ),
-                    const SizedBox(height: 14),
+                    const SizedBox(height: 16),
                     Text(
-                      getUserName(),
+                      _name,
                       textAlign: TextAlign.center,
                       style: const TextStyle(
                         color: Colors.white,
-                        fontSize: 28,
+                        fontSize: 30,
                         fontWeight: FontWeight.w900,
                       ),
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 6),
                     Text(
-                      getUserEmail(),
+                      _email,
                       textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        color: Colors.white70,
-                        fontSize: 15,
-                      ),
+                      style: const TextStyle(color: Colors.white70, fontSize: 15),
                     ),
-                    const SizedBox(height: 16),
-                    _HeaderBadge(text: "LV $level • Threat Spotter"),
+                    const SizedBox(height: 18),
+                    _ClassicHeaderBadge(
+                      icon: Icons.shield_outlined,
+                      text: 'LV ${homeState.level} • Threat Spotter',
+                    ),
                     const SizedBox(height: 10),
-                    _HeaderBadge(text: "🔥 $streak-day streak", green: true),
+                    _ClassicHeaderBadge(
+                      icon: Icons.local_fire_department_rounded,
+                      text: '${homeState.streak}-day streak',
+                      green: true,
+                    ),
                   ],
                 ),
               ),
               Transform.translate(
-                offset: const Offset(0, -18),
+                offset: const Offset(0, -20),
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 14),
                   child: Row(
                     children: [
-                      _StatCard(title: "Total XP", value: "$xp"),
-                      _StatCard(title: "Modules", value: "$modules"),
-                      _StatCard(title: "Avg Score", value: "$avgScore%"),
-                      _StatCard(title: "Badges", value: "$badges"),
+                      _ClassicStatCard(title: 'Total XP', value: '${homeState.xp}'),
+                      _ClassicStatCard(title: 'Modules', value: '${learningState.modules.length}'),
+                      _ClassicStatCard(title: 'Avg Score', value: '${homeState.avgScore}%'),
+                      _ClassicStatCard(title: 'Badges', value: '${homeState.badges.length}'),
                     ],
                   ),
                 ),
@@ -749,251 +676,218 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Column(
                   children: [
-                    _SectionCard(
-                      title: "🏅 Badge Collection",
+                    _ClassicSectionCard(
+                      title: 'Badge Collection',
+                      icon: Icons.workspace_premium_rounded,
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          if (!hasBadges)
-                            const Text(
-                              'Your first achievement is waiting—complete a module or answer a quiz question to begin.',
-                              style: TextStyle(
-                                color: Colors.grey,
-                                fontWeight: FontWeight.w600,
-                                height: 1.4,
-                              ),
-                            )
-                          else ...[
-                            _BadgeGroupLabel(
-                              label: 'UNLOCKED',
-                              count: homeState.badges.length,
-                              color: const Color(0xFF16A34A),
+                          _ClassicBadgeLabel(
+                            label: 'UNLOCKED',
+                            count: homeState.badges.length,
+                            color: const Color(0xFF16A34A),
+                          ),
+                          const SizedBox(height: 12),
+                          if (homeState.badges.isEmpty)
+                            const _ClassicEmptyBadges()
+                          else
+                            _ClassicBadgeGrid(
+                              badges: homeState.badges,
+                              unlocked: true,
+                              emojiForBadge: _badgeEmoji,
+                              onTap: _showBadgeInfo,
                             ),
-                            const SizedBox(height: 10),
-                            GridView.count(
-                              shrinkWrap: true,
-                              physics: const NeverScrollableScrollPhysics(),
-                              crossAxisCount: 4,
-                              childAspectRatio: 0.82,
-                              children: homeState.badges.map((badge) {
-                                return _BadgeItem(
-                                  _badgeEmoji(badge),
-                                  badge.replaceAll(' ', '\n'),
-                                  onTap: () =>
-                                      _showBadgeInfo(badge, isUnlocked: true),
-                                );
-                              }).toList(),
-                            ),
-                          ],
                           if (lockedBadges.isNotEmpty) ...[
-                            const SizedBox(height: 18),
-                            _BadgeGroupLabel(
+                            const SizedBox(height: 24),
+                            _ClassicBadgeLabel(
                               label: 'NEXT ACHIEVEMENTS',
                               count: lockedBadges.length,
                               color: const Color(0xFFF97316),
                             ),
-                            const SizedBox(height: 6),
-                            const Text(
-                              'Tap any locked badge to see your next target.',
-                              style: TextStyle(
-                                color: Color(0xFF64748B),
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            const SizedBox(height: 10),
-                            GridView.count(
-                              shrinkWrap: true,
-                              physics: const NeverScrollableScrollPhysics(),
-                              crossAxisCount: 4,
-                              childAspectRatio: 0.82,
-                              children: lockedBadges.map((badge) {
-                                return _LockedBadgeItem(
-                                  emoji: _badgeEmoji(badge),
-                                  title: badge.replaceAll(' ', '\n'),
-                                  onTap: () => _showBadgeInfo(
-                                    badge,
-                                    isUnlocked: false,
-                                  ),
-                                );
-                              }).toList(),
+                            const SizedBox(height: 12),
+                            _ClassicBadgeGrid(
+                              badges: lockedBadges,
+                              unlocked: false,
+                              emojiForBadge: _badgeEmoji,
+                              onTap: _showBadgeInfo,
                             ),
                           ],
                         ],
                       ),
                     ),
-                    const SizedBox(height: 16),
-                    _SectionCard(
-                      title: "📊 Cybersecurity Analytics",
+                    const SizedBox(height: 4),
+                    _ClassicSectionCard(
+                      title: 'Cybersecurity Analytics',
+                      icon: Icons.insights_rounded,
                       child: Column(
                         children: [
-                          _InfoRow(
-                            label: "🏆 Strongest Topic",
-                            value: _getStrongestTopic(homeState),
-                            valueColor: Colors.green,
-                          ),
-                          _InfoRow(
-                            label: "⚠ Weakest Topic",
-                            value: _getWeakestTopic(homeState),
-                            valueColor: Colors.red,
-                          ),
-                          _InfoRow(
-                            label: "📈 Recent Quiz Accuracy",
-                            value: "${homeState.avgScore}%",
-                            valueColor: Colors.blue,
-                          ),
-                          _InfoRow(
-                            label: "🎯 Recommendation",
-                            value: homeState.recommendedModules.isNotEmpty
-                                ? homeState.recommendedModules.first
-                                : "Not available",
-                            valueColor: Colors.deepPurple,
-                          ),
-                          _InfoRow(
-                            label: "🧠 Preferred Topics",
-                            value: _preferredTopics(homeState),
-                          ),
-                          _InfoRow(
-                            label: "📚 Learning Level",
-                            value: _difficultyPreference(homeState),
-                          ),
+                          _ClassicInfoRow(label: 'Strongest Topic', value: _strongestTopic(homeState), color: Colors.green),
+                          _ClassicInfoRow(label: 'Weakest Topic', value: _weakestTopic(homeState), color: Colors.red),
+                          _ClassicInfoRow(label: 'Recent Quiz Accuracy', value: '${homeState.avgScore}%', color: Colors.blue),
                         ],
                       ),
                     ),
-                    const SizedBox(height: 16),
-                    InkWell(
-                      onTap: hasRecommendation ? _openRecommendedModule : null,
-                      borderRadius: BorderRadius.circular(18),
-                      child: _SectionCard(
-                        title: "🎯 Recommendation Profile",
-                        child: !hasRecommendation
-                            ? const Text(
-                                "No recommendation available yet. Complete quizzes first so CyberBuddy can analyse your learning performance.",
-                                style: TextStyle(
-                                  color: Colors.grey,
-                                  fontWeight: FontWeight.w600,
-                                  height: 1.4,
-                                ),
-                              )
-                            : Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 10,
-                                      vertical: 6,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFFEFF6FF),
-                                      borderRadius: BorderRadius.circular(10),
-                                    ),
-                                    child: const Text(
-                                      "CONTENT-BASED RECOMMENDATION",
-                                      style: TextStyle(
-                                        color: Color(0xFF2563EB),
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.w900,
-                                        letterSpacing: 0.5,
-                                      ),
-                                    ),
-                                  ),
+                    _ClassicTopicProgressCard(state: homeState),
+                    _ClassicRecommendationProfileCard(
+                      state: homeState,
+                      onTap: homeState.recommendedModuleIds.isEmpty
+                          ? null
+                          : () => _openRecommendedModule(homeState),
+                    ),
+                    const SizedBox(height: 8),
+                    _ClassicAccountTile(icon: Icons.person_outline, title: 'Edit Profile', onTap: _editProfile),
+                    _ClassicAccountTile(icon: Icons.lock_outline, title: 'Change Password', onTap: _changePassword),
+                    _ClassicAccountTile(icon: Icons.notifications_none, title: 'Notifications', onTap: _openNotifications),
+                    _ClassicAccountTile(icon: Icons.help_outline, title: 'Help & Support', onTap: _openHelp),
+                    _ClassicAccountTile(icon: Icons.restart_alt, title: 'Reset Progress', color: Colors.orange, onTap: _resetProgress),
+                    _ClassicAccountTile(icon: Icons.logout, title: 'Logout', color: Colors.red, onTap: _logout),
+                    const SizedBox(height: 110),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 
-                                  const SizedBox(height: 16),
+  // Kept temporarily while the original visual layout above is the active one.
+  // ignore: unused_element
+  Widget _buildModernProfile(BuildContext context) {
+    final homeState = context.watch<HomeCubit>().state;
+    final completedModules = homeState.completedModules.length;
+    final hasRecommendation = homeState.recommendedModules.isNotEmpty;
+    final previewBadges = homeState.badges.take(6).toList();
 
-                                  _InfoRow(
-                                    label: "🎯 Recommended Module",
-                                    value: homeState.recommendedModules.first,
-                                    valueColor: Colors.blue,
-                                  ),
-
-                                  _InfoRow(
-                                    label: "📝 Reason",
-                                    value: _recommendationReason(homeState),
-                                  ),
-
-                                  _InfoRow(
-                                    label: "📊 Confidence",
-                                    value: _confidenceLevel(homeState),
-                                    valueColor: Colors.green,
-                                  ),
-
-                                  _InfoRow(
-                                    label: "🎯 Match Score",
-                                    value: _matchScore(homeState),
-                                    valueColor: Colors.orange,
-                                  ),
-
-                                  _InfoRow(
-                                    label: "🧠 Method",
-                                    value: "Topic-based content matching",
-                                    valueColor: Colors.deepPurple,
-                                  ),
-
-                                  _InfoRow(
-                                    label: "🔄 Last Updated",
-                                    value: "Today",
-                                  ),
-
-                                  const SizedBox(height: 12),
-
-                                  Container(
-                                    width: double.infinity,
-                                    padding: const EdgeInsets.all(13),
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFFF8FAFC),
-                                      borderRadius: BorderRadius.circular(14),
-                                      border: Border.all(
-                                        color: const Color(0xFFE2E8F0),
-                                      ),
-                                    ),
-                                    child: const Text(
-                                      "Tap this card to open the recommended module.",
-                                      style: TextStyle(
-                                        color: Color(0xFF64748B),
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w700,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
+    return Scaffold(
+      backgroundColor: const Color(0xFFF6F8FC),
+      body: SafeArea(
+        child: RefreshIndicator(
+          color: _blue,
+          onRefresh: _loadUser,
+          child: ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+            children: [
+              _ProfileHero(
+                name: _name,
+                email: _email,
+                initials: _initials,
+                image: _profileImage,
+                level: homeState.level,
+                streak: homeState.streak,
+                onEdit: _editProfile,
+              ),
+              const SizedBox(height: 20),
+              _SectionHeading(title: 'Your progress'),
+              const SizedBox(height: 10),
+              GridView.count(
+                crossAxisCount: 2,
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                mainAxisSpacing: 10,
+                crossAxisSpacing: 10,
+                childAspectRatio: 2.2,
+                children: [
+                  _MetricCard(icon: Icons.bolt_rounded, color: const Color(0xFF7C3AED), value: '${homeState.xp}', label: 'Total XP'),
+                  _MetricCard(icon: Icons.menu_book_rounded, color: _blue, value: '$completedModules', label: 'Modules completed'),
+                  _MetricCard(icon: Icons.insights_rounded, color: const Color(0xFF16A34A), value: '${homeState.avgScore}%', label: 'Average score'),
+                  _MetricCard(icon: Icons.workspace_premium_rounded, color: const Color(0xFFD97706), value: '${homeState.badges.length}', label: 'Badges earned'),
+                ],
+              ),
+              const SizedBox(height: 24),
+              _Panel(
+                child: Column(
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(Icons.workspace_premium_outlined, color: _blue),
+                        const SizedBox(width: 10),
+                        const Expanded(
+                          child: Text('Achievements', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+                        ),
+                        TextButton(
+                          onPressed: () => _showAllBadges(homeState),
+                          child: const Text('View all'),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    if (previewBadges.isEmpty)
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 20),
+                        child: _EmptyState(
+                          icon: Icons.emoji_events_outlined,
+                          text: 'Complete a quiz or module to earn your first badge.',
+                        ),
+                      )
+                    else
+                      GridView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: previewBadges.length,
+                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 3,
+                          mainAxisSpacing: 10,
+                          crossAxisSpacing: 10,
+                          childAspectRatio: 0.9,
+                        ),
+                        itemBuilder: (_, index) {
+                          final badge = previewBadges[index];
+                          return _BadgePreview(
+                            title: badge,
+                            icon: _badgeIcon(badge),
+                            color: _badgeColor(badge),
+                            onTap: () => _showBadgeInfo(badge, isUnlocked: true),
+                          );
+                        },
                       ),
-                    ),
-                    const SizedBox(height: 18),
-                    _MenuTile(
-                      icon: Icons.person_outline,
-                      title: "Edit Profile",
-                      onTap: _editProfile,
-                    ),
-                    _MenuTile(
-                      icon: Icons.lock_outline,
-                      title: "Change Password",
-                      onTap: _changePassword,
-                    ),
-                    _MenuTile(
-                      icon: Icons.notifications_none,
-                      title: "Notifications",
-                      onTap: _openNotifications,
-                    ),
-                    _MenuTile(
-                      icon: Icons.help_outline,
-                      title: "Help & Support",
-                      onTap: _openHelp,
-                    ),
-                    _MenuTile(
-                      icon: Icons.restart_alt,
-                      title: "Reset Progress",
-                      color: Colors.orange,
-                      onTap: _resetProgress,
-                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              _Panel(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const _SectionHeading(title: 'Learning snapshot'),
                     const SizedBox(height: 12),
-                    _MenuTile(
-                      icon: Icons.logout,
-                      title: "Logout",
-                      color: Colors.red,
-                      onTap: logout,
-                    ),
-                    const SizedBox(height: 120),
+                    _InsightRow(icon: Icons.emoji_events_outlined, label: 'Strongest topic', value: _strongestTopic(homeState), color: const Color(0xFF16A34A)),
+                    _InsightRow(icon: Icons.flag_outlined, label: 'Focus next', value: _weakestTopic(homeState), color: const Color(0xFFEA580C)),
+                    _InsightRow(icon: Icons.fact_check_outlined, label: 'Questions answered', value: '${homeState.totalQuestionsAnswered}', color: _blue),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              if (hasRecommendation)
+                _RecommendationCard(
+                  title: homeState.recommendedModules.first,
+                  onTap: () => _openRecommendedModule(homeState),
+                )
+              else
+                const _RecommendationEmptyCard(),
+              const SizedBox(height: 24),
+              const _SectionHeading(title: 'Account'),
+              const SizedBox(height: 10),
+              _Panel(
+                padding: EdgeInsets.zero,
+                child: Column(
+                  children: [
+                    _AccountAction(icon: Icons.person_outline_rounded, label: 'Edit profile', onTap: _editProfile),
+                    _AccountAction(icon: Icons.lock_outline_rounded, label: 'Change password', onTap: _changePassword),
+                    _AccountAction(icon: Icons.notifications_none_rounded, label: 'Notifications', onTap: _openNotifications),
+                    _AccountAction(icon: Icons.support_agent_rounded, label: 'Help & support', onTap: _openHelp),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+              _Panel(
+                padding: EdgeInsets.zero,
+                child: Column(
+                  children: [
+                    _AccountAction(icon: Icons.restart_alt_rounded, label: 'Reset progress', color: const Color(0xFFEA580C), onTap: _resetProgress),
+                    _AccountAction(icon: Icons.logout_rounded, label: 'Log out', color: const Color(0xFFDC2626), onTap: _logout),
                   ],
                 ),
               ),
@@ -1005,50 +899,143 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 }
 
-class _AchievementDetail {
-  final String category;
-  final String description;
-  final String condition;
+class _ClassicHeaderBadge extends StatelessWidget {
+  final IconData icon;
+  final String text;
+  final bool green;
 
-  const _AchievementDetail({
-    required this.category,
-    required this.description,
-    required this.condition,
+  const _ClassicHeaderBadge({
+    required this.icon,
+    required this.text,
+    this.green = false,
   });
-}
-
-class _AchievementChip extends StatelessWidget {
-  final String label;
-  final Color color;
-
-  const _AchievementChip({required this.label, required this.color});
 
   @override
   Widget build(BuildContext context) {
+    final accent = green ? const Color(0xFF6EE7B7) : const Color(0xFF67E8F9);
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(20),
+        color: accent.withValues(alpha: 0.14),
+        borderRadius: BorderRadius.circular(16),
       ),
-      child: Text(
-        label,
-        style: TextStyle(
-          color: color,
-          fontWeight: FontWeight.w900,
-          fontSize: 11,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: accent, size: 20),
+          const SizedBox(width: 9),
+          Text(
+            text,
+            style: TextStyle(color: accent, fontWeight: FontWeight.w800),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ClassicStatCard extends StatelessWidget {
+  final String title;
+  final String value;
+
+  const _ClassicStatCard({required this.title, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 4),
+        padding: const EdgeInsets.symmetric(vertical: 13, horizontal: 3),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(18),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
+          children: [
+            Text(
+              value,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: Color(0xFF111827),
+                fontSize: 22,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 10),
+            ),
+          ],
         ),
       ),
     );
   }
 }
 
-class _BadgeGroupLabel extends StatelessWidget {
+class _ClassicSectionCard extends StatelessWidget {
+  final String title;
+  final IconData icon;
+  final Widget child;
+
+  const _ClassicSectionCard({
+    required this.title,
+    required this.icon,
+    required this.child,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 14),
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, color: const Color(0xFF2563EB), size: 25),
+              const SizedBox(width: 10),
+              Text(
+                title,
+                style: const TextStyle(
+                  color: Color(0xFF111827),
+                  fontSize: 20,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 18),
+          child,
+        ],
+      ),
+    );
+  }
+}
+
+class _ClassicBadgeLabel extends StatelessWidget {
   final String label;
   final int count;
   final Color color;
 
-  const _BadgeGroupLabel({
+  const _ClassicBadgeLabel({
     required this.label,
     required this.count,
     required this.color,
@@ -1059,18 +1046,18 @@ class _BadgeGroupLabel extends StatelessWidget {
     return Row(
       children: [
         Container(
-          height: 8,
-          width: 8,
+          width: 9,
+          height: 9,
           decoration: BoxDecoration(color: color, shape: BoxShape.circle),
         ),
-        const SizedBox(width: 7),
+        const SizedBox(width: 9),
         Text(
           '$label ($count)',
           style: TextStyle(
             color: color,
-            fontSize: 12,
             fontWeight: FontWeight.w900,
-            letterSpacing: 0.7,
+            fontSize: 13,
+            letterSpacing: 0.5,
           ),
         ),
       ],
@@ -1078,196 +1065,321 @@ class _BadgeGroupLabel extends StatelessWidget {
   }
 }
 
-class _HeaderBadge extends StatelessWidget {
-  final String text;
-  final bool green;
+class _ClassicBadgeGrid extends StatelessWidget {
+  final List<String> badges;
+  final bool unlocked;
+  final String Function(String) emojiForBadge;
+  final void Function(String, {required bool isUnlocked}) onTap;
 
-  const _HeaderBadge({required this.text, this.green = false});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-      decoration: BoxDecoration(
-        color: green
-            ? Colors.green.withOpacity(0.18)
-            : Colors.cyan.withOpacity(0.15),
-        borderRadius: BorderRadius.circular(14),
-      ),
-      child: Text(
-        text,
-        style: TextStyle(
-          color: green ? Colors.greenAccent : Colors.cyanAccent,
-          fontWeight: FontWeight.w800,
-        ),
-      ),
-    );
-  }
-}
-
-class _StatCard extends StatelessWidget {
-  final String title;
-  final String value;
-
-  const _StatCard({required this.title, required this.value});
-
-  @override
-  Widget build(BuildContext context) {
-    return Expanded(
-      child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 4),
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(14),
-        ),
-        child: Column(
-          children: [
-            Text(
-              value,
-              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              title,
-              textAlign: TextAlign.center,
-              style: const TextStyle(color: Colors.grey, fontSize: 11),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _SectionCard extends StatelessWidget {
-  final String title;
-  final Widget child;
-
-  const _SectionCard({required this.title, required this.child});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      margin: const EdgeInsets.only(bottom: 14),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18),
-          ),
-          const SizedBox(height: 16),
-          child,
-        ],
-      ),
-    );
-  }
-}
-
-class _BadgeItem extends StatelessWidget {
-  final String emoji;
-  final String title;
-  final VoidCallback onTap;
-
-  const _BadgeItem(this.emoji, this.title, {required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(14),
-      child: Column(
-        children: [
-          Container(
-            height: 54,
-            width: 54,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: const Color(0xFFF8FAFC),
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: Text(emoji, style: const TextStyle(fontSize: 24)),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            title,
-            textAlign: TextAlign.center,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _LockedBadgeItem extends StatelessWidget {
-  final String emoji;
-  final String title;
-  final VoidCallback onTap;
-
-  const _LockedBadgeItem({
-    required this.emoji,
-    required this.title,
+  const _ClassicBadgeGrid({
+    required this.badges,
+    required this.unlocked,
+    required this.emojiForBadge,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(14),
-      child: Opacity(
-        opacity: 0.72,
-        child: Column(
-          children: [
-            Stack(
-              alignment: Alignment.center,
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: badges.length,
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 4,
+        mainAxisSpacing: 12,
+        crossAxisSpacing: 8,
+        childAspectRatio: 0.72,
+      ),
+      itemBuilder: (_, index) {
+        final badge = badges[index];
+        return Opacity(
+          opacity: unlocked ? 1 : 0.52,
+          child: InkWell(
+            onTap: () => onTap(badge, isUnlocked: unlocked),
+            borderRadius: BorderRadius.circular(15),
+            child: Column(
               children: [
-                Container(
-                  height: 54,
-                  width: 54,
+                Stack(
                   alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF1F5F9),
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: const Color(0xFFE2E8F0)),
-                  ),
-                  child: Opacity(
-                    opacity: 0.28,
-                    child: Text(emoji, style: const TextStyle(fontSize: 24)),
-                  ),
+                  children: [
+                    Container(
+                      height: 58,
+                      width: 58,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF8FAFC),
+                        borderRadius: BorderRadius.circular(15),
+                      ),
+                      alignment: Alignment.center,
+                      child: Text(
+                        emojiForBadge(badge),
+                        style: const TextStyle(fontSize: 27),
+                      ),
+                    ),
+                    if (!unlocked)
+                      const CircleAvatar(
+                        radius: 13,
+                        backgroundColor: Color(0xFF475569),
+                        child: Icon(Icons.lock_rounded, color: Colors.white, size: 14),
+                      ),
+                  ],
                 ),
-                Container(
-                  height: 26,
-                  width: 26,
-                  decoration: const BoxDecoration(
-                    color: Color(0xFF475569),
-                    shape: BoxShape.circle,
+                const SizedBox(height: 7),
+                Text(
+                  badge.replaceAll(' ', '\n'),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: Color(0xFF273244),
+                    height: 1.28,
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.w700,
                   ),
-                  child: const Icon(Icons.lock_rounded, size: 15, color: Colors.white),
                 ),
               ],
             ),
-            const SizedBox(height: 6),
-            Text(
-              title,
-              textAlign: TextAlign.center,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                color: Color(0xFF64748B),
-                fontSize: 10,
-                fontWeight: FontWeight.w700,
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _ClassicEmptyBadges extends StatelessWidget {
+  const _ClassicEmptyBadges();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Padding(
+      padding: EdgeInsets.symmetric(vertical: 16),
+      child: Text(
+        'Your first achievement is waiting—complete a module or answer a quiz question to begin.',
+        style: TextStyle(color: Color(0xFF64748B), height: 1.4),
+      ),
+    );
+  }
+}
+
+class _ClassicInfoRow extends StatelessWidget {
+  final String label;
+  final String value;
+  final Color color;
+
+  const _ClassicInfoRow({
+    required this.label,
+    required this.value,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        children: [
+          Expanded(child: Text(label, style: const TextStyle(color: Color(0xFF475569), fontWeight: FontWeight.w700))),
+          const SizedBox(width: 12),
+          Flexible(child: Text(value, maxLines: 1, overflow: TextOverflow.ellipsis, textAlign: TextAlign.right, style: TextStyle(color: color, fontWeight: FontWeight.w800))),
+        ],
+      ),
+    );
+  }
+}
+
+class _ClassicAccountTile extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final Color color;
+  final VoidCallback onTap;
+
+  const _ClassicAccountTile({
+    required this.icon,
+    required this.title,
+    required this.onTap,
+    this.color = const Color(0xFF334155),
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Material(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(16),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                Icon(icon, color: color),
+                const SizedBox(width: 14),
+                Expanded(child: Text(title, style: TextStyle(color: color, fontWeight: FontWeight.w800))),
+                Icon(Icons.chevron_right, color: color),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ClassicTopicProgressCard extends StatelessWidget {
+  final HomeState state;
+
+  const _ClassicTopicProgressCard({required this.state});
+
+  static const _topics = [
+    ('phishing', 'Phishing', Color(0xFFFF9800)),
+    ('password', 'Password', Color(0xFF4CAF50)),
+    ('social', 'Social', Color(0xFF3F51B5)),
+    ('malware', 'Malware', Color(0xFFF44336)),
+    ('privacy', 'Privacy', Color(0xFF9C27B0)),
+    ('network', 'Network', Color(0xFF00ACC1)),
+    ('ethics', 'Ethics', Color(0xFF673AB7)),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return _ClassicSectionCard(
+      title: 'Topic Progress',
+      icon: Icons.bar_chart_rounded,
+      child: Column(
+        children: [
+          for (final topic in _topics)
+            _ClassicTopicProgressRow(
+              label: topic.$2,
+              value: state.topicProgress(topic.$1),
+              color: topic.$3,
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ClassicTopicProgressRow extends StatelessWidget {
+  final String label;
+  final double value;
+  final Color color;
+
+  const _ClassicTopicProgressRow({
+    required this.label,
+    required this.value,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final progress = value.clamp(0.0, 1.0).toDouble();
+    final percentage = (progress * 100).round();
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 82,
+            child: Text(label, style: const TextStyle(fontWeight: FontWeight.w700)),
+          ),
+          Expanded(
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(99),
+              child: LinearProgressIndicator(
+                value: progress,
+                minHeight: 9,
+                color: color,
+                backgroundColor: const Color(0xFFE5E7EB),
               ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          SizedBox(
+            width: 36,
+            child: Text(
+              '$percentage%',
+              textAlign: TextAlign.right,
+              style: const TextStyle(fontWeight: FontWeight.w800),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ClassicRecommendationProfileCard extends StatelessWidget {
+  final HomeState state;
+  final VoidCallback? onTap;
+
+  const _ClassicRecommendationProfileCard({
+    required this.state,
+    required this.onTap,
+  });
+
+  String _titleCase(String value) {
+    if (value.isEmpty) return value;
+    return value[0].toUpperCase() + value.substring(1);
+  }
+
+  List<String> get _attemptedTopics => state.topicAnswered.entries
+      .where((entry) => entry.value > 0)
+      .map((entry) => entry.key)
+      .toList();
+
+  String get _preferredTopics {
+    final topics = _attemptedTopics
+        .where((topic) => state.topicProgress(topic) >= 0.6)
+        .toList()
+      ..sort((a, b) => state.topicProgress(b).compareTo(state.topicProgress(a)));
+    if (topics.isEmpty) return 'Complete more quizzes to personalise this.';
+    return topics.take(7).map(_titleCase).join(' • ');
+  }
+
+  String get _strongest {
+    final topics = _attemptedTopics;
+    if (topics.isEmpty) return 'Not available';
+    topics.sort((a, b) => state.topicProgress(b).compareTo(state.topicProgress(a)));
+    final topic = topics.first;
+    return '${_titleCase(topic)} (${(state.topicProgress(topic) * 100).round()}%)';
+  }
+
+  String get _weakest {
+    final topics = _attemptedTopics;
+    if (topics.isEmpty) return 'Not available';
+    topics.sort((a, b) => state.topicProgress(a).compareTo(state.topicProgress(b)));
+    final topic = topics.first;
+    return '${_titleCase(topic)} (${(state.topicProgress(topic) * 100).round()}%)';
+  }
+
+  String get _difficulty {
+    if (state.level >= 8) return 'Advanced';
+    if (state.level >= 4) return 'Intermediate';
+    return 'Beginner';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(24),
+      child: _ClassicSectionCard(
+        title: 'Recommendation Profile',
+        icon: Icons.track_changes_rounded,
+        child: Column(
+          children: [
+            _ClassicRecommendationRow(label: 'Preferred topics', value: _preferredTopics),
+            _ClassicRecommendationRow(label: 'Difficulty preference', value: _difficulty),
+            _ClassicRecommendationRow(label: 'Strongest topic', value: _strongest, color: const Color(0xFF4CAF50)),
+            _ClassicRecommendationRow(label: 'Weak area detected', value: _weakest, color: const Color(0xFFF44336)),
+            _ClassicRecommendationRow(label: 'Average score', value: '${state.avgScore}%'),
+            _ClassicRecommendationRow(
+              label: 'Next recommendation',
+              value: state.recommendedModules.isEmpty
+                  ? 'Complete a quiz first'
+                  : state.recommendedModules.first,
+              color: const Color(0xFF2196F3),
             ),
           ],
         ),
@@ -1276,110 +1388,111 @@ class _LockedBadgeItem extends StatelessWidget {
   }
 }
 
-// ignore: unused_element
-class _ProgressRow extends StatelessWidget {
+class _ClassicRecommendationRow extends StatelessWidget {
   final String label;
-  final double value;
-  final Color color;
+  final String value;
+  final Color? color;
 
-  const _ProgressRow({
+  const _ClassicRecommendationRow({
     required this.label,
     required this.value,
-    required this.color,
+    this.color,
   });
-
-  String _status(double value) {
-    final percent = (value * 100).round();
-
-    if (percent < 50) return "Weak";
-    if (percent < 70) return "Improving";
-    if (percent < 85) return "Good";
-    return "Excellent";
-  }
-
-  Color _statusColor(double value) {
-    final percent = (value * 100).round();
-
-    if (percent < 50) return const Color(0xFFEF4444);
-    if (percent < 70) return const Color(0xFFF59E0B);
-    if (percent < 85) return const Color(0xFF2563EB);
-    return const Color(0xFF10B981);
-  }
 
   @override
   Widget build(BuildContext context) {
-    final safeValue = value.clamp(0.0, 1.0);
-    final percent = (safeValue * 100).round();
-    final status = _status(safeValue);
-    final statusColor = _statusColor(safeValue);
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(13),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFC),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
-      ),
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: 42,
-            height: 42,
-            decoration: BoxDecoration(
-              color: statusColor.withOpacity(0.12),
-              borderRadius: BorderRadius.circular(13),
+          SizedBox(
+            width: 142,
+            child: Text(
+              label,
+              style: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 12),
             ),
-            child: Icon(Icons.insights, color: statusColor, size: 22),
           ),
-
-          const SizedBox(width: 12),
-
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  style: const TextStyle(
-                    color: Color(0xFF0F172A),
-                    fontSize: 14,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-                const SizedBox(height: 7),
-                LinearProgressIndicator(
-                  value: safeValue,
-                  minHeight: 7,
-                  backgroundColor: const Color(0xFFE2E8F0),
-                  color: statusColor,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-              ],
+            child: Text(
+              value,
+              style: TextStyle(
+                color: color ?? const Color(0xFF111827),
+                fontWeight: FontWeight.w800,
+                height: 1.35,
+              ),
             ),
           ),
+        ],
+      ),
+    );
+  }
+}
 
-          const SizedBox(width: 12),
+class _ProfileHero extends StatelessWidget {
+  final String name;
+  final String email;
+  final String initials;
+  final File? image;
+  final int level;
+  final int streak;
+  final VoidCallback onEdit;
 
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
+  const _ProfileHero({
+    required this.name,
+    required this.email,
+    required this.initials,
+    required this.image,
+    required this.level,
+    required this.streak,
+    required this.onEdit,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: const Color(0xFF0B1F3A),
+        borderRadius: BorderRadius.circular(28),
+      ),
+      child: Column(
+        children: [
+          Row(
             children: [
-              Text(
-                "$percent%",
-                style: TextStyle(
-                  color: statusColor,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w900,
+              CircleAvatar(
+                radius: 35,
+                backgroundColor: Colors.white,
+                backgroundImage: image == null ? null : FileImage(image!),
+                child: image == null
+                    ? Text(initials, style: const TextStyle(color: Color(0xFF0B1F3A), fontSize: 24, fontWeight: FontWeight.w800))
+                    : null,
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(name, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white, fontSize: 21, fontWeight: FontWeight.w800)),
+                    const SizedBox(height: 4),
+                    Text(email, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Color(0xFFB9C7DF), fontSize: 13)),
+                  ],
                 ),
               ),
-              Text(
-                status,
-                style: const TextStyle(
-                  color: Color(0xFF64748B),
-                  fontSize: 10,
-                  fontWeight: FontWeight.w800,
-                ),
+              IconButton(
+                onPressed: onEdit,
+                tooltip: 'Edit profile',
+                style: IconButton.styleFrom(backgroundColor: Colors.white.withValues(alpha: 0.12)),
+                icon: const Icon(Icons.edit_outlined, color: Colors.white),
               ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          Row(
+            children: [
+              Expanded(child: _HeroPill(icon: Icons.shield_outlined, text: 'Level $level')),
+              const SizedBox(width: 10),
+              Expanded(child: _HeroPill(icon: Icons.local_fire_department_outlined, text: '$streak day streak')),
             ],
           ),
         ],
@@ -1388,34 +1501,58 @@ class _ProgressRow extends StatelessWidget {
   }
 }
 
-class _InfoRow extends StatelessWidget {
-  final String label;
-  final String value;
-  final Color? valueColor;
+class _HeroPill extends StatelessWidget {
+  final IconData icon;
+  final String text;
 
-  const _InfoRow({required this.label, required this.value, this.valueColor});
+  const _HeroPill({required this.icon, required this.text});
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(14)),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          SizedBox(
-            width: 130,
-            child: Text(
-              label,
-              style: const TextStyle(color: Colors.grey, fontSize: 13),
-            ),
+          Icon(icon, size: 17, color: const Color(0xFF7DD3FC)),
+          const SizedBox(width: 7),
+          Flexible(child: Text(text, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 12))),
+        ],
+      ),
+    );
+  }
+}
+
+class _MetricCard extends StatelessWidget {
+  final IconData icon;
+  final Color color;
+  final String value;
+  final String label;
+
+  const _MetricCard({required this.icon, required this.color, required this.value, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return _Panel(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      child: Row(
+        children: [
+          Container(
+            height: 36,
+            width: 36,
+            decoration: BoxDecoration(color: color.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(11)),
+            child: Icon(icon, color: color, size: 20),
           ),
+          const SizedBox(width: 10),
           Expanded(
-            child: Text(
-              value,
-              style: TextStyle(
-                fontWeight: FontWeight.w700,
-                color: valueColor ?? const Color(0xFF0F172A),
-              ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(value, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Color(0xFF0F172A))),
+                Text(label, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 10, color: Color(0xFF64748B), fontWeight: FontWeight.w600)),
+              ],
             ),
           ),
         ],
@@ -1424,48 +1561,78 @@ class _InfoRow extends StatelessWidget {
   }
 }
 
-class _MenuTile extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final Color? color;
-  final VoidCallback onTap;
+class _Panel extends StatelessWidget {
+  final Widget child;
+  final EdgeInsetsGeometry padding;
 
-  const _MenuTile({
-    required this.icon,
-    required this.title,
-    required this.onTap,
-    this.color,
-  });
+  const _Panel({required this.child, this.padding = const EdgeInsets.all(16)});
 
   @override
   Widget build(BuildContext context) {
-    final itemColor = color ?? const Color(0xFF0F172A);
+    return Container(
+      width: double.infinity,
+      padding: padding,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFE8EDF5)),
+      ),
+      child: child,
+    );
+  }
+}
 
+class _SectionHeading extends StatelessWidget {
+  final String title;
+
+  const _SectionHeading({required this.title});
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(title, style: const TextStyle(color: Color(0xFF0F172A), fontSize: 18, fontWeight: FontWeight.w800));
+  }
+}
+
+class _BadgeGlyph extends StatelessWidget {
+  final IconData icon;
+  final Color color;
+  final double size;
+
+  const _BadgeGlyph({required this.icon, required this.color, this.size = 48});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: size,
+      width: size,
+      decoration: BoxDecoration(color: color.withValues(alpha: 0.12), shape: BoxShape.circle),
+      child: Icon(icon, color: color, size: size * 0.52),
+    );
+  }
+}
+
+class _BadgePreview extends StatelessWidget {
+  final String title;
+  final IconData icon;
+  final Color color;
+  final VoidCallback onTap;
+
+  const _BadgePreview({required this.title, required this.icon, required this.color, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(18),
+      borderRadius: BorderRadius.circular(16),
       child: Container(
-        margin: const EdgeInsets.only(bottom: 14),
-        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(18),
-        ),
-        child: Row(
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
+        decoration: BoxDecoration(color: const Color(0xFFF8FAFC), borderRadius: BorderRadius.circular(16)),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, color: itemColor),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Text(
-                title,
-                style: TextStyle(
-                  color: itemColor,
-                  fontWeight: FontWeight.w800,
-                  fontSize: 16,
-                ),
-              ),
-            ),
-            Icon(Icons.chevron_right, color: itemColor),
+            _BadgeGlyph(icon: icon, color: color, size: 44),
+            const SizedBox(height: 7),
+            Text(title, maxLines: 2, overflow: TextOverflow.ellipsis, textAlign: TextAlign.center, style: const TextStyle(fontSize: 10, height: 1.2, fontWeight: FontWeight.w700)),
           ],
         ),
       ),
@@ -1473,22 +1640,253 @@ class _MenuTile extends StatelessWidget {
   }
 }
 
-class _MiniCard extends StatelessWidget {
-  final Widget child;
+class _BadgeSection extends StatelessWidget {
+  final String title;
+  final Color color;
+  final List<String> badges;
+  final bool isUnlocked;
+  final void Function(String, {required bool isUnlocked}) onTap;
 
-  const _MiniCard({required this.child});
+  const _BadgeSection({required this.title, required this.color, required this.badges, required this.isUnlocked, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    if (badges.isEmpty) return const SizedBox.shrink();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _Tag(label: '$title (${badges.length})', color: color),
+        const SizedBox(height: 12),
+        GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: badges.length,
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3, mainAxisSpacing: 10, crossAxisSpacing: 10, childAspectRatio: 0.92),
+          itemBuilder: (_, index) {
+            final badge = badges[index];
+            return _AchievementTile(
+              title: badge,
+              icon: _iconForBadge(badge),
+              color: _colorForBadge(badge),
+              locked: !isUnlocked,
+              onTap: () => onTap(badge, isUnlocked: isUnlocked),
+            );
+          },
+        ),
+      ],
+    );
+  }
+
+  IconData _iconForBadge(String badge) {
+    final lower = badge.toLowerCase();
+    if (lower.contains('phishing')) return Icons.mark_email_read_rounded;
+    if (lower.contains('password')) return Icons.key_rounded;
+    if (lower.contains('streak')) return Icons.local_fire_department_rounded;
+    if (lower.contains('quiz')) return Icons.emoji_events_rounded;
+    if (lower.contains('perfect')) return Icons.star_rounded;
+    if (lower.contains('malware')) return Icons.bug_report_rounded;
+    if (lower.contains('privacy')) return Icons.visibility_rounded;
+    if (lower.contains('threat')) return Icons.radar_rounded;
+    if (lower.contains('rookie')) return Icons.eco_rounded;
+    if (lower.contains('champion')) return Icons.workspace_premium_rounded;
+    if (lower.contains('defender')) return Icons.shield_rounded;
+    return Icons.military_tech_rounded;
+  }
+
+  Color _colorForBadge(String badge) {
+    final lower = badge.toLowerCase();
+    if (lower.contains('phishing') || lower.contains('privacy')) return const Color(0xFF7C3AED);
+    if (lower.contains('malware') || lower.contains('threat')) return const Color(0xFFDC2626);
+    if (lower.contains('streak')) return const Color(0xFFEA580C);
+    if (lower.contains('quiz') || lower.contains('perfect')) return const Color(0xFFD97706);
+    return const Color(0xFF2563EB);
+  }
+}
+
+class _AchievementTile extends StatelessWidget {
+  final String title;
+  final IconData icon;
+  final Color color;
+  final bool locked;
+  final VoidCallback onTap;
+
+  const _AchievementTile({required this.title, required this.icon, required this.color, required this.locked, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Opacity(
+      opacity: locked ? 0.52 : 1,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
+          decoration: BoxDecoration(color: const Color(0xFFF8FAFC), borderRadius: BorderRadius.circular(16)),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Stack(
+                alignment: Alignment.center,
+                children: [
+                  _BadgeGlyph(icon: icon, color: color, size: 44),
+                  if (locked) const Icon(Icons.lock_rounded, size: 16, color: Color(0xFF334155)),
+                ],
+              ),
+              const SizedBox(height: 7),
+              Text(title, maxLines: 2, overflow: TextOverflow.ellipsis, textAlign: TextAlign.center, style: const TextStyle(fontSize: 10, height: 1.2, fontWeight: FontWeight.w700)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _Tag extends StatelessWidget {
+  final String label;
+  final Color color;
+
+  const _Tag({required this.label, required this.color});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: double.infinity,
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: child,
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+      decoration: BoxDecoration(color: color.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(99)),
+      child: Text(label.toUpperCase(), style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.w800, letterSpacing: 0.5)),
     );
   }
+}
+
+class _InsightRow extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String value;
+  final Color color;
+
+  const _InsightRow({required this.icon, required this.label, required this.value, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        children: [
+          Icon(icon, color: color, size: 19),
+          const SizedBox(width: 10),
+          Expanded(child: Text(label, style: const TextStyle(color: Color(0xFF475569), fontWeight: FontWeight.w600))),
+          const SizedBox(width: 12),
+          Flexible(child: Text(value, textAlign: TextAlign.right, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Color(0xFF0F172A), fontWeight: FontWeight.w800))),
+        ],
+      ),
+    );
+  }
+}
+
+class _RecommendationCard extends StatelessWidget {
+  final String title;
+  final VoidCallback onTap;
+
+  const _RecommendationCard({required this.title, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(color: const Color(0xFFEFF6FF), borderRadius: BorderRadius.circular(20)),
+        child: Row(
+          children: [
+            const CircleAvatar(backgroundColor: Color(0xFF2563EB), child: Icon(Icons.auto_awesome_rounded, color: Colors.white)),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Recommended for you', style: TextStyle(color: Color(0xFF1D4ED8), fontSize: 12, fontWeight: FontWeight.w800)),
+                  const SizedBox(height: 3),
+                  Text(title, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Color(0xFF0F172A), fontSize: 16, fontWeight: FontWeight.w800)),
+                ],
+              ),
+            ),
+            const Icon(Icons.arrow_forward_rounded, color: Color(0xFF2563EB)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _RecommendationEmptyCard extends StatelessWidget {
+  const _RecommendationEmptyCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(color: const Color(0xFFF1F5F9), borderRadius: BorderRadius.circular(20)),
+      child: const Row(
+        children: [
+          Icon(Icons.auto_awesome_outlined, color: Color(0xFF64748B)),
+          SizedBox(width: 12),
+          Expanded(child: Text('Complete a quiz to receive your personalised learning recommendation.', style: TextStyle(color: Color(0xFF475569), height: 1.35, fontWeight: FontWeight.w600))),
+        ],
+      ),
+    );
+  }
+}
+
+class _AccountAction extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final Color color;
+  final VoidCallback onTap;
+
+  const _AccountAction({required this.icon, required this.label, required this.onTap, this.color = const Color(0xFF334155)});
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
+        child: Row(
+          children: [
+            Icon(icon, color: color, size: 21),
+            const SizedBox(width: 14),
+            Expanded(child: Text(label, style: TextStyle(color: color, fontWeight: FontWeight.w700))),
+            Icon(Icons.chevron_right_rounded, color: color.withValues(alpha: 0.65)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _EmptyState extends StatelessWidget {
+  final IconData icon;
+  final String text;
+
+  const _EmptyState({required this.icon, required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Icon(icon, color: const Color(0xFF94A3B8), size: 28),
+        const SizedBox(height: 8),
+        Text(text, textAlign: TextAlign.center, style: const TextStyle(color: Color(0xFF64748B), height: 1.35, fontWeight: FontWeight.w600)),
+      ],
+    );
+  }
+}
+
+class _AchievementDetail {
+  final String category;
+  final String description;
+  final String condition;
+
+  const _AchievementDetail({required this.category, required this.description, required this.condition});
 }

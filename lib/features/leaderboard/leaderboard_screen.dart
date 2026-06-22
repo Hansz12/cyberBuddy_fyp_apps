@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../home/cubit/home_cubit.dart';
+import '../learning/cubit/learning_cubit.dart';
 import '../quiz/cubit/quiz_cubit.dart';
 import '../quiz/quiz_screen.dart';
 import 'cubit/leaderboard_cubit.dart';
@@ -41,11 +42,18 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
 
   void _startQuiz(BuildContext context) {
     final homeState = context.read<HomeCubit>().state;
+    final learningState = context.read<LearningCubit>().state;
     final recommendedModuleId = homeState.recommendedModuleIds.isNotEmpty
-        ? homeState.recommendedModuleIds.first
-        : "M001";
+        ? homeState.recommendedModuleIds.first.trim().toLowerCase()
+        : '';
+    final fallback = learningState.modules.where((module) => !module.completed);
+    final moduleId = recommendedModuleId.isNotEmpty
+        ? recommendedModuleId
+        : fallback.isNotEmpty
+            ? fallback.first.id
+            : 'M001';
 
-    context.read<QuizCubit>().loadQuiz(recommendedModuleId);
+    context.read<QuizCubit>().loadQuiz(moduleId);
 
     Navigator.push(
       context,

@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:vibration/vibration.dart';
 
+import '../../data/services/quiz_audio_service.dart';
 import '../home/cubit/home_cubit.dart';
 import 'cubit/quiz_cubit.dart';
 import 'cubit/quiz_state.dart';
@@ -18,11 +19,50 @@ class QuizScreen extends StatefulWidget {
 
 class _QuizScreenState extends State<QuizScreen> {
   OverlayEntry? _feedbackOverlayEntry;
+  late final QuizAudioService _quizAudio;
+  bool _isAudioReady = false;
+  bool _isAudioMuted = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _quizAudio = QuizAudioService();
+    _setupQuizAudio();
+  }
 
   @override
   void dispose() {
     _feedbackOverlayEntry?.remove();
+    _quizAudio.dispose();
     super.dispose();
+  }
+
+  Future<void> _setupQuizAudio() async {
+    await _quizAudio.loadPreference();
+    if (!mounted) return;
+
+    setState(() {
+      _isAudioReady = true;
+      _isAudioMuted = _quizAudio.isMuted;
+    });
+    _startQuizAudioIfReady();
+  }
+
+  void _startQuizAudioIfReady() {
+    final state = context.read<QuizCubit>().state;
+    if (!_isAudioReady || state.questions.isEmpty || state.isFinished) return;
+
+    _quizAudio.start();
+  }
+
+  Future<void> _toggleQuizAudio() async {
+    if (!_isAudioReady) return;
+
+    final muted = !_isAudioMuted;
+    await _quizAudio.setMuted(muted);
+    if (!mounted) return;
+
+    setState(() => _isAudioMuted = muted);
   }
 
   void _showAnswerFeedback({required bool isCorrect, required int xp}) {
@@ -79,8 +119,16 @@ class _QuizScreenState extends State<QuizScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return BlocBuilder<QuizCubit, QuizState>(
-      builder: (context, state) {
+    return BlocListener<QuizCubit, QuizState>(
+      listener: (context, state) {
+        if (state.isFinished) {
+          _quizAudio.stop();
+        } else {
+          _startQuizAudioIfReady();
+        }
+      },
+      child: BlocBuilder<QuizCubit, QuizState>(
+        builder: (context, state) {
         if (state.isLoading) {
           return const Scaffold(
             backgroundColor: Color(0xFFF1F5F9),
@@ -169,12 +217,31 @@ class _QuizScreenState extends State<QuizScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      IconButton(
-                        onPressed: () => Navigator.pop(context),
-                        icon: const Icon(Icons.arrow_back),
-                        color: Colors.white,
-                        padding: EdgeInsets.zero,
-                        alignment: Alignment.centerLeft,
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          IconButton(
+                            onPressed: () => Navigator.pop(context),
+                            icon: const Icon(Icons.arrow_back),
+                            color: Colors.white,
+                            padding: EdgeInsets.zero,
+                            alignment: Alignment.centerLeft,
+                          ),
+                          IconButton(
+                            tooltip: _isAudioMuted
+                                ? 'Turn on quiz ambience'
+                                : 'Mute quiz ambience',
+                            onPressed: _isAudioReady
+                                ? _toggleQuizAudio
+                                : null,
+                            icon: Icon(
+                              _isAudioMuted
+                                  ? Icons.volume_off_rounded
+                                  : Icons.volume_up_rounded,
+                            ),
+                            color: Colors.white,
+                          ),
+                        ],
                       ),
 
                       const SizedBox(height: 2),
@@ -442,7 +509,8 @@ class _QuizScreenState extends State<QuizScreen> {
             ),
           ),
         );
-      },
+        },
+      ),
     );
   }
 }

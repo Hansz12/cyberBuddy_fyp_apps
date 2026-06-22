@@ -40,6 +40,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _openQuiz(BuildContext context) {
+    final homeState = context.read<HomeCubit>().state;
     final learningState = context.read<LearningCubit>().state;
 
     if (learningState.modules.isEmpty) {
@@ -49,10 +50,27 @@ class _HomeScreenState extends State<HomeScreen> {
       return;
     }
 
+    final recommendedModuleId = homeState.recommendedModuleIds.isNotEmpty
+        ? homeState.recommendedModuleIds.first.trim().toLowerCase()
+        : '';
+    final recommendedTitle = homeState.recommendedModules.isNotEmpty
+        ? homeState.recommendedModules.first.trim().toLowerCase()
+        : '';
+    final recommended = learningState.modules.where((module) {
+      final matchesId =
+          recommendedModuleId.isNotEmpty &&
+          module.id.trim().toLowerCase() == recommendedModuleId;
+      final matchesTitle =
+          recommendedTitle.isNotEmpty &&
+          module.title.trim().toLowerCase() == recommendedTitle;
+      return !module.completed && (matchesId || matchesTitle);
+    }).toList();
     final notCompleted = learningState.modules.where((m) => !m.completed);
-    final module = notCompleted.isNotEmpty
-        ? notCompleted.first
-        : learningState.modules.first;
+    final module = recommended.isNotEmpty
+        ? recommended.first
+        : notCompleted.isNotEmpty
+            ? notCompleted.first
+            : learningState.modules.first;
 
     context.read<QuizCubit>().loadQuiz(module.id);
 

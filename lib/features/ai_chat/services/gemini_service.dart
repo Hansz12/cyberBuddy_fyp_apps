@@ -2,8 +2,12 @@ import 'package:google_generative_ai/google_generative_ai.dart';
 
 import '../../../core/secrets/api_keys.dart';
 
+/// Maintains one continuous Gemini conversation for the lifetime of a chat
+/// screen. This is important for follow-up questions such as "why?" or
+/// "explain that in Malay" to retain their context.
 class GeminiService {
   late final GenerativeModel _model;
+  late ChatSession _chat;
 
   GeminiService() {
     _model = GenerativeModel(
@@ -39,15 +43,25 @@ Do not ask for passwords, OTP, bank details, or private information.
 Do not help with harmful cyber activities, hacking other people, stealing accounts, bypassing security, or creating malware.
 '''),
     );
+    startNewConversation();
+  }
+
+  void startNewConversation() {
+    _chat = _model.startChat();
   }
 
   Future<String> sendMessage(String message) async {
-    try {
-      final response = await _model.generateContent([Content.text(message)]);
+    // Capture this session so a later "Clear chat" cannot accidentally move
+    // an in-flight request into a new conversation.
+    final chat = _chat;
 
-      return response.text ?? 'Sorry, I could not generate an answer.';
-    } catch (e) {
-      return 'Sorry, CyberBuddy AI could not respond right now. Please try again.';
+    try {
+      final response = await chat.sendMessage(Content.text(message));
+      return response.text?.trim().isNotEmpty == true
+          ? response.text!.trim()
+          : 'Sorry, I could not generate an answer. Please try again.';
+    } catch (_) {
+      return 'Sorry, CyberBuddy AI could not respond right now. Please check your connection and try again.';
     }
   }
 }
