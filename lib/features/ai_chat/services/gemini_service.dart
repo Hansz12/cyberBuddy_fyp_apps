@@ -14,7 +14,9 @@ class GeminiService {
   late final GenerativeModel _model;
   late ChatSession _chat;
 
-  bool get isConfigured => ApiKeys.hasGeminiApiKey;
+  // This only confirms that a key was supplied locally. The Gemini server is
+  // the authority that verifies whether it is valid and authorised.
+  bool get hasApiKey => ApiKeys.hasGeminiApiKey;
 
   GeminiService() {
     _model = GenerativeModel(
@@ -91,7 +93,7 @@ Do not help with harmful cyber activities, hacking other people, stealing accoun
           details.contains('403') ||
           details.contains('api key') ||
           details.contains('permission denied')) {
-        return 'CyberBuddy AI could not verify its configuration. Please check the Gemini API key.';
+        return 'Gemini rejected the API key (401/403). Use a valid Gemini Developer API key, then restart the app.';
       }
 
       return 'Sorry, CyberBuddy AI could not respond right now. Please check your connection and try again.';

@@ -231,7 +231,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
                   ),
                 ),
               ),
-              _StatusPill(configured: _geminiService.isConfigured),
+              _StatusPill(hasApiKey: _geminiService.hasApiKey),
             ],
           ),
           const SizedBox(height: 12),
@@ -380,16 +380,16 @@ class _AiChatScreenState extends State<AiChatScreen> {
 }
 
 class _StatusPill extends StatelessWidget {
-  final bool configured;
+  final bool hasApiKey;
 
-  const _StatusPill({required this.configured});
+  const _StatusPill({required this.hasApiKey});
 
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
       decoration: BoxDecoration(
-        color: (configured ? const Color(0xFF22C55E) : const Color(0xFFF59E0B))
+        color: (hasApiKey ? const Color(0xFF38BDF8) : const Color(0xFFF59E0B))
             .withValues(alpha: 0.18),
         borderRadius: BorderRadius.circular(20),
       ),
@@ -398,12 +398,12 @@ class _StatusPill extends StatelessWidget {
         children: [
           Icon(
             Icons.circle,
-            color: configured ? const Color(0xFF4ADE80) : const Color(0xFFFBBF24),
+            color: hasApiKey ? const Color(0xFF38BDF8) : const Color(0xFFFBBF24),
             size: 8,
           ),
           const SizedBox(width: 5),
           Text(
-            configured ? 'Configured' : 'Setup needed',
+            hasApiKey ? 'Key loaded' : 'Setup needed',
             style: const TextStyle(
               color: Colors.white,
               fontSize: 11,
