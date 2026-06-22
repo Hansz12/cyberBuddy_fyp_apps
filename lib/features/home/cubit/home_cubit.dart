@@ -701,6 +701,7 @@ class HomeCubit extends Cubit<HomeState> {
           .map((id) => id.toUpperCase())
           .toSet();
 
+      final userVector = _buildUserVector();
       final scoredModules = <Map<String, dynamic>>[];
 
       for (final module in modules) {
@@ -715,6 +716,8 @@ class HomeCubit extends Cubit<HomeState> {
         final topic = _normaliseTopic(module['topic']?.toString() ?? '');
         final difficulty = module['difficulty']?.toString() ?? 'Beginner';
         final xpReward = int.tryParse(module['xp_reward'].toString()) ?? 20;
+        final tags = module['tags_csv']?.toString() ?? '';
+        final objective = module['learning_objective']?.toString() ?? '';
 
         final answered = state.topicAnswered[topic] ?? 0;
         final correct = state.topicCorrect[topic] ?? 0;
@@ -740,12 +743,19 @@ class HomeCubit extends Cubit<HomeState> {
         // XP is deliberately only a tie-breaker; learning need stays first.
         final xpBoost = xpReward / 2000;
 
-        final finalScore =
+        final ruleScore =
             weaknessScore +
             coverageBoost +
             uncertaintyBoost +
             difficultyBoost +
             xpBoost;
+        final moduleVector = _buildModuleVector(
+          topic: topic,
+          tags: tags,
+          learningObjective: objective,
+        );
+        final cosineScore = _cosineSimilarity(userVector, moduleVector);
+        final hybridScore = (ruleScore * 0.65) + (cosineScore * 0.35);
 
         scoredModules.add({
           'id': moduleId,
@@ -756,7 +766,9 @@ class HomeCubit extends Cubit<HomeState> {
           'accuracy': accuracy,
           'confidence': confidence,
           'weaknessScore': weaknessScore,
-          'score': finalScore,
+          'ruleScore': ruleScore,
+          'cosineScore': cosineScore,
+          'score': hybridScore,
         });
       }
 
@@ -779,34 +791,23 @@ class HomeCubit extends Cubit<HomeState> {
         final difficulty = module['difficulty'].toString();
         final answered = module['answered'] as int;
         final accuracy = module['accuracy'] as double;
-        final confidence = module['confidence'] as double;
-        final weaknessScore = module['weaknessScore'] as double;
+        final cosineScore = module['cosineScore'] as double;
+        final hybridScore = module['score'] as double;
         final percent = (accuracy * 100).round();
-        final recommendationScore = answered == 0
-            ? 35.0
-            : (weaknessScore * 100).clamp(0, 100).toDouble();
+        final matchPercent = (cosineScore * 100).round();
 
         recommendedModules.add(title);
         recommendedModuleIds.add(id);
-        moduleScores[title] = module['score'] as double;
-        recommendationScores[id] = recommendationScore;
+        moduleScores[title] = hybridScore;
+        recommendationScores[id] =
+            (hybridScore * 100).clamp(0, 100).toDouble();
 
         if (answered > 0) {
-          if (accuracy >= 0.8) {
-            moduleReasons[title] =
-                'You scored $percent% in $topic across $answered question${answered == 1 ? '' : 's'}. This $difficulty module is your next step.';
-          } else {
-            final evidence = confidence < 0.5
-                ? 'an early signal'
-                : confidence < 0.75
-                    ? 'growing evidence'
-                    : 'strong evidence';
-            moduleReasons[title] =
-                'Your $topic score is $percent% across $answered question${answered == 1 ? '' : 's'} ($evidence). This $difficulty module will strengthen the topic.';
-          }
+          moduleReasons[title] =
+              'Recommended because your $topic performance is $percent%, and this $difficulty module has a $matchPercent% content match with your learning profile.';
         } else {
           moduleReasons[title] =
-              'Start here to build your cybersecurity coverage in $topic with a $difficulty module.';
+              'Recommended because this $difficulty module covers a topic you have not explored yet and matches your learning profile.';
         }
       }
 
@@ -830,6 +831,125 @@ class HomeCubit extends Cubit<HomeState> {
         ),
       );
     }
+  }
+
+  List<String> get _recommendationTopics => const [
+    'phishing',
+    'password',
+    'social',
+    'malware',
+    'privacy',
+    'scam',
+    'mobile',
+    'network',
+    'ethics',
+    'banking',
+  ];
+
+  List<double> _buildUserVector() {
+    return _recommendationTopics.map((topic) {
+      final answered = state.topicAnswered[topic] ?? 0;
+      final progress = state.topicProgress(topic);
+
+      // Cold-start baseline: unexplored topics retain a modest signal without
+      // overpowering a clearly weak topic with real quiz evidence.
+      if (answered == 0) return 0.35;
+
+      final weaknessWeight = 1.0 - progress;
+      final confidence = answered / (answered + 4);
+      return (weaknessWeight * 0.75) + (confidence * 0.25);
+    }).toList();
+  }
+
+  List<double> _buildModuleVector({
+    required String topic,
+    required String tags,
+    required String learningObjective,
+  }) {
+    final text = '$topic $tags $learningObjective'.toLowerCase();
+
+    return _recommendationTopics.map((candidateTopic) {
+      var value = 0.0;
+
+      if (topic == candidateTopic) value += 1.0;
+      if (text.contains(candidateTopic)) value += 0.7;
+
+      if (candidateTopic == 'password' &&
+          (text.contains('2fa') ||
+              text.contains('mfa') ||
+              text.contains('otp') ||
+              text.contains('credential'))) {
+        value += 0.8;
+      }
+
+      if (candidateTopic == 'phishing' &&
+          (text.contains('fake link') ||
+              text.contains('spoof') ||
+              text.contains('url'))) {
+        value += 0.8;
+      }
+
+      if (candidateTopic == 'privacy' &&
+          (text.contains('data') ||
+              text.contains('permission') ||
+              text.contains('oversharing'))) {
+        value += 0.8;
+      }
+
+      if (candidateTopic == 'network' &&
+          (text.contains('wifi') ||
+              text.contains('wi-fi') ||
+              text.contains('hotspot') ||
+              text.contains('vpn'))) {
+        value += 0.8;
+      }
+
+      if (candidateTopic == 'malware' &&
+          (text.contains('download') ||
+              text.contains('usb') ||
+              text.contains('ransomware') ||
+              text.contains('apk'))) {
+        value += 0.8;
+      }
+
+      if (candidateTopic == 'scam' &&
+          (text.contains('banking') ||
+              text.contains('tac') ||
+              text.contains('fraud') ||
+              text.contains('otp'))) {
+        value += 0.8;
+      }
+
+      if (candidateTopic == 'ethics' &&
+          (text.contains('cyberbullying') ||
+              text.contains('doxxing') ||
+              text.contains('consent') ||
+              text.contains('law'))) {
+        value += 0.8;
+      }
+
+      return value.clamp(0.0, 1.0).toDouble();
+    }).toList();
+  }
+
+  double _cosineSimilarity(
+    List<double> userVector,
+    List<double> moduleVector,
+  ) {
+    if (userVector.length != moduleVector.length) return 0.0;
+
+    var dotProduct = 0.0;
+    var userMagnitude = 0.0;
+    var moduleMagnitude = 0.0;
+
+    for (var index = 0; index < userVector.length; index++) {
+      dotProduct += userVector[index] * moduleVector[index];
+      userMagnitude += userVector[index] * userVector[index];
+      moduleMagnitude += moduleVector[index] * moduleVector[index];
+    }
+
+    if (userMagnitude == 0 || moduleMagnitude == 0) return 0.0;
+    return dotProduct / (sqrt(userMagnitude) * sqrt(moduleMagnitude));
   }
 
   String _normaliseTopic(String topic) {
