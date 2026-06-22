@@ -1394,11 +1394,42 @@ class _ClassicRecommendationProfileCard extends StatelessWidget {
     required this.onTap,
   });
 
+  String _titleCase(String value) {
+    if (value.isEmpty) return value;
+    return value[0].toUpperCase() + value.substring(1);
+  }
+
+  String get _focusArea {
+    final attemptedTopics = state.topicAnswered.entries
+        .where((entry) => entry.value > 0)
+        .map((entry) => entry.key)
+        .toList()
+      ..sort(
+        (a, b) => state.topicProgress(a).compareTo(state.topicProgress(b)),
+      );
+
+    return attemptedTopics.isEmpty
+        ? 'Unexplored topics'
+        : _titleCase(attemptedTopics.first);
+  }
+
+  String get _confidence {
+    if (state.totalQuestionsAnswered >= 15) return 'High';
+    if (state.totalQuestionsAnswered >= 5) return 'Medium';
+    return 'Low';
+  }
+
   @override
   Widget build(BuildContext context) {
     final recommendedModule = state.recommendedModules.isEmpty
         ? 'Complete a quiz to unlock your next module'
         : state.recommendedModules.first;
+    final recommendedId = state.recommendedModuleIds.isEmpty
+        ? null
+        : state.recommendedModuleIds.first;
+    final matchScore = recommendedId == null
+        ? null
+        : state.recommendationScores[recommendedId];
     final recommendationReason = state.recommendedModules.isEmpty
         ? 'Complete a quiz so CyberBuddy can personalise this recommendation.'
         : state.moduleReasons[recommendedModule] ??
@@ -1443,6 +1474,29 @@ class _ClassicRecommendationProfileCard extends StatelessWidget {
             Text(
               recommendationReason,
               style: const TextStyle(color: Color(0xFF475569), height: 1.4),
+            ),
+            const SizedBox(height: 20),
+            const Divider(),
+            const SizedBox(height: 10),
+            _ClassicInfoRow(
+              label: 'Confidence',
+              value: _confidence,
+              color: Colors.green,
+            ),
+            _ClassicInfoRow(
+              label: 'Match Score',
+              value: matchScore == null ? 'Not available' : '${matchScore.round()}%',
+              color: Colors.orange,
+            ),
+            _ClassicInfoRow(
+              label: 'Method',
+              value: 'Hybrid Content Matching',
+              color: Colors.deepPurple,
+            ),
+            _ClassicInfoRow(
+              label: 'Focus Area',
+              value: _focusArea,
+              color: Colors.red,
             ),
             const SizedBox(height: 15),
             FilledButton.icon(
