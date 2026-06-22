@@ -703,6 +703,22 @@ class HomeCubit extends Cubit<HomeState> {
   }
 
   Future<void> _generateRecommendation() async {
+    // A recommendation must be based on learner behaviour. Until at least one
+    // quiz answer exists, there is no profile to rank against, so keep every
+    // recommendation field empty instead of showing a starter module.
+    if (state.totalQuestionsAnswered == 0) {
+      emit(
+        state.copyWith(
+          recommendedModules: const [],
+          recommendedModuleIds: const [],
+          moduleReasons: const {},
+          moduleScores: const {},
+          recommendationScores: const {},
+        ),
+      );
+      return;
+    }
+
     try {
       final modules = await _dataService.loadModules();
 

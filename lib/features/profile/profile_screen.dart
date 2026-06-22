@@ -12,7 +12,6 @@ import '../auth/splash_screen.dart';
 import '../home/cubit/home_cubit.dart';
 import '../home/cubit/home_state.dart';
 import '../learning/cubit/learning_cubit.dart';
-import '../learning/cubit/learning_state.dart';
 import '../learning/module_detail_screen.dart';
 import 'edit_profile_screen.dart';
 
@@ -296,6 +295,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (topics.isEmpty) return 'No data yet';
     topics.sort((a, b) => state.topicProgress(a).compareTo(state.topicProgress(b)));
     return _titleCase(topics.first);
+  }
+
+  String _levelTitle(HomeState state) {
+    return state.badges.contains('Threat Spotter')
+        ? 'Threat Spotter'
+        : 'Cyber Learner';
   }
 
   Future<void> _editProfile() async {
@@ -599,14 +604,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final homeState = context.watch<HomeCubit>().state;
-    final learningState = context.watch<LearningCubit>().state;
-    return _buildClassicProfile(context, homeState, learningState);
+    return _buildClassicProfile(context, homeState);
   }
 
   Widget _buildClassicProfile(
     BuildContext context,
     HomeState homeState,
-    LearningState learningState,
   ) {
     return Scaffold(
       backgroundColor: const Color(0xFFF1F5F9),
@@ -680,7 +683,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       children: [
                         _ClassicHeaderBadge(
                           icon: Icons.shield_outlined,
-                          text: 'LV ${homeState.level} • Threat Spotter',
+                          text: 'LV ${homeState.level} • ${_levelTitle(homeState)}',
                         ),
                         _ClassicHeaderBadge(
                           icon: Icons.local_fire_department_rounded,
@@ -699,7 +702,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   child: Row(
                     children: [
                       _ClassicStatCard(title: 'XP', value: '${homeState.xp}'),
-                      _ClassicStatCard(title: 'Modules', value: '${learningState.modules.length}'),
+                      _ClassicStatCard(
+                        title: 'Completed',
+                        value: '${homeState.completedModules.length}',
+                      ),
                       _ClassicStatCard(title: 'Score', value: '${homeState.avgScore}%'),
                       _ClassicStatCard(title: 'Badges', value: '${homeState.badges.length}'),
                     ],
@@ -710,12 +716,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Column(
                   children: [
-                    _ClassicRecommendationProfileCard(
-                      state: homeState,
-                      onTap: homeState.recommendedModuleIds.isEmpty
-                          ? null
-                          : () => _openRecommendedModule(homeState),
-                    ),
+                    if (homeState.recommendedModuleIds.isNotEmpty)
+                      _ClassicRecommendationProfileCard(
+                        state: homeState,
+                        onTap: () => _openRecommendedModule(homeState),
+                      ),
                     _ClassicSectionCard(
                       title: 'Progress Snapshot',
                       icon: Icons.insights_rounded,
@@ -1428,6 +1433,8 @@ class _ClassicRecommendationProfileCard extends StatelessWidget {
     return 'Low';
   }
 
+  bool get _hasLearningData => state.totalQuestionsAnswered > 0;
+
   @override
   Widget build(BuildContext context) {
     final recommendedModule = state.recommendedModules.isEmpty
@@ -1441,8 +1448,10 @@ class _ClassicRecommendationProfileCard extends StatelessWidget {
         : state.recommendationScores[recommendedId];
     final recommendationReason = state.recommendedModules.isEmpty
         ? 'Complete a quiz so CyberBuddy can personalise this recommendation.'
-        : state.moduleReasons[recommendedModule] ??
-            'Selected from your current learning progress and incomplete modules.';
+        : !_hasLearningData
+            ? 'You have no quiz data yet, so this is a starter module to begin building your learning profile.'
+            : state.moduleReasons[recommendedModule] ??
+                'Selected from your current learning progress and incomplete modules.';
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(20),
@@ -1488,23 +1497,27 @@ class _ClassicRecommendationProfileCard extends StatelessWidget {
             const Divider(),
             const SizedBox(height: 10),
             _ClassicInfoRow(
-              label: 'Confidence',
-              value: _confidence,
-              color: Colors.green,
+              label: 'Data Confidence',
+              value: _hasLearningData ? _confidence : 'Not available',
+              color: _hasLearningData ? Colors.green : Colors.grey,
             ),
             _ClassicInfoRow(
-              label: 'Match Score',
-              value: matchScore == null ? 'Not available' : '${matchScore.round()}%',
-              color: Colors.orange,
+              label: 'Recommendation Score',
+              value: !_hasLearningData
+                  ? 'Starter suggestion'
+                  : matchScore == null
+                      ? 'Not available'
+                      : '${matchScore.round()}%',
+              color: !_hasLearningData ? Colors.blue : Colors.orange,
             ),
             _ClassicInfoRow(
               label: 'Method',
-              value: 'Hybrid Content Matching',
+              value: 'Hybrid Content-Based',
               color: Colors.deepPurple,
             ),
             _ClassicInfoRow(
               label: 'Focus Area',
-              value: _focusArea,
+              value: _hasLearningData ? _focusArea : 'Explore any topic',
               color: Colors.red,
             ),
             const SizedBox(height: 15),
